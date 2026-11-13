@@ -1,24 +1,24 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
+  EST_A,
+  MAX_NAME,
+  TABLE_CARGO,
+  TABLE_DEPENDENCIA,
+  TABLE_PAIS,
+  TABLE_PERSONAL,
+} from "@/core/constants";
+import { ERROR_CODES } from "@/core/errors";
+import {
+  validateCargoRow,
   validateCode,
-  validateNom,
+  validateDependenciaRow,
   validateDNI,
   validateFecNac,
+  validateNom,
   validatePaisRow,
-  validateDependenciaRow,
-  validateCargoRow,
   validatePersonalRow,
   validateRow,
-} from "./validators";
-import {
-  MAX_NAME,
-  EST_A,
-  TABLE_PAIS,
-  TABLE_DEPENDENCIA,
-  TABLE_CARGO,
-  TABLE_PERSONAL,
-} from "./constants";
-import { ERROR_CODES } from "./errors";
+} from "@/core/validators";
 
 describe("validators.unit", () => {
   describe("validateDNI", () => {

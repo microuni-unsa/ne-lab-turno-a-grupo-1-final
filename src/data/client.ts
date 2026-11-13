@@ -25,7 +25,7 @@ function readRequiredEnv(
     const proc = (
       globalThis as { process?: { env?: Record<string, string | undefined> } }
     ).process;
-    if (proc && proc.env && proc.env[name]) {
+    if (proc?.env?.[name]) {
       val = proc.env[name];
     }
   }

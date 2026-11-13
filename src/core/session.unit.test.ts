@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
-import { MaintenanceSession } from "./session";
-import { EST_A, EST_I, TABLE_PAIS, TABLE_PERSONAL } from "./constants";
-import { ERROR_CODES } from "./errors";
-import type { AdicionOp, ModificacionOp, InactivarOp } from "./types";
+import { describe, expect, it, vi } from "vitest";
+import { EST_A, EST_I, TABLE_PAIS, TABLE_PERSONAL } from "@/core/constants";
+import { ERROR_CODES } from "@/core/errors";
+import { MaintenanceSession } from "@/core/session";
+import type { AdicionOp, InactivarOp, ModificacionOp } from "@/core/types";
 
 describe("session.unit", () => {
   describe("MaintenanceSession State Machine (SPEC §8)", () => {
@@ -206,9 +206,10 @@ describe("session.unit", () => {
 
       const updated = session.updatePayload({ PerNom: "Updated" });
       expect(updated).toBe(true);
-      expect((session.pending?.payload as { PerNom: string }).PerNom).toBe(
-        "Updated",
-      );
+      expect(session.pending).toBeDefined();
+      expect(
+        (session.pending?.payload as { PerNom: string } | undefined)?.PerNom,
+      ).toBe("Updated");
     });
   });
 });

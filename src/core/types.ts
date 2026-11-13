@@ -5,20 +5,20 @@
  * Zero external or framework dependencies.
  */
 
-import {
+import type {
   EST_A,
   EST_I,
-  EST_X,
   EST_SIM_A,
   EST_SIM_I,
   EST_SIM_X,
-  TABLE_PAIS,
-  TABLE_DEPENDENCIA,
+  EST_X,
   TABLE_CARGO,
-  TABLE_PERSONAL,
+  TABLE_DEPENDENCIA,
   TABLE_ESTREG,
-} from "./constants";
-import type { ErrorCode, FieldFailure } from "./errors";
+  TABLE_PAIS,
+  TABLE_PERSONAL,
+} from "@/core/constants";
+import type { ErrorCode, FieldFailure } from "@/core/errors";
 
 export type { ErrorCode, FieldFailure };
 
@@ -158,7 +158,11 @@ export type TablePayload =
 // ============================================================
 
 export type PendingOpKind =
-  "adición" | "modificación" | "eliminación" | "inactivar" | "reactivar";
+  | "adición"
+  | "modificación"
+  | "eliminación"
+  | "inactivar"
+  | "reactivar";
 
 export interface AdicionOp<
   TTable extends string = TableName,
@@ -227,4 +231,5 @@ export interface GuardarFailure {
 }
 
 export type GuardarResult<TRow = unknown> =
-  GuardarSuccess<TRow> | GuardarFailure;
+  | GuardarSuccess<TRow>
+  | GuardarFailure;

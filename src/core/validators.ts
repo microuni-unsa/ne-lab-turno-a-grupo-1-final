@@ -8,29 +8,29 @@
 
 import {
   DNI_LEN,
-  MIN_NAME,
-  MAX_NAME,
-  MIN_AGE,
   EST_A,
   EST_I,
   EST_X,
-  MIN_CODE,
-  MAX_SMALLINT,
   MAX_INTEGER,
-  TABLE_PAIS,
-  TABLE_DEPENDENCIA,
+  MAX_NAME,
+  MAX_SMALLINT,
+  MIN_AGE,
+  MIN_CODE,
+  MIN_NAME,
   TABLE_CARGO,
-  TABLE_PERSONAL,
+  TABLE_DEPENDENCIA,
   TABLE_ESTREG,
-} from "./constants";
-import { ERROR_CODES, type FieldFailure } from "./errors";
+  TABLE_PAIS,
+  TABLE_PERSONAL,
+} from "@/core/constants";
+import { ERROR_CODES, type FieldFailure } from "@/core/errors";
 import type {
-  TableName,
-  PaisRow,
-  DependenciaRow,
   CargoRow,
+  DependenciaRow,
+  PaisRow,
   PersonalRow,
-} from "./types";
+  TableName,
+} from "@/core/types";
 
 /**
  * Returns the default primary key field name for a given table.

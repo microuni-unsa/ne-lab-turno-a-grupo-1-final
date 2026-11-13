@@ -15,46 +15,50 @@
  */
 
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
-import { getSupabaseClient } from "./client";
-import { DEFAULT_PAGE_LIMIT, type Page, type PagingOptions } from "./paging";
-import {
-  listQuery,
-  simpleSearch,
-  advancedSearch,
-  gsel,
-  type OrderingToggle,
-  type AdvancedSearchFilters,
-} from "./query";
 import {
   EST_A,
   EST_I,
   EST_X,
-  TABLE_PAIS,
-  TABLE_DEPENDENCIA,
   TABLE_CARGO,
-} from "../core/constants";
+  TABLE_DEPENDENCIA,
+  TABLE_PAIS,
+} from "@/core/constants";
 import {
-  ERROR_CODES,
   createFailure,
+  ERROR_CODES,
   type ErrorCode,
   type FieldFailure,
-} from "../core/errors";
+} from "@/core/errors";
 import type {
-  PaisRow,
-  DependenciaRow,
   CargoRow,
-  PersonalRow,
-  GuardarResult,
-  PendingOp,
-  TableName,
+  DependenciaRow,
   EstReg,
-} from "../core/types";
+  GuardarResult,
+  PaisRow,
+  PendingOp,
+  PersonalRow,
+  TableName,
+} from "@/core/types";
 import {
-  validatePaisRow,
-  validateDependenciaRow,
   validateCargoRow,
+  validateDependenciaRow,
+  validatePaisRow,
   validatePersonalRow,
-} from "../core/validators";
+} from "@/core/validators";
+import { getSupabaseClient } from "@/data/client";
+import {
+  DEFAULT_PAGE_LIMIT,
+  type Page,
+  type PagingOptions,
+} from "@/data/paging";
+import {
+  type AdvancedSearchFilters,
+  advancedSearch,
+  gsel,
+  listQuery,
+  type OrderingToggle,
+  simpleSearch,
+} from "@/data/query";
 
 export type GuardarOp = "insert" | "update" | "set_state";
 
@@ -459,7 +463,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
         });
       default:
         throw new Error(
-          `Unsupported pending operation: ${(pendingOp as any).kind}`,
+          `Unsupported pending operation: ${(pendingOp as { kind: string }).kind}`,
         );
     }
   }
@@ -759,7 +763,7 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
         });
       default:
         throw new Error(
-          `Unsupported pending operation: ${(pendingOp as any).kind}`,
+          `Unsupported pending operation: ${(pendingOp as { kind: string }).kind}`,
         );
     }
   }

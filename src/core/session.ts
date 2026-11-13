@@ -11,9 +11,9 @@
  * - cancel() always ok, zero side effects.
  */
 
-import { ERROR_CODES, type FieldFailure } from "./errors";
-import type { EstReg, GuardarResult, PendingOp, TableName } from "./types";
-import { canTransition } from "./lifecycle";
+import { ERROR_CODES, type FieldFailure } from "@/core/errors";
+import { canTransition } from "@/core/lifecycle";
+import type { EstReg, GuardarResult, PendingOp, TableName } from "@/core/types";
 
 export interface SessionCallbacks<
   TTable extends string = TableName,

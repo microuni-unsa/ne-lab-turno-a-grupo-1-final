@@ -7,23 +7,23 @@
  * Every builder emits explicit order (R18).
  */
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { getSupabaseClient } from "./client";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import {
-  DEFAULT_PAGE_LIMIT,
+  EST_A,
+  TABLE_CARGO,
+  TABLE_DEPENDENCIA,
+  TABLE_PAIS,
+  TABLE_PERSONAL,
+} from "@/core/constants";
+import type { TableName } from "@/core/types";
+import { getSupabaseClient } from "@/data/client";
+import {
   applyRange,
+  DEFAULT_PAGE_LIMIT,
   getSelectOptions,
   type Page,
   type PagingOptions,
-} from "./paging";
-import {
-  EST_A,
-  TABLE_PAIS,
-  TABLE_DEPENDENCIA,
-  TABLE_CARGO,
-  TABLE_PERSONAL,
-} from "../core/constants";
-import type { TableName } from "../core/types";
+} from "@/data/paging";
 
 export type OrderingToggle = "default" | "alternate";
 
@@ -41,13 +41,14 @@ export interface QueryDescriptor {
   readonly filterDescription?: string;
 }
 
-export interface ExecutableQuery<T = any> extends PromiseLike<{
-  data: T[] | null;
-  error: any;
-  count: number | null;
-}> {
+export interface ExecutableQuery<T = unknown>
+  extends PromiseLike<{
+    data: T[] | null;
+    error: PostgrestError | null;
+    count: number | null;
+  }> {
   readonly params: QueryDescriptor;
-  readonly [key: string]: any;
+  readonly [key: string]: unknown;
 }
 
 /**
@@ -124,7 +125,7 @@ export function getTableOrdering(
  * Applies ordering clauses and paging range to a Postgrest builder.
  */
 function attachDescriptor(
-  builder: any,
+  builder: object,
   descriptor: QueryDescriptor,
 ): ExecutableQuery {
   Object.defineProperty(builder, "params", {
@@ -133,17 +134,22 @@ function attachDescriptor(
     enumerable: true,
     configurable: true,
   });
-  return builder as ExecutableQuery;
+  return builder as unknown as ExecutableQuery;
+}
+
+interface ChainablePostgrestBuilder<T> {
+  order(column: string, options: { ascending: boolean }): T;
+  range(from: number, to: number): T;
 }
 
 /**
  * Applies ordering clauses and paging range to a Postgrest builder.
  */
-function applyOrderAndPaging(
-  builder: any,
+function applyOrderAndPaging<T extends ChainablePostgrestBuilder<T>>(
+  builder: T,
   ordering: readonly OrderClause[],
   page?: Pick<Page, "offset" | "limit">,
-): any {
+): T {
   let chained = builder;
   for (const ord of ordering) {
     chained = chained.order(ord.column, { ascending: ord.ascending });

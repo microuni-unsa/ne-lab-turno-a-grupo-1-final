@@ -9,13 +9,13 @@ import {
   EST_A,
   EST_I,
   EST_X,
-  TABLE_PAIS,
-  TABLE_DEPENDENCIA,
   TABLE_CARGO,
+  TABLE_DEPENDENCIA,
+  TABLE_PAIS,
   TABLE_PERSONAL,
-} from "./constants";
-import { ERROR_CODES, type FieldFailure } from "./errors";
-import type { EstReg, TableName } from "./types";
+} from "@/core/constants";
+import { ERROR_CODES, type FieldFailure } from "@/core/errors";
+import type { EstReg, TableName } from "@/core/types";
 
 export interface TransitionRule {
   readonly allowed: boolean;
@@ -23,7 +23,11 @@ export interface TransitionRule {
 }
 
 export type LifecycleOp =
-  "modificación" | "inactivar" | "reactivar" | "eliminación" | "adición";
+  | "modificación"
+  | "inactivar"
+  | "reactivar"
+  | "eliminación"
+  | "adición";
 
 /**
  * SPEC §6.1 Transition table as pure data.

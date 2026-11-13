@@ -1,24 +1,24 @@
-import { describe, it, expect } from "vitest";
-import {
-  canTransition,
-  getNextState,
-  assertTransition,
-  normalizeLifecycleOp,
-  forceAdicionState,
-  applyAdicionState,
-  getStateFieldName,
-  ADICION_FORCED_STATE,
-} from "./lifecycle";
+import { describe, expect, it } from "vitest";
 import {
   EST_A,
   EST_I,
   EST_X,
-  TABLE_PAIS,
-  TABLE_DEPENDENCIA,
   TABLE_CARGO,
+  TABLE_DEPENDENCIA,
+  TABLE_PAIS,
   TABLE_PERSONAL,
-} from "./constants";
-import { ERROR_CODES, type FieldFailure } from "./errors";
+} from "@/core/constants";
+import { ERROR_CODES, type FieldFailure } from "@/core/errors";
+import {
+  ADICION_FORCED_STATE,
+  applyAdicionState,
+  assertTransition,
+  canTransition,
+  forceAdicionState,
+  getNextState,
+  getStateFieldName,
+  normalizeLifecycleOp,
+} from "@/core/lifecycle";
 
 describe("lifecycle.unit", () => {
   describe("SPEC §6.1 Exhaustive Transition Table", () => {

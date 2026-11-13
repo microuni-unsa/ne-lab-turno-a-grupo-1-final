@@ -6,41 +6,41 @@
  */
 
 // Supabase Client (§14)
-export { getSupabaseClient, supabase } from "./client";
+export { getSupabaseClient, supabase } from "@/data/client";
 
 // Paging Contracts & Defaults (§11 Decision)
 export {
-  type Page,
+  applyPaging,
+  applyRange,
   DEFAULT_PAGE_LIMIT,
+  getSelectOptions,
+  type Page,
   type PagingOptions,
   validatePageBoundaries,
-  applyRange,
-  applyPaging,
-  getSelectOptions,
-} from "./paging";
+} from "@/data/paging";
 
 // Query Builders (§7, §9, §11)
 export {
-  type OrderingToggle,
-  type OrderClause,
-  type QueryDescriptor,
-  type ExecutableQuery,
   type AdvancedSearchFilters,
-  getTableOrdering,
-  listQuery,
-  simpleSearch,
   advancedSearch,
+  type ExecutableQuery,
+  getTableOrdering,
   gsel,
-} from "./query";
+  listQuery,
+  type OrderClause,
+  type OrderingToggle,
+  type QueryDescriptor,
+  simpleSearch,
+} from "@/data/query";
 
 // Repositories & RPC Commits (§5, §8, §12)
 export {
+  BaseRepo,
+  CargoRepo,
+  DependenciaRepo,
   type GuardarOp,
   mapPostgrestError,
-  BaseRepo,
-  ReferenceRepo,
   PaisRepo,
-  DependenciaRepo,
-  CargoRepo,
   PersonalRepo,
-} from "./repositories";
+  ReferenceRepo,
+} from "@/data/repositories";
