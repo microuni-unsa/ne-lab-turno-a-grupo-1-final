@@ -1,0 +1,22 @@
+import { defineConfig } from "vite";
+
+export default defineConfig({
+  test: {
+    projects: [
+      {
+        test: {
+          name: "unit",
+          environment: "node",
+          include: ["src/**/*.unit.test.ts"],
+        },
+      },
+      {
+        test: {
+          name: "integration",
+          environment: "node",
+          include: ["test/integration/**/*.test.ts"],
+        },
+      },
+    ],
+  },
+});
