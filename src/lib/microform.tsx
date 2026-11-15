@@ -323,7 +323,7 @@ function AsyncComboboxControl({
                 onValueChange={setSearch}
                 placeholder="Buscar por nombre..."
               />
-              <CommandList className="max-h-[38dvh]">
+              <CommandList className="max-h-[30dvh]">
                 <CommandEmpty>
                   {isLoading
                     ? "Buscando..."

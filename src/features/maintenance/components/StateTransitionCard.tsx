@@ -72,7 +72,7 @@ export function StateTransitionCard({
       <CardContent className="flex flex-col gap-3 text-sm">
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">
-            {singularLabel} seleccionado
+            Registro de {singularLabel}
           </span>
           <span
             className="font-semibold text-foreground"
@@ -82,11 +82,13 @@ export function StateTransitionCard({
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-col gap-1.5 text-xs">
           <span className="text-muted-foreground">Transición de estado:</span>
-          <EstadoBadge state={currentState} />
-          <ArrowRightIcon className="size-3.5 text-muted-foreground" />
-          <EstadoBadge state={targetState} />
+          <div className="flex items-center gap-2">
+            <EstadoBadge state={currentState} />
+            <ArrowRightIcon className="size-3.5 shrink-0 text-muted-foreground" />
+            <EstadoBadge state={targetState} />
+          </div>
         </div>
 
         <p className="m-0 text-xs text-muted-foreground">

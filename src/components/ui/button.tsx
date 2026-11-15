@@ -123,7 +123,7 @@ function IonicButton({
       )}
       {...extractCommonDomProps(props)}
     >
-      <span className="inline-flex w-full items-center justify-[inherit] gap-[inherit]">
+      <span className="inline-flex w-full items-center justify-[inherit] gap-1.5">
         {children}
       </span>
     </IonButton>

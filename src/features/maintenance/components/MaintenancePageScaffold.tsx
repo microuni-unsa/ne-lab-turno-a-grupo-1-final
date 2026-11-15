@@ -108,7 +108,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
       />
 
       {showStickyBanner && (
-        <div className="sticky top-0 z-20 flex flex-col gap-2 bg-background/95 py-1 backdrop-blur-sm">
+        <div className="sticky top-0 z-20 flex flex-col gap-2 bg-background py-1">
           {screen.isFormPending && !screen.formDrawerOpen && (
             <PendingFormBanner
               pendingKind={screen.pendingKind}

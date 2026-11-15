@@ -90,7 +90,9 @@ export function HomePage() {
     <IonPage id="maestro-personal-shell">
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Maestro de Personal</IonTitle>
+          <IonTitle className="px-4 font-semibold">
+            Maestro de Personal
+          </IonTitle>
         </IonToolbar>
       </IonHeader>
 
