@@ -6,7 +6,20 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!dist", "!.bun-cache", "!docs", "!.agents", "!db"]
+    "includes": [
+      "**",
+      "!dist",
+      "!android",
+      "!.bun-cache",
+      "!docs",
+      "!.agents",
+      "!supabase"
+    ]
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   },
   "formatter": {
     "enabled": true,

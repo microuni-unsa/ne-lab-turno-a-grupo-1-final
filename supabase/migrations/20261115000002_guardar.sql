@@ -275,7 +275,7 @@ BEGIN
   IF v_op = 'insert' THEN
     -- Authoritative, race-free FK checks (E-REF / E-REF-STATE)
     -- 1. Pais
-    SELECT "PaiEstReg" INTO v_ref_est FROM pais WHERE "PaiCod" = p_pai;
+    SELECT "PaiEstReg" INTO v_ref_est FROM pais WHERE "PaiCod" = p_pai FOR SHARE;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'E-REF: PaiCod % not found in pais', p_pai USING ERRCODE = 'P0001';
     ELSIF v_ref_est != 1 THEN
@@ -283,7 +283,7 @@ BEGIN
     END IF;
 
     -- 2. Dependencia
-    SELECT "DepEstReg" INTO v_ref_est FROM dependencia WHERE "DepCod" = p_dep;
+    SELECT "DepEstReg" INTO v_ref_est FROM dependencia WHERE "DepCod" = p_dep FOR SHARE;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'E-REF: DepCod % not found in dependencia', p_dep USING ERRCODE = 'P0001';
     ELSIF v_ref_est != 1 THEN
@@ -291,7 +291,7 @@ BEGIN
     END IF;
 
     -- 3. Cargo
-    SELECT "CarEstReg" INTO v_ref_est FROM cargo WHERE "CarCod" = p_car;
+    SELECT "CarEstReg" INTO v_ref_est FROM cargo WHERE "CarCod" = p_car FOR SHARE;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'E-REF: CarCod % not found in cargo', p_car USING ERRCODE = 'P0001';
     ELSIF v_ref_est != 1 THEN
@@ -320,21 +320,21 @@ BEGIN
     END IF;
 
     -- FK checks (E-REF / E-REF-STATE)
-    SELECT "PaiEstReg" INTO v_ref_est FROM pais WHERE "PaiCod" = p_pai;
+    SELECT "PaiEstReg" INTO v_ref_est FROM pais WHERE "PaiCod" = p_pai FOR SHARE;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'E-REF: PaiCod % not found in pais', p_pai USING ERRCODE = 'P0001';
     ELSIF v_ref_est != 1 THEN
       RAISE EXCEPTION 'E-REF-STATE: PaiCod % is not Activo', p_pai USING ERRCODE = 'P0001';
     END IF;
 
-    SELECT "DepEstReg" INTO v_ref_est FROM dependencia WHERE "DepCod" = p_dep;
+    SELECT "DepEstReg" INTO v_ref_est FROM dependencia WHERE "DepCod" = p_dep FOR SHARE;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'E-REF: DepCod % not found in dependencia', p_dep USING ERRCODE = 'P0001';
     ELSIF v_ref_est != 1 THEN
       RAISE EXCEPTION 'E-REF-STATE: DepCod % is not Activo', p_dep USING ERRCODE = 'P0001';
     END IF;
 
-    SELECT "CarEstReg" INTO v_ref_est FROM cargo WHERE "CarCod" = p_car;
+    SELECT "CarEstReg" INTO v_ref_est FROM cargo WHERE "CarCod" = p_car FOR SHARE;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'E-REF: CarCod % not found in cargo', p_car USING ERRCODE = 'P0001';
     ELSIF v_ref_est != 1 THEN

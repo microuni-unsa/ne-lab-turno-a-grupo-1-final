@@ -207,8 +207,15 @@ describe("session.unit", () => {
       const updated = session.updatePayload({ PerNom: "Updated" });
       expect(updated).toBe(true);
       expect(session.pending).toBeDefined();
+      const updatedPayload =
+        session.pending?.kind === "adición" ||
+        session.pending?.kind === "modificación"
+          ? session.pending.payload
+          : undefined;
       expect(
-        (session.pending?.payload as { PerNom: string } | undefined)?.PerNom,
+        typeof updatedPayload === "object" && updatedPayload !== null
+          ? Reflect.get(updatedPayload, "PerNom")
+          : undefined,
       ).toBe("Updated");
     });
   });

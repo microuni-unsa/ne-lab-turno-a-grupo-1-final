@@ -182,7 +182,7 @@ _Result: 56 unit tests passing across 3 test suites (`src/core/lifecycle.unit.te
 cd app && LIVE_DB=1 bun run test:integration
 ```
 
-_Result: 19 live integration tests passing in `test/integration/invariants.test.ts` against the live Supabase instance._
+_Result: 19 live integration tests passing in `test/integration/database-invariants.integration.test.ts` against the live Supabase instance._
 
 ### 6.5 Full Test Suite Combined
 
@@ -208,7 +208,7 @@ When constructing frontend views, maintenance forms, and selection modals:
 
 ## 8. Non-SPEC RPC Error Codes & Folding Rationale
 
-In `db/migrations/002_guardar.sql`, stored procedures raise two operational errors that sit outside SPEC §12:
+In `supabase/migrations/20261115000002_guardar.sql`, stored procedures raise two operational errors that sit outside SPEC §12:
 
 - **`E-NOT-FOUND`**: Raised during `update` or `set_state` operations when the target primary key does not exist.
 - **`E-INVALID-OP`**: Raised when an unsupported operation string is provided to the RPC function.

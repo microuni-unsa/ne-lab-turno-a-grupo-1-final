@@ -18,46 +18,112 @@ if (!isLiveDb) {
 const describeLive = isLiveDb ? describe : describe.skip;
 
 function getSupabaseClient(): SupabaseClient {
-  if (!process.env.SUPABASE_URL || !process.env.SECRET_KEY) {
-    const candidatePaths = [
-      path.resolve(process.cwd(), ".env"),
-      path.resolve(process.cwd(), "../.env"),
-    ];
-    for (const p of candidatePaths) {
-      if (fs.existsSync(p)) {
-        const content = fs.readFileSync(p, "utf-8");
-        for (const line of content.split("\n")) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith("#")) continue;
-          const eqIdx = trimmed.indexOf("=");
-          if (eqIdx > 0) {
-            const key = trimmed.slice(0, eqIdx).trim();
-            const val = trimmed
-              .slice(eqIdx + 1)
-              .trim()
-              .replace(/^["']|["']$/g, "");
-            if (!process.env[key]) {
-              process.env[key] = val;
-            }
+  if (
+    !process.env.VITE_SUPABASE_URL ||
+    !process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  ) {
+    const repoEnvPath = path.resolve(process.cwd(), ".env");
+    if (fs.existsSync(repoEnvPath)) {
+      const content = fs.readFileSync(repoEnvPath, "utf-8");
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const eqIdx = trimmed.indexOf("=");
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          const val = trimmed
+            .slice(eqIdx + 1)
+            .trim()
+            .replace(/^["']|["']$/g, "");
+          if (!process.env[key]) {
+            process.env[key] = val;
           }
         }
-        break;
       }
     }
   }
 
-  const url =
-    process.env.VITE_SUPABASE_URL ||
-    process.env.SUPABASE_URL ||
-    "https://ltiepjrwlhjntmfxlqkr.supabase.co";
-  const key =
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SECRET_KEY ||
-    process.env.PUBLISHABLE_KEY ||
-    "";
+  const url = process.env.VITE_SUPABASE_URL?.trim();
+  const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
+  if (!url) {
+    throw new Error("Missing required environment variable: VITE_SUPABASE_URL");
+  }
+  if (!key) {
+    throw new Error(
+      "Missing required environment variable: VITE_SUPABASE_PUBLISHABLE_KEY",
+    );
+  }
   return createClient(url, key, {
     auth: { persistSession: false },
   });
+}
+
+interface EstRegProjection {
+  EstRegCod: number;
+  EstRegNom: string;
+  EstRegSim: string;
+}
+
+interface PaisProjection {
+  PaiCod: number;
+  PaiNom: string;
+  PaiEstReg: number;
+}
+
+interface PaisSelectProjection {
+  PaiCod: number;
+  PaiNom: string;
+}
+
+interface PaisEstadoProjection {
+  PaiEstReg: number;
+}
+
+interface DependenciaProjection {
+  DepCod: number;
+  DepNom: string;
+  DepEstReg: number;
+}
+
+interface CargoProjection {
+  CarCod: number;
+  CarNom: string;
+  CarEstReg: number;
+}
+
+interface PersonalProjection {
+  PerCod: number;
+  PerNom: string;
+  PerDNI: string;
+  PerFecNac: string;
+  PerPaiCod: number;
+  PerDepCod: number;
+  PerCarCod: number;
+  PerEstReg: number;
+}
+
+interface AuditTimestampProjection {
+  created_at: string;
+  updated_at: string;
+}
+
+function readPaisProjection(raw: unknown): PaisProjection | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  if (
+    !("PaiCod" in raw) ||
+    typeof raw.PaiCod !== "number" ||
+    !("PaiNom" in raw) ||
+    typeof raw.PaiNom !== "string" ||
+    !("PaiEstReg" in raw) ||
+    typeof raw.PaiEstReg !== "number"
+  ) {
+    return null;
+  }
+  return {
+    PaiCod: raw.PaiCod,
+    PaiNom: raw.PaiNom,
+    PaiEstReg: raw.PaiEstReg,
+  };
 }
 
 describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
@@ -75,7 +141,8 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
       .from("pais")
       .select("PaiCod, PaiNom, PaiEstReg")
       .eq("PaiCod", 1)
-      .single();
+      .single()
+      .overrideTypes<PaisProjection, { merge: false }>();
     expect(pais1).toBeDefined();
     expect(pais1?.PaiEstReg).toBe(1);
     expect(pais1?.PaiNom).toBe("Perú");
@@ -83,7 +150,8 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
     const { data: deps } = await supabase
       .from("dependencia")
       .select("DepCod, DepNom, DepEstReg")
-      .order("DepCod", { ascending: true });
+      .order("DepCod", { ascending: true })
+      .overrideTypes<Array<DependenciaProjection>, { merge: false }>();
     expect(deps).toBeDefined();
     expect(deps?.length).toBeGreaterThanOrEqual(3);
     const depNames = deps?.map((d) => d.DepNom);
@@ -98,7 +166,8 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
       const { data, error } = await supabase
         .from("estreg")
         .select("*")
-        .order("EstRegCod", { ascending: true });
+        .order("EstRegCod", { ascending: true })
+        .overrideTypes<Array<EstRegProjection>, { merge: false }>();
       expect(error).toBeNull();
       expect(data).toHaveLength(3);
       expect(data).toEqual([
@@ -112,7 +181,8 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
       const { data, error } = await supabase
         .from("pais")
         .select("PaiCod, PaiNom, PaiEstReg")
-        .order("PaiCod", { ascending: true });
+        .order("PaiCod", { ascending: true })
+        .overrideTypes<Array<PaisProjection>, { merge: false }>();
       expect(error).toBeNull();
       expect(data?.length).toBeGreaterThanOrEqual(5);
 
@@ -130,7 +200,8 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
       const { data, error } = await supabase
         .from("dependencia")
         .select("DepCod, DepNom, DepEstReg")
-        .order("DepCod", { ascending: true });
+        .order("DepCod", { ascending: true })
+        .overrideTypes<Array<DependenciaProjection>, { merge: false }>();
       expect(error).toBeNull();
       expect(data?.length).toBeGreaterThanOrEqual(3);
 
@@ -146,7 +217,8 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
       const { data, error } = await supabase
         .from("cargo")
         .select("CarCod, CarNom, CarEstReg")
-        .order("CarCod", { ascending: true });
+        .order("CarCod", { ascending: true })
+        .overrideTypes<Array<CargoProjection>, { merge: false }>();
       expect(error).toBeNull();
       expect(data?.length).toBeGreaterThanOrEqual(5);
 
@@ -166,7 +238,8 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
         .select(
           "PerCod, PerNom, PerDNI, PerFecNac, PerPaiCod, PerDepCod, PerCarCod, PerEstReg",
         )
-        .order("PerCod", { ascending: true });
+        .order("PerCod", { ascending: true })
+        .overrideTypes<Array<PersonalProjection>, { merge: false }>();
       expect(error).toBeNull();
       expect(data?.length).toBeGreaterThanOrEqual(4);
 
@@ -195,18 +268,16 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
       });
 
       const carlos = data?.find((p) => p.PerCod === 3);
-      expect(
-        crosMatch(carlos, {
-          PerCod: 3,
-          PerNom: "Carlos García",
-          PerDNI: "70000003",
-          PerFecNac: "1995-11-02",
-          PerPaiCod: 2,
-          PerDepCod: 3,
-          PerCarCod: 4,
-          PerEstReg: 1,
-        }),
-      ).toBe(true);
+      expect(carlos).toMatchObject({
+        PerCod: 3,
+        PerNom: "Carlos García",
+        PerDNI: "70000003",
+        PerFecNac: "1995-11-02",
+        PerPaiCod: 2,
+        PerDepCod: 3,
+        PerCarCod: 4,
+        PerEstReg: 1,
+      });
 
       const ana = data?.find((p) => p.PerCod === 4);
       expect(ana).toMatchObject({
@@ -438,7 +509,8 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           .from("pais")
           .select("PaiEstReg")
           .eq("PaiCod", 1)
-          .single();
+          .single()
+          .overrideTypes<PaisEstadoProjection, { merge: false }>();
         expect(rowInact?.PaiEstReg).toBe(2);
       } finally {
         // 3. Guarantee restoration back to Activo (EstReg = 1) in finally block
@@ -454,7 +526,8 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           .from("pais")
           .select("PaiEstReg")
           .eq("PaiCod", 1)
-          .single();
+          .single()
+          .overrideTypes<PaisEstadoProjection, { merge: false }>();
         expect(restoredRow?.PaiEstReg).toBe(1);
       }
     });
@@ -481,7 +554,8 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           .from("pais")
           .select("PaiCod, PaiNom")
           .eq("PaiEstReg", 1)
-          .order("PaiNom", { ascending: true });
+          .order("PaiNom", { ascending: true })
+          .overrideTypes<Array<PaisSelectProjection>, { merge: false }>();
         expect(sel1?.some((p) => p.PaiCod === scratchCod)).toBe(true);
 
         // Inactivar the scratch pais
@@ -498,8 +572,26 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           .from("pais")
           .select("PaiCod, PaiNom")
           .eq("PaiEstReg", 1)
-          .order("PaiNom", { ascending: true });
+          .order("PaiNom", { ascending: true })
+          .overrideTypes<Array<PaisSelectProjection>, { merge: false }>();
         expect(sel2?.some((p) => p.PaiCod === scratchCod)).toBe(false);
+
+        // Reactivar the scratch pais -> reappears in G-SEL
+        const { error: reactErr } = await supabase.rpc("guardar_pais", {
+          op: "set_state",
+          p_cod: scratchCod,
+          p_nom: null,
+          p_est: 1,
+        });
+        expect(reactErr).toBeNull();
+
+        const { data: sel3 } = await supabase
+          .from("pais")
+          .select("PaiCod, PaiNom")
+          .eq("PaiEstReg", 1)
+          .order("PaiNom", { ascending: true })
+          .overrideTypes<Array<PaisSelectProjection>, { merge: false }>();
+        expect(sel3?.some((p) => p.PaiCod === scratchCod)).toBe(true);
       } finally {
         // Cleanup scratch row
         await supabase.from("pais").delete().eq("PaiCod", scratchCod);
@@ -515,23 +607,24 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
       const updatedNom = `Scratch RPC Modificado ${scratchCod}`;
 
       try {
-        // 1. Insert via RPC: forces EstReg = 1 (Activo)
-        const { data: insRow, error: insErr } = await supabase.rpc(
+        // 1. Insert via RPC: forces EstReg = 1 (Activo) even when p_est differs (R9)
+        const { data: insRaw, error: insErr } = await supabase.rpc(
           "guardar_pais",
           {
             op: "insert",
             p_cod: scratchCod,
             p_nom: initialNom,
-            p_est: 1,
+            p_est: 2,
           },
         );
         expect(insErr).toBeNull();
+        const insRow = readPaisProjection(insRaw);
         expect(insRow?.PaiCod).toBe(scratchCod);
         expect(insRow?.PaiNom).toBe(initialNom);
         expect(insRow?.PaiEstReg).toBe(1);
 
         // 2. Update via RPC: preserves EstReg
-        const { data: updRow, error: updErr } = await supabase.rpc(
+        const { data: updRaw, error: updErr } = await supabase.rpc(
           "guardar_pais",
           {
             op: "update",
@@ -541,11 +634,12 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           },
         );
         expect(updErr).toBeNull();
+        const updRow = readPaisProjection(updRaw);
         expect(updRow?.PaiNom).toBe(updatedNom);
         expect(updRow?.PaiEstReg).toBe(1);
 
         // 3. Inactivar via RPC: 1 -> 2
-        const { data: inactRow, error: inactErr } = await supabase.rpc(
+        const { data: inactRaw, error: inactErr } = await supabase.rpc(
           "guardar_pais",
           {
             op: "set_state",
@@ -555,10 +649,11 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           },
         );
         expect(inactErr).toBeNull();
+        const inactRow = readPaisProjection(inactRaw);
         expect(inactRow?.PaiEstReg).toBe(2);
 
         // 4. Reactivar via RPC: 2 -> 1
-        const { data: reactRow, error: reactErr } = await supabase.rpc(
+        const { data: reactRaw, error: reactErr } = await supabase.rpc(
           "guardar_pais",
           {
             op: "set_state",
@@ -568,10 +663,11 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           },
         );
         expect(reactErr).toBeNull();
+        const reactRow = readPaisProjection(reactRaw);
         expect(reactRow?.PaiEstReg).toBe(1);
 
         // 5. Eliminar via RPC: 1 -> 3 (terminal)
-        const { data: elimRow, error: elimErr } = await supabase.rpc(
+        const { data: elimRaw, error: elimErr } = await supabase.rpc(
           "guardar_pais",
           {
             op: "set_state",
@@ -581,6 +677,7 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           },
         );
         expect(elimErr).toBeNull();
+        const elimRow = readPaisProjection(elimRaw);
         expect(elimRow?.PaiEstReg).toBe(3);
 
         // 6. Terminal check: modifying an eliminated row is blocked with E-TRANSITION
@@ -620,8 +717,11 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           .from("dependencia")
           .select("created_at, updated_at")
           .eq("DepCod", scratchCod)
-          .single();
-        expect(r1).toBeDefined();
+          .single()
+          .overrideTypes<AuditTimestampProjection, { merge: false }>();
+        if (!r1) {
+          throw new Error("Expected initial dependencia audit row");
+        }
 
         // Small pause to guarantee timestamp advancement if resolution is coarse
         await new Promise((res) => setTimeout(res, 50));
@@ -639,15 +739,18 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           .from("dependencia")
           .select("created_at, updated_at")
           .eq("DepCod", scratchCod)
-          .single();
-        expect(r2).toBeDefined();
+          .single()
+          .overrideTypes<AuditTimestampProjection, { merge: false }>();
+        if (!r2) {
+          throw new Error("Expected updated dependencia audit row");
+        }
 
         // Invariant R16: created_at is immutable
-        expect(r2?.created_at).toBe(r1?.created_at);
+        expect(r2.created_at).toBe(r1.created_at);
 
         // Invariant R16: updated_at is bumped by trigger
-        expect(new Date(r2?.updated_at).getTime()).toBeGreaterThanOrEqual(
-          new Date(r1?.updated_at).getTime(),
+        expect(new Date(r2.updated_at).getTime()).toBeGreaterThan(
+          new Date(r1.updated_at).getTime(),
         );
       } finally {
         await supabase.from("dependencia").delete().eq("DepCod", scratchCod);
@@ -655,15 +758,3 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
     });
   });
 });
-
-function crosMatch(
-  actual: unknown,
-  expected: Record<string, unknown>,
-): boolean {
-  if (typeof actual !== "object" || actual === null) return false;
-  const act = actual as Record<string, unknown>;
-  for (const key of Object.keys(expected)) {
-    if (act[key] !== expected[key]) return false;
-  }
-  return true;
-}

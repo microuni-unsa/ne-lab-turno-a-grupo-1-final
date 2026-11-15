@@ -14,21 +14,22 @@
  * Read-only audit columns (R17): never sends created_at or updated_at.
  */
 
-import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  DNI_LEN,
   EST_A,
   EST_I,
   EST_X,
+  MAX_INTEGER,
+  MAX_NAME,
+  MAX_SMALLINT,
+  MIN_CODE,
+  MIN_NAME,
   TABLE_CARGO,
   TABLE_DEPENDENCIA,
   TABLE_PAIS,
 } from "@/core/constants";
-import {
-  createFailure,
-  ERROR_CODES,
-  type ErrorCode,
-  type FieldFailure,
-} from "@/core/errors";
+import { createFailure, ERROR_CODES, type FieldFailure } from "@/core/errors";
 import type {
   CargoRow,
   DependenciaRow,
@@ -41,9 +42,11 @@ import type {
 } from "@/core/types";
 import {
   validateCargoRow,
+  validateCode,
   validateDependenciaRow,
   validatePaisRow,
   validatePersonalRow,
+  validateRow,
 } from "@/core/validators";
 import { getSupabaseClient } from "@/data/client";
 import {
@@ -54,118 +57,92 @@ import {
 import {
   type AdvancedSearchFilters,
   advancedSearch,
+  escapeIlikeLiteral,
   gsel,
   listQuery,
   type OrderingToggle,
   simpleSearch,
 } from "@/data/query";
+import {
+  isPlainRecord,
+  parseCargoRow,
+  parseDependenciaRow,
+  parsePaisRow,
+  parsePersonalRow,
+  readOptionalNumberField,
+  readOptionalStringField,
+} from "@/data/row-parsers";
+import {
+  getTodayLocalDate,
+  handleRpcError,
+  isTransportError,
+  mapPostgrestError,
+} from "@/data/rpc-errors";
+
+export { isTransportError, mapPostgrestError };
 
 export type GuardarOp = "insert" | "update" | "set_state";
 
-/**
- * Returns today's local date string YYYY-MM-DD for birthdate validations.
- */
-function getTodayLocalDate(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+function assertNeverPendingOp(op: never): never {
+  throw new Error(`Unsupported pending operation: ${String(op)}`);
 }
 
-/**
- * Maps residual DB / PostgREST errors into domain FieldFailure (SPEC §12).
- * 23505 -> E-DUP
- * 23503 -> E-REF
- * 23514 -> E-RANGE / E-FORMAT by constraint
- * RPC-raised `E-*: message` prefixes -> same code
- */
-export function mapPostgrestError(
-  error:
-    | PostgrestError
-    | { code?: string; message?: string; details?: string | null },
-  defaultField: string = "general",
-): FieldFailure {
-  const msg = error.message || "";
-  const details = error.details || "";
-  const code = error.code || "";
-
-  // 1. RPC-raised exceptions with "E-*: message" prefix
-  const rpcMatch = msg.match(/^(E-[A-Z0-9-]+)(?::\s*(.*))?$/);
-  if (rpcMatch) {
-    const rawCode = rpcMatch[1] as ErrorCode;
-    const recognizedCode = Object.values(ERROR_CODES).includes(rawCode)
-      ? rawCode
-      : ERROR_CODES.TRANSITION;
-    return createFailure(recognizedCode, defaultField);
-  }
-
-  // 2. Postgres Error 23505: Unique violation -> E-DUP
-  if (code === "23505") {
-    if (msg.includes("pais_nom_ci") || details.includes("PaiNom")) {
-      return createFailure(ERROR_CODES.DUP, "PaiNom");
-    }
-    if (msg.includes("dependencia_nom_ci") || details.includes("DepNom")) {
-      return createFailure(ERROR_CODES.DUP, "DepNom");
-    }
-    if (msg.includes("cargo_nom_ci") || details.includes("CarNom")) {
-      return createFailure(ERROR_CODES.DUP, "CarNom");
-    }
-    if (msg.includes("personal_PerDNI_key") || details.includes("PerDNI")) {
-      return createFailure(ERROR_CODES.DUP, "PerDNI");
-    }
-    return createFailure(ERROR_CODES.DUP, defaultField);
-  }
-
-  // 3. Postgres Error 23503: Foreign key violation -> E-REF
-  if (code === "23503") {
-    if (msg.includes("PerPaiCod") || details.includes("PerPaiCod")) {
-      return createFailure(ERROR_CODES.REF, "PerPaiCod");
-    }
-    if (msg.includes("PerDepCod") || details.includes("PerDepCod")) {
-      return createFailure(ERROR_CODES.REF, "PerDepCod");
-    }
-    if (msg.includes("PerCarCod") || details.includes("PerCarCod")) {
-      return createFailure(ERROR_CODES.REF, "PerCarCod");
-    }
-    return createFailure(ERROR_CODES.REF, defaultField);
-  }
-
-  // 4. Postgres Error 23514: Check constraint violation -> E-RANGE / E-FORMAT
-  if (code === "23514") {
-    if (msg.includes("PerDNI") || msg.includes("^[0-9]{8}$")) {
-      return createFailure(ERROR_CODES.FORMAT, "PerDNI");
-    }
-    if (msg.includes("PerFecNac") || msg.includes("18 years")) {
-      return createFailure(ERROR_CODES.RANGE, "PerFecNac");
-    }
-    if (msg.includes("btrim") || msg.includes("char_length")) {
-      return createFailure(ERROR_CODES.RANGE, "Nom");
-    }
-    if (msg.includes("Cod") && msg.includes("> 0")) {
-      return createFailure(ERROR_CODES.RANGE, defaultField);
-    }
-    if (msg.includes("EstRegSim")) {
-      return createFailure(ERROR_CODES.FORMAT, "EstRegSim");
-    }
-    return createFailure(ERROR_CODES.RANGE, defaultField);
-  }
-
-  // Default fallback to transition or format failure
-  return createFailure(ERROR_CODES.TRANSITION, defaultField);
+function isValidIntegerInRange(
+  value: number | undefined,
+  maxLimit: number,
+): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= MIN_CODE &&
+    value <= maxLimit
+  );
 }
 
 /**
  * Shared base repository class for all table entities.
  */
 export abstract class BaseRepo<TRow> {
+  private readonly explicitClient?: SupabaseClient;
+
   constructor(
     readonly table: TableName,
     readonly codeCol: string,
     readonly nomCol: string,
     readonly estRegCol: string,
-    protected readonly client: SupabaseClient = getSupabaseClient(),
-  ) {}
+    client?: SupabaseClient,
+    protected readonly rowParser?: (value: unknown) => TRow | null,
+  ) {
+    this.explicitClient = client;
+  }
+
+  protected get client(): SupabaseClient {
+    return this.explicitClient ?? getSupabaseClient();
+  }
+
+  protected parseRows(rawRows: readonly unknown[] | null | undefined): TRow[] {
+    if (!rawRows || rawRows.length === 0) {
+      return [];
+    }
+    if (!this.rowParser) {
+      return [];
+    }
+    const parsed: TRow[] = [];
+    for (const item of rawRows) {
+      const row = this.rowParser(item);
+      if (row !== null) {
+        parsed.push(row);
+      }
+    }
+    return parsed;
+  }
+
+  protected parseSingleRow(raw: unknown): TRow | null {
+    if (raw === null || raw === undefined || !this.rowParser) {
+      return null;
+    }
+    return this.rowParser(raw);
+  }
 
   /**
    * Paged enumeration with explicit order (§11.1).
@@ -178,12 +155,18 @@ export abstract class BaseRepo<TRow> {
     },
     options?: PagingOptions,
   ): Promise<{ data: TRow[]; count: number | null }> {
-    const query = listQuery(this.table, ordering, page, options, this.client);
+    const query = listQuery<unknown>(
+      this.table,
+      ordering,
+      page,
+      options,
+      this.client,
+    );
     const { data, error, count } = await query;
     if (error) {
       throw error;
     }
-    return { data: (data as unknown as TRow[]) ?? [], count };
+    return { data: this.parseRows(data), count };
   }
 
   /**
@@ -195,7 +178,7 @@ export abstract class BaseRepo<TRow> {
     page?: Pick<Page, "offset" | "limit">,
     options?: PagingOptions,
   ): Promise<{ data: TRow[]; count: number | null }> {
-    const query = simpleSearch(
+    const query = simpleSearch<unknown>(
       this.table,
       q,
       ordering,
@@ -207,7 +190,7 @@ export abstract class BaseRepo<TRow> {
     if (error) {
       throw error;
     }
-    return { data: (data as unknown as TRow[]) ?? [], count };
+    return { data: this.parseRows(data), count };
   }
 
   /**
@@ -219,7 +202,7 @@ export abstract class BaseRepo<TRow> {
     page?: Pick<Page, "offset" | "limit">,
     options?: PagingOptions,
   ): Promise<{ data: TRow[]; count: number | null }> {
-    const query = advancedSearch(
+    const query = advancedSearch<unknown>(
       this.table,
       filters,
       ordering,
@@ -231,7 +214,7 @@ export abstract class BaseRepo<TRow> {
     if (error) {
       throw error;
     }
-    return { data: (data as unknown as TRow[]) ?? [], count };
+    return { data: this.parseRows(data), count };
   }
 
   /**
@@ -242,12 +225,12 @@ export abstract class BaseRepo<TRow> {
       .from(this.table)
       .select("*")
       .eq(this.codeCol, code)
-      .maybeSingle();
+      .maybeSingle<unknown>();
 
     if (error) {
       throw error;
     }
-    return (data as unknown as TRow) ?? null;
+    return this.parseSingleRow(data);
   }
 
   /**
@@ -267,13 +250,48 @@ export abstract class BaseRepo<TRow> {
   }
 
   /**
-   * Head/count probe: checks whether a name exists case-insensitively.
+   * Executes a pending operation from the core maintenance session (§8).
+   */
+  abstract guardarOp(pendingOp: PendingOp): Promise<GuardarResult<TRow>>;
+}
+
+export type ReferenceRowValidator = (
+  row: Record<string, unknown>,
+  options?: { isUpdate?: boolean },
+) => FieldFailure[];
+
+/**
+ * Repository for reference tables (PAIS, DEPENDENCIA, CARGO).
+ */
+export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
+  constructor(
+    table: TableName,
+    codeCol: string,
+    nomCol: string,
+    estRegCol: string,
+    readonly personalFkCol: string,
+    readonly rpcName: string,
+    client?: SupabaseClient,
+    rowParser?: (value: unknown) => TRow | null,
+    private readonly rowValidator?: ReferenceRowValidator,
+  ) {
+    super(table, codeCol, nomCol, estRegCol, client, rowParser);
+  }
+
+  protected parseRpcRow(raw: unknown): TRow | null {
+    return this.parseSingleRow(raw);
+  }
+
+  /**
+   * Head/count probe: checks whether a reference name exists case-insensitively.
+   * Escapes LIKE/ILIKE wildcards (`%`, `_`, `\`) so literal names are probed safely.
    */
   async probeNomCiExists(nom: string, excludeCode?: number): Promise<boolean> {
+    const escapedNom = escapeIlikeLiteral(nom.trim());
     let builder = this.client
       .from(this.table)
       .select("*", { count: "exact", head: true })
-      .ilike(this.nomCol, nom.trim());
+      .ilike(this.nomCol, escapedNom);
 
     if (excludeCode !== undefined) {
       builder = builder.neq(this.codeCol, excludeCode);
@@ -287,28 +305,6 @@ export abstract class BaseRepo<TRow> {
   }
 
   /**
-   * Executes a pending operation from the core maintenance session (§8).
-   */
-  abstract guardarOp(pendingOp: PendingOp): Promise<GuardarResult<TRow>>;
-}
-
-/**
- * Repository for reference tables (PAIS, DEPENDENCIA, CARGO).
- */
-export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
-  constructor(
-    table: TableName,
-    codeCol: string,
-    nomCol: string,
-    estRegCol: string,
-    readonly personalFkCol: string,
-    readonly rpcName: string,
-    client: SupabaseClient = getSupabaseClient(),
-  ) {
-    super(table, codeCol, nomCol, estRegCol, client);
-  }
-
-  /**
    * G-SEL selection query: Activo-only, alphabetical, code tiebreak (§9).
    */
   async gsel(): Promise<Array<{ readonly [key: string]: unknown }>> {
@@ -317,9 +313,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
     if (error) {
       throw error;
     }
-    return (
-      (data as unknown as Array<{ readonly [key: string]: unknown }>) ?? []
-    );
+    return data?.filter(isPlainRecord) ?? [];
   }
 
   /**
@@ -347,7 +341,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
    */
   async guardar(params: {
     op: GuardarOp;
-    p_cod: number;
+    p_cod?: number;
     p_nom?: string;
     p_est?: EstReg | number;
   }): Promise<GuardarResult<TRow>> {
@@ -355,6 +349,8 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
     const isUpdate = params.op === "update";
     const isInsert = params.op === "insert";
     const isSetState = params.op === "set_state";
+    const trimmedNom =
+      typeof params.p_nom === "string" ? params.p_nom.trim() : undefined;
 
     // 1. Full client validation
     if (isInsert || isUpdate) {
@@ -362,17 +358,19 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
         [this.codeCol]: params.p_cod,
         [this.nomCol]: params.p_nom,
       };
-      if (this.table === TABLE_PAIS) {
-        failures.push(...validatePaisRow(payload, { isUpdate }));
-      } else if (this.table === TABLE_DEPENDENCIA) {
-        failures.push(...validateDependenciaRow(payload, { isUpdate }));
-      } else if (this.table === TABLE_CARGO) {
-        failures.push(...validateCargoRow(payload, { isUpdate }));
-      }
+      const validate =
+        this.rowValidator ??
+        ((row: Record<string, unknown>, opts?: { isUpdate?: boolean }) =>
+          validateRow(this.table, row, opts));
+      failures.push(...validate(payload, { isUpdate }));
     }
 
-    // 2. Uniqueness probes
-    if (isInsert && params.p_cod !== undefined) {
+    if (isSetState) {
+      failures.push(...validateCode(this.table, params.p_cod, this.codeCol));
+    }
+
+    // 2. Uniqueness probes (only when inputs are within valid type/range bounds)
+    if (isInsert && isValidIntegerInRange(params.p_cod, MAX_SMALLINT)) {
       const codeExists = await this.probeCodeExists(params.p_cod);
       if (codeExists) {
         failures.push(createFailure(ERROR_CODES.DUP, this.codeCol));
@@ -381,20 +379,26 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
 
     if (
       (isInsert || isUpdate) &&
-      params.p_nom &&
-      params.p_nom.trim().length >= 2
+      trimmedNom !== undefined &&
+      trimmedNom.length >= MIN_NAME &&
+      trimmedNom.length <= MAX_NAME
     ) {
-      const nomExists = await this.probeNomCiExists(
-        params.p_nom,
-        isUpdate ? params.p_cod : undefined,
-      );
+      const excludeCode =
+        isUpdate && isValidIntegerInRange(params.p_cod, MAX_SMALLINT)
+          ? params.p_cod
+          : undefined;
+      const nomExists = await this.probeNomCiExists(trimmedNom, excludeCode);
       if (nomExists) {
         failures.push(createFailure(ERROR_CODES.DUP, this.nomCol));
       }
     }
 
     // 3. R11 probe on reference Eliminación (p_est = EST_X = 3)
-    if (isSetState && params.p_est === EST_X) {
+    if (
+      isSetState &&
+      params.p_est === EST_X &&
+      isValidIntegerInRange(params.p_cod, MAX_SMALLINT)
+    ) {
       const hasLiveRefs = await this.probeLiveReferences(params.p_cod);
       if (hasLiveRefs) {
         failures.push(createFailure(ERROR_CODES.REF_BLOCKED, this.codeCol));
@@ -407,40 +411,48 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
     }
 
     // 4. Call authoritative Guardar RPC
-    // R17: Never send created_at or updated_at
+    // R8/R9/R17: Force p_est=1 on insert, p_est=null on update, never send created_at/updated_at
     const rpcPayload: Record<string, unknown> = {
       op: params.op,
-      p_cod: params.p_cod,
-      p_nom: params.p_nom ?? null,
-      p_est: params.p_est ?? null,
+      p_cod: params.p_cod ?? null,
+      p_nom: trimmedNom ?? null,
+      p_est: isInsert ? EST_A : isUpdate ? null : (params.p_est ?? null),
     };
 
-    const { data, error } = await this.client.rpc(this.rpcName, rpcPayload);
+    const { data, error, status } = await this.client.rpc(
+      this.rpcName,
+      rpcPayload,
+    );
 
     if (error) {
-      const mapped = mapPostgrestError(error, this.codeCol);
-      return { ok: false, failures: [mapped] };
+      return handleRpcError(error, status, this.codeCol);
     }
 
-    return { ok: true, row: data as TRow };
+    const parsed = this.parseRpcRow(data);
+    if (!parsed) {
+      return {
+        ok: false,
+        failures: [createFailure(ERROR_CODES.TRANSITION, this.codeCol)],
+      };
+    }
+
+    return { ok: true, row: parsed };
   }
 
   async guardarOp(pendingOp: PendingOp): Promise<GuardarResult<TRow>> {
     switch (pendingOp.kind) {
       case "adición": {
-        const payload = pendingOp.payload as Record<string, unknown>;
         return this.guardar({
           op: "insert",
-          p_cod: payload[this.codeCol] as number,
-          p_nom: payload[this.nomCol] as string,
+          p_cod: readOptionalNumberField(pendingOp.payload, this.codeCol),
+          p_nom: readOptionalStringField(pendingOp.payload, this.nomCol),
         });
       }
       case "modificación": {
-        const payload = pendingOp.payload as Record<string, unknown>;
         return this.guardar({
           op: "update",
           p_cod: pendingOp.targetCode,
-          p_nom: payload[this.nomCol] as string,
+          p_nom: readOptionalStringField(pendingOp.payload, this.nomCol),
         });
       }
       case "inactivar":
@@ -462,9 +474,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
           p_est: EST_X,
         });
       default:
-        throw new Error(
-          `Unsupported pending operation: ${(pendingOp as { kind: string }).kind}`,
-        );
+        return assertNeverPendingOp(pendingOp);
     }
   }
 }
@@ -473,7 +483,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
  * Pais Repository.
  */
 export class PaisRepo extends ReferenceRepo<PaisRow> {
-  constructor(client: SupabaseClient = getSupabaseClient()) {
+  constructor(client?: SupabaseClient) {
     super(
       "pais",
       "PaiCod",
@@ -482,6 +492,8 @@ export class PaisRepo extends ReferenceRepo<PaisRow> {
       "PerPaiCod",
       "guardar_pais",
       client,
+      parsePaisRow,
+      validatePaisRow,
     );
   }
 }
@@ -490,7 +502,7 @@ export class PaisRepo extends ReferenceRepo<PaisRow> {
  * Dependencia Repository.
  */
 export class DependenciaRepo extends ReferenceRepo<DependenciaRow> {
-  constructor(client: SupabaseClient = getSupabaseClient()) {
+  constructor(client?: SupabaseClient) {
     super(
       "dependencia",
       "DepCod",
@@ -499,6 +511,8 @@ export class DependenciaRepo extends ReferenceRepo<DependenciaRow> {
       "PerDepCod",
       "guardar_dependencia",
       client,
+      parseDependenciaRow,
+      validateDependenciaRow,
     );
   }
 }
@@ -507,7 +521,7 @@ export class DependenciaRepo extends ReferenceRepo<DependenciaRow> {
  * Cargo Repository.
  */
 export class CargoRepo extends ReferenceRepo<CargoRow> {
-  constructor(client: SupabaseClient = getSupabaseClient()) {
+  constructor(client?: SupabaseClient) {
     super(
       "cargo",
       "CarCod",
@@ -516,16 +530,66 @@ export class CargoRepo extends ReferenceRepo<CargoRow> {
       "PerCarCod",
       "guardar_cargo",
       client,
+      parseCargoRow,
+      validateCargoRow,
     );
   }
 }
+
+interface PersonalGuardarParams {
+  readonly op: GuardarOp;
+  readonly p_cod?: number;
+  readonly p_nom?: string;
+  readonly p_dni?: string;
+  readonly p_fecnac?: string;
+  readonly p_pai?: number;
+  readonly p_dep?: number;
+  readonly p_car?: number;
+  readonly p_est?: EstReg | number;
+}
+
+const PERSONAL_FK_SPECS = [
+  {
+    table: TABLE_PAIS,
+    codeCol: "PaiCod",
+    estRegCol: "PaiEstReg",
+    field: "PerPaiCod",
+    getValue: (p: PersonalGuardarParams) => p.p_pai,
+  },
+  {
+    table: TABLE_DEPENDENCIA,
+    codeCol: "DepCod",
+    estRegCol: "DepEstReg",
+    field: "PerDepCod",
+    getValue: (p: PersonalGuardarParams) => p.p_dep,
+  },
+  {
+    table: TABLE_CARGO,
+    codeCol: "CarCod",
+    estRegCol: "CarEstReg",
+    field: "PerCarCod",
+    getValue: (p: PersonalGuardarParams) => p.p_car,
+  },
+] as const;
+
+const DNI_EXACT_REGEX = new RegExp(`^\\d{${DNI_LEN}}$`);
 
 /**
  * Personal Repository.
  */
 export class PersonalRepo extends BaseRepo<PersonalRow> {
-  constructor(client: SupabaseClient = getSupabaseClient()) {
-    super("personal", "PerCod", "PerNom", "PerEstReg", client);
+  constructor(
+    client?: SupabaseClient,
+    private readonly getTodayLocal: () => string = getTodayLocalDate,
+  ) {
+    super(
+      "personal",
+      "PerCod",
+      "PerNom",
+      "PerEstReg",
+      client,
+      parsePersonalRow,
+    );
   }
 
   /**
@@ -557,7 +621,6 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
     estRegCol: string,
     code: number,
   ): Promise<{ exists: boolean; activo: boolean }> {
-    // 1. Check existence
     const { count: existCount, error: existErr } = await this.client
       .from(table)
       .select("*", { count: "exact", head: true })
@@ -568,7 +631,6 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
       return { exists: false, activo: false };
     }
 
-    // 2. Check Activo
     const { count: actCount, error: actErr } = await this.client
       .from(table)
       .select("*", { count: "exact", head: true })
@@ -584,24 +646,23 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
    * Batches ALL pre-flight validation and probe checks (R22).
    * Skips RPC if any pre-flight failure exists.
    */
-  async guardar(params: {
-    op: GuardarOp;
-    p_cod: number;
-    p_nom?: string;
-    p_dni?: string;
-    p_fecnac?: string;
-    p_pai?: number;
-    p_dep?: number;
-    p_car?: number;
-    p_est?: EstReg | number;
-  }): Promise<GuardarResult<PersonalRow>> {
+  async guardar(
+    params: PersonalGuardarParams,
+  ): Promise<GuardarResult<PersonalRow>> {
     const failures: FieldFailure[] = [];
     const isUpdate = params.op === "update";
     const isInsert = params.op === "insert";
+    const isSetState = params.op === "set_state";
+    const trimmedNom =
+      typeof params.p_nom === "string" ? params.p_nom.trim() : undefined;
+    const trimmedDni =
+      typeof params.p_dni === "string" ? params.p_dni.trim() : undefined;
+    const trimmedFecNac =
+      typeof params.p_fecnac === "string" ? params.p_fecnac.trim() : undefined;
 
     // 1. Full client validation
     if (isInsert || isUpdate) {
-      const today = getTodayLocalDate();
+      const today = this.getTodayLocal();
       const payload: Record<string, unknown> = {
         PerCod: params.p_cod,
         PerNom: params.p_nom,
@@ -616,8 +677,12 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
       );
     }
 
-    // 2. Uniqueness probes
-    if (isInsert && params.p_cod !== undefined) {
+    if (isSetState) {
+      failures.push(...validateCode("personal", params.p_cod, "PerCod"));
+    }
+
+    // 2. Uniqueness probes (only when inputs are within valid type/range bounds)
+    if (isInsert && isValidIntegerInRange(params.p_cod, MAX_INTEGER)) {
       const codeExists = await this.probeCodeExists(params.p_cod);
       if (codeExists) {
         failures.push(createFailure(ERROR_CODES.DUP, "PerCod"));
@@ -626,59 +691,45 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
 
     if (
       (isInsert || isUpdate) &&
-      params.p_dni &&
-      /^\d{8}$/.test(params.p_dni.trim())
+      trimmedDni !== undefined &&
+      DNI_EXACT_REGEX.test(trimmedDni)
     ) {
-      const dniExists = await this.probeDniExists(
-        params.p_dni,
-        isUpdate ? params.p_cod : undefined,
-      );
+      const excludeCode =
+        isUpdate && isValidIntegerInRange(params.p_cod, MAX_INTEGER)
+          ? params.p_cod
+          : undefined;
+      const dniExists = await this.probeDniExists(trimmedDni, excludeCode);
       if (dniExists) {
         failures.push(createFailure(ERROR_CODES.DUP, "PerDNI"));
       }
     }
 
-    // 3. FK probes (exists + Activo)
+    // 3. FK probes (exists + Activo) in parallel for valid SMALLINT codes
     if (isInsert || isUpdate) {
-      if (params.p_pai !== undefined && params.p_pai > 0) {
-        const target = await this.probeFkTarget(
-          "pais",
-          "PaiCod",
-          "PaiEstReg",
-          params.p_pai,
-        );
-        if (!target.exists) {
-          failures.push(createFailure(ERROR_CODES.REF, "PerPaiCod"));
-        } else if (!target.activo) {
-          failures.push(createFailure(ERROR_CODES.REF_STATE, "PerPaiCod"));
-        }
-      }
-
-      if (params.p_dep !== undefined && params.p_dep > 0) {
-        const target = await this.probeFkTarget(
-          "dependencia",
-          "DepCod",
-          "DepEstReg",
-          params.p_dep,
-        );
-        if (!target.exists) {
-          failures.push(createFailure(ERROR_CODES.REF, "PerDepCod"));
-        } else if (!target.activo) {
-          failures.push(createFailure(ERROR_CODES.REF_STATE, "PerDepCod"));
-        }
-      }
-
-      if (params.p_car !== undefined && params.p_car > 0) {
-        const target = await this.probeFkTarget(
-          "cargo",
-          "CarCod",
-          "CarEstReg",
-          params.p_car,
-        );
-        if (!target.exists) {
-          failures.push(createFailure(ERROR_CODES.REF, "PerCarCod"));
-        } else if (!target.activo) {
-          failures.push(createFailure(ERROR_CODES.REF_STATE, "PerCarCod"));
+      const fkChecks = await Promise.all(
+        PERSONAL_FK_SPECS.map(async (spec) => {
+          const fkVal = spec.getValue(params);
+          if (!isValidIntegerInRange(fkVal, MAX_SMALLINT)) {
+            return null;
+          }
+          const target = await this.probeFkTarget(
+            spec.table,
+            spec.codeCol,
+            spec.estRegCol,
+            fkVal,
+          );
+          if (!target.exists) {
+            return createFailure(ERROR_CODES.REF, spec.field);
+          }
+          if (!target.activo) {
+            return createFailure(ERROR_CODES.REF_STATE, spec.field);
+          }
+          return null;
+        }),
+      );
+      for (const failure of fkChecks) {
+        if (failure !== null) {
+          failures.push(failure);
         }
       }
     }
@@ -689,58 +740,63 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
     }
 
     // 4. Call authoritative guardar_personal RPC
-    // R17: Never send created_at or updated_at
+    // R8/R9/R17: Force p_est=1 on insert, p_est=null on update, never send created_at or updated_at
     const rpcPayload: Record<string, unknown> = {
       op: params.op,
-      p_cod: params.p_cod,
-      p_nom: params.p_nom ?? null,
-      p_dni: params.p_dni ?? null,
-      p_fecnac: params.p_fecnac ?? null,
+      p_cod: params.p_cod ?? null,
+      p_nom: trimmedNom ?? null,
+      p_dni: trimmedDni ?? null,
+      p_fecnac: trimmedFecNac ?? null,
       p_pai: params.p_pai ?? null,
       p_dep: params.p_dep ?? null,
       p_car: params.p_car ?? null,
-      p_est: params.p_est ?? null,
+      p_est: isInsert ? EST_A : isUpdate ? null : (params.p_est ?? null),
     };
 
-    const { data, error } = await this.client.rpc(
+    const { data, error, status } = await this.client.rpc(
       "guardar_personal",
       rpcPayload,
     );
 
     if (error) {
-      const mapped = mapPostgrestError(error, "PerCod");
-      return { ok: false, failures: [mapped] };
+      return handleRpcError(error, status, "PerCod");
     }
 
-    return { ok: true, row: data as PersonalRow };
+    const parsed = parsePersonalRow(data);
+    if (!parsed) {
+      return {
+        ok: false,
+        failures: [createFailure(ERROR_CODES.TRANSITION, "PerCod")],
+      };
+    }
+
+    return { ok: true, row: parsed };
   }
 
   async guardarOp(pendingOp: PendingOp): Promise<GuardarResult<PersonalRow>> {
     switch (pendingOp.kind) {
       case "adición": {
-        const payload = pendingOp.payload as Record<string, unknown>;
         return this.guardar({
           op: "insert",
-          p_cod: payload.PerCod as number,
-          p_nom: payload.PerNom as string,
-          p_dni: payload.PerDNI as string,
-          p_fecnac: payload.PerFecNac as string,
-          p_pai: payload.PerPaiCod as number,
-          p_dep: payload.PerDepCod as number,
-          p_car: payload.PerCarCod as number,
+          p_cod: readOptionalNumberField(pendingOp.payload, "PerCod"),
+          p_nom: readOptionalStringField(pendingOp.payload, "PerNom"),
+          p_dni: readOptionalStringField(pendingOp.payload, "PerDNI"),
+          p_fecnac: readOptionalStringField(pendingOp.payload, "PerFecNac"),
+          p_pai: readOptionalNumberField(pendingOp.payload, "PerPaiCod"),
+          p_dep: readOptionalNumberField(pendingOp.payload, "PerDepCod"),
+          p_car: readOptionalNumberField(pendingOp.payload, "PerCarCod"),
         });
       }
       case "modificación": {
-        const payload = pendingOp.payload as Record<string, unknown>;
         return this.guardar({
           op: "update",
           p_cod: pendingOp.targetCode,
-          p_nom: payload.PerNom as string,
-          p_dni: payload.PerDNI as string,
-          p_fecnac: payload.PerFecNac as string,
-          p_pai: payload.PerPaiCod as number,
-          p_dep: payload.PerDepCod as number,
-          p_car: payload.PerCarCod as number,
+          p_nom: readOptionalStringField(pendingOp.payload, "PerNom"),
+          p_dni: readOptionalStringField(pendingOp.payload, "PerDNI"),
+          p_fecnac: readOptionalStringField(pendingOp.payload, "PerFecNac"),
+          p_pai: readOptionalNumberField(pendingOp.payload, "PerPaiCod"),
+          p_dep: readOptionalNumberField(pendingOp.payload, "PerDepCod"),
+          p_car: readOptionalNumberField(pendingOp.payload, "PerCarCod"),
         });
       }
       case "inactivar":
@@ -762,9 +818,7 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
           p_est: EST_X,
         });
       default:
-        throw new Error(
-          `Unsupported pending operation: ${(pendingOp as { kind: string }).kind}`,
-        );
+        return assertNeverPendingOp(pendingOp);
     }
   }
 }

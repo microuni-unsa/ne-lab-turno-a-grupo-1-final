@@ -1,6 +1,7 @@
 .direnv
 .env
-.env*.local
+.env.*
+!.env.example
 *.local
 
 # Dependencies & Build
@@ -8,8 +9,10 @@ node_modules
 dist
 dist-ssr
 
-# Capacitor
+# Capacitor & Test Artifacts
 android
+test-results
+playwright-report
 
 # Logs
 logs

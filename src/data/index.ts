@@ -6,7 +6,7 @@
  */
 
 // Supabase Client (§14)
-export { getSupabaseClient, supabase } from "@/data/client";
+export { getSupabaseClient } from "@/data/client";
 
 // Paging Contracts & Defaults (§11 Decision)
 export {
@@ -39,6 +39,7 @@ export {
   CargoRepo,
   DependenciaRepo,
   type GuardarOp,
+  isTransportError,
   mapPostgrestError,
   PaisRepo,
   PersonalRepo,

@@ -11,9 +11,15 @@
  * - cancel() always ok, zero side effects.
  */
 
-import { ERROR_CODES, type FieldFailure } from "@/core/errors";
+import { ERROR_CODES, type FieldFailure, isFieldFailure } from "@/core/errors";
 import { canTransition } from "@/core/lifecycle";
-import type { EstReg, GuardarResult, PendingOp, TableName } from "@/core/types";
+import type {
+  EstReg,
+  GuardarResult,
+  PendingOp,
+  TableName,
+  TablePayload,
+} from "@/core/types";
 
 export interface SessionCallbacks<
   TTable extends string = TableName,
@@ -100,18 +106,31 @@ export class MaintenanceSession<
   }
 
   /**
-   * Updates the payload of the active pending operation.
-   * Returns true if applied, false if no pending operation exists.
+   * Updates the payload of the active pending adición/modificación operation.
+   * Returns true if applied, false if no compatible pending operation exists.
    */
-  updatePayload(newPayload: unknown): boolean {
+  updatePayload(newPayload: TablePayload): boolean {
     if (this._pending === null) {
       return false;
     }
-    this._pending = {
-      ...this._pending,
-      payload: newPayload,
-    } as PendingOp<TTable>;
-    return true;
+    if (this._pending.kind === "adición") {
+      this._pending = {
+        kind: "adición",
+        table: this._pending.table,
+        payload: newPayload,
+      };
+      return true;
+    }
+    if (this._pending.kind === "modificación") {
+      this._pending = {
+        kind: "modificación",
+        table: this._pending.table,
+        targetCode: this._pending.targetCode,
+        payload: newPayload,
+      };
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -176,23 +195,24 @@ export class MaintenanceSession<
       try {
         committedRow = await commitFn(op);
       } catch (error: unknown) {
-        if (Array.isArray(error)) {
-          return { ok: false, failures: error as readonly FieldFailure[] };
-        }
         if (
-          typeof error === "object" &&
-          error !== null &&
-          "code" in error &&
-          "field" in error
+          Array.isArray(error) &&
+          error.length > 0 &&
+          error.every(isFieldFailure)
         ) {
-          return { ok: false, failures: [error as FieldFailure] };
+          return { ok: false, failures: error };
+        }
+        if (isFieldFailure(error)) {
+          return { ok: false, failures: [error] };
         }
         throw error;
       }
     }
 
-    // Success: clear pending state
-    this._pending = null;
+    // Success: clear pending only if still matching this committed op
+    if (this._pending === op) {
+      this._pending = null;
+    }
     return { ok: true, noop: false, row: committedRow };
   }
 }

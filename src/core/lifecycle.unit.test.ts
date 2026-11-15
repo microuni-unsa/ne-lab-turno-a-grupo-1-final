@@ -8,7 +8,7 @@ import {
   TABLE_PAIS,
   TABLE_PERSONAL,
 } from "@/core/constants";
-import { ERROR_CODES, type FieldFailure } from "@/core/errors";
+import { ERROR_CODES, isFieldFailure } from "@/core/errors";
 import {
   ADICION_FORCED_STATE,
   applyAdicionState,
@@ -45,9 +45,9 @@ describe("lifecycle.unit", () => {
         try {
           getNextState("modificación", EST_X);
         } catch (err) {
-          const failure = err as FieldFailure;
-          expect(failure.code).toBe(ERROR_CODES.TRANSITION);
-          expect(failure.field).toBe("EstReg");
+          if (!isFieldFailure(err)) throw err;
+          expect(err.code).toBe(ERROR_CODES.TRANSITION);
+          expect(err.field).toBe("EstReg");
         }
         expect(() => assertTransition("modificación", EST_X)).toThrow();
       });
@@ -68,8 +68,8 @@ describe("lifecycle.unit", () => {
         try {
           getNextState("inactivar", EST_I);
         } catch (err) {
-          const failure = err as FieldFailure;
-          expect(failure.code).toBe(ERROR_CODES.TRANSITION);
+          if (!isFieldFailure(err)) throw err;
+          expect(err.code).toBe(ERROR_CODES.TRANSITION);
         }
         expect(() => assertTransition("inactivar", EST_I)).toThrow();
       });
@@ -89,8 +89,8 @@ describe("lifecycle.unit", () => {
         try {
           getNextState("reactivar", EST_A);
         } catch (err) {
-          const failure = err as FieldFailure;
-          expect(failure.code).toBe(ERROR_CODES.TRANSITION);
+          if (!isFieldFailure(err)) throw err;
+          expect(err.code).toBe(ERROR_CODES.TRANSITION);
         }
         expect(() => assertTransition("reactivar", EST_A)).toThrow();
       });
@@ -132,8 +132,8 @@ describe("lifecycle.unit", () => {
         try {
           getNextState("eliminación", EST_X);
         } catch (err) {
-          const failure = err as FieldFailure;
-          expect(failure.code).toBe(ERROR_CODES.TRANSITION);
+          if (!isFieldFailure(err)) throw err;
+          expect(err.code).toBe(ERROR_CODES.TRANSITION);
         }
         expect(() => assertTransition("eliminación", EST_X)).toThrow();
       });
@@ -187,9 +187,9 @@ describe("lifecycle.unit", () => {
         try {
           getNextState("unknown-op", EST_A);
         } catch (err) {
-          const failure = err as FieldFailure;
-          expect(failure.code).toBe(ERROR_CODES.TRANSITION);
-          expect(failure.field).toBe("EstReg");
+          if (!isFieldFailure(err)) throw err;
+          expect(err.code).toBe(ERROR_CODES.TRANSITION);
+          expect(err.field).toBe("EstReg");
         }
 
         expect(() => assertTransition("purgar", EST_A)).toThrow();

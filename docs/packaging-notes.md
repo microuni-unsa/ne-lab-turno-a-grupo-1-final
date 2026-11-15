@@ -1,27 +1,31 @@
 # Packaging & PWA Notes
 
-> **Status Notice:** Packaging is explicitly deferred for this phase. **No Android APK has been built.** This document specifies the operational procedure to synchronize Capacitor assets, open the native project in Android Studio, assemble the APK in a future phase, and verify PWA installability.
+> **Status Notice:** **Android Debug APK compiled and verified.** El proyecto Capacitor está configurado en `capacitor.config.ts` (`appId: "com.solucionesmoviles.maestropersonal"`, `webDir: "dist"`), el directorio nativo `android/` fue sincronizado (`bunx cap sync android`) y el APK fue compilado en `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 ---
 
 ## 1. Capacitor Android Platform Workflow
 
-Capacitor bridges the web build (`app/dist`) into the native Android container (`app/android`).
+Capacitor bridges the web build (`dist/`) into the native Android container (`android/`).
 
-### 1.1 Synchronizing Assets
+### 1.1 Adding & Synchronizing Android Assets
+
+If `android/` does not yet exist in the workspace (`@capacitor/android` is already in `package.json`; initialize once):
+
+```bash
+bunx cap add android
+```
 
 Whenever web assets, configuration, or plugins are updated:
 
 ```bash
-cd app
-bun run build       # Or bunx vite build: generates app/dist
-bunx cap sync       # Copies dist into android/app/src/main/assets/public and updates plugins/config
+bun run build       # Generates dist/
+bunx cap sync       # Copies dist/ into android/app/src/main/assets/public and updates plugins/config
 ```
 
 Alternatively, to target Android only:
 
 ```bash
-cd app
 bunx cap sync android
 ```
 
@@ -30,7 +34,6 @@ bunx cap sync android
 To open the native project in Android Studio for debugging, emulator launch, or signing configuration:
 
 ```bash
-cd app
 bunx cap open android
 ```
 
@@ -42,15 +45,15 @@ When APK packaging is scheduled:
   1. Open project via `bunx cap open android`.
   2. Wait for Gradle sync to complete.
   3. Select **Build** > **Build Bundle(s) / APK(s)** > **Build APK(s)**.
-  4. The generated APK will be available in `app/android/app/build/outputs/apk/debug/app-debug.apk`.
+  4. The generated APK will be available in `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 - **Via Command Line (CLI):**
   ```bash
-  cd app/android
+  cd android
   ./gradlew assembleDebug
   ```
   The resulting debug APK is located at:
-  `app/android/app/build/outputs/apk/debug/app-debug.apk`
+  `android/app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
@@ -58,7 +61,7 @@ When APK packaging is scheduled:
 
 The web client is configured for standalone PWA capability on mobile surfaces.
 
-### 2.1 Manifest Specifications (`app/public/manifest.webmanifest`)
+### 2.1 Manifest Specifications (`public/manifest.webmanifest`)
 
 - [x] **Application Name:** `"Maestro de Personal"`
 - [x] **Short Name:** `"Personal"`
@@ -67,19 +70,22 @@ The web client is configured for standalone PWA capability on mobile surfaces.
 - [x] **Icons Defined:**
   - 192x192 PNG: `/icons/icon-192.png` (Homescreen icon)
   - 512x512 PNG: `/icons/icon-512.png` (Splash / high-DPI icon)
-- [x] **Palette Placeholders:** Neutral theme and background colors (`#ffffff`) pending final design palette.
+- [x] **Neutral Palette:** Matches UI theme tokens (`#ffffff`).
 
-### 2.2 HTML Meta Tags (`app/index.html`)
+### 2.2 HTML Meta Tags (`index.html`)
 
+- [x] Viewport with safe-area & virtual keyboard fit: `viewport-fit=cover, interactive-widget=resizes-content`
 - [x] Manifest link: `<link rel="manifest" href="/manifest.webmanifest" />`
+- [x] Touch & browser icons: `<link rel="icon" ... />` and `<link rel="apple-touch-icon" href="/icons/icon-192.png" />`
 - [x] Theme color: `<meta name="theme-color" content="#ffffff" />`
 - [x] iOS standalone support: `<meta name="apple-mobile-web-app-capable" content="yes" />`
 
 ### 2.3 Verification & Testing Checklist
 
-- [ ] **HTTPS / Localhost:** Install prompts require serving over HTTPS in production or `localhost` during development.
+- [x] **Automated Preview Verification:** Playwright E2E verifies `manifest.webmanifest` HTTP 200 and PNG icon assets (`192×192`, `512×512`) served from `vite preview` (`dist/`).
+- [ ] **HTTPS / Production Host:** Install prompts require serving over HTTPS in production or `localhost` during development.
 - [ ] **DevTools Audit:**
-  1. Open Chrome / Edge DevTools.
+  1. Open Chrome / Edge DevTools on the deployed HTTPS URL.
   2. Inspect **Application** > **Manifest** to confirm identity, icons, and display mode are recognized.
   3. Run **Lighthouse** audit selecting "Progressive Web App" to verify installability criteria.
-- [ ] **Service Worker:** Deferred with packaging phase. When offline caching is required, register a service worker (e.g. via `vite-plugin-pwa` or custom SW).
+- [ ] **Service Worker:** Deferred per `SPEC §14` (live network required against Supabase; no offline mode).

@@ -187,21 +187,18 @@ export interface ModificacionOp<
 export interface EliminacionOp<TTable extends string = TableName> {
   readonly kind: "eliminación";
   readonly table: TTable;
-  readonly payload?: unknown;
   readonly targetCode: number;
 }
 
 export interface InactivarOp<TTable extends string = TableName> {
   readonly kind: "inactivar";
   readonly table: TTable;
-  readonly payload?: unknown;
   readonly targetCode: number;
 }
 
 export interface ReactivarOp<TTable extends string = TableName> {
   readonly kind: "reactivar";
   readonly table: TTable;
-  readonly payload?: unknown;
   readonly targetCode: number;
 }
 

@@ -1,0 +1,82 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import * as React from "react";
+import { MaintenancePageScaffold } from "@/features/maintenance/components/MaintenancePageScaffold";
+import { useMaintenanceScreen } from "@/features/maintenance/use-maintenance-screen";
+import { ReferenceFormDrawer } from "@/features/reference/components/ReferenceFormDrawer";
+import type {
+  ReferenceMaintenanceConfig,
+  ReferenceRepoContract,
+} from "@/features/reference/reference-config";
+
+export interface ReferenceMaintenancePageProps<TRow> {
+  readonly config: ReferenceMaintenanceConfig<TRow>;
+  readonly client?: SupabaseClient;
+  readonly repo?: ReferenceRepoContract<TRow>;
+}
+
+/**
+ * Reusable Maintenance Screen for reference tables (PAIS, DEPENDENCIA, CARGO).
+ * Driven declaratively by ReferenceMaintenanceConfig (OCP).
+ */
+export function ReferenceMaintenancePage<TRow>({
+  config,
+  client,
+  repo: repoOverride,
+}: ReferenceMaintenancePageProps<TRow>) {
+  const repo = React.useMemo(
+    () => repoOverride ?? config.createRepo(client),
+    [client, config, repoOverride],
+  );
+
+  const screen = useMaintenanceScreen({
+    table: config.table,
+    repo,
+    defaultOrdering: config.defaultOrdering ?? "default",
+    getRowCode: config.getRowCode,
+    getRowState: config.getRowState,
+    rowToPayload: config.rowToPayload,
+    validatePayload: (payload, isUpdate) =>
+      config.validatePayload(payload, isUpdate),
+  });
+
+  return (
+    <MaintenancePageScaffold
+      id={config.id}
+      title={config.title}
+      subtitle={`Catálogo ${config.tableLabel} · estados A / I / *`}
+      singularLabel={config.singularLabel}
+      tableLabel={config.tableLabel}
+      searchPlaceholder={config.searchPlaceholder}
+      emptyMessage={config.emptyMessage}
+      screen={screen}
+      getRowCode={config.getRowCode}
+      getRowTitle={config.getRowNom}
+      getRowSubtitle={(row) => `${config.codeField}: ${config.getRowCode(row)}`}
+      getRowState={config.getRowState}
+      renderFormDrawer={() =>
+        screen.isFormPending ? (
+          <ReferenceFormDrawer
+            open={screen.formDrawerOpen}
+            onOpenChange={screen.setFormDrawerOpen}
+            sessionKey={screen.formSessionKey}
+            mode={screen.formMode}
+            config={config}
+            draft={screen.formDraft}
+            onDraftChange={screen.setFormDraft}
+            estReg={screen.drawerEstReg}
+            externalFailures={screen.externalFailures}
+            isSaving={screen.controller.isSaving}
+            submitTriggerRef={screen.submitTriggerRef}
+            onSubmitPayload={screen.handleSubmitPayload}
+            onNotifyBatchErrors={(failures) =>
+              screen.feedback.notifyBatchErrors(failures)
+            }
+            onCancelPending={screen.handleCancelPending}
+            onHideDrawer={() => screen.setFormDrawerOpen(false)}
+            onSalir={screen.handleSalir}
+          />
+        ) : null
+      }
+    />
+  );
+}

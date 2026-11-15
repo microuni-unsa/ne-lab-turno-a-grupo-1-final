@@ -32,26 +32,42 @@ import type {
   TableName,
 } from "@/core/types";
 
+const TABLE_CODE_META: Readonly<
+  Record<
+    Lowercase<TableName>,
+    { readonly codeField: string; readonly maxLimit: number }
+  >
+> = {
+  [TABLE_PAIS]: { codeField: "PaiCod", maxLimit: MAX_SMALLINT },
+  [TABLE_DEPENDENCIA]: { codeField: "DepCod", maxLimit: MAX_SMALLINT },
+  [TABLE_CARGO]: { codeField: "CarCod", maxLimit: MAX_SMALLINT },
+  [TABLE_PERSONAL]: { codeField: "PerCod", maxLimit: MAX_INTEGER },
+  [TABLE_ESTREG]: { codeField: "EstRegCod", maxLimit: MAX_SMALLINT },
+};
+
+function resolveTableCodeMeta(table: TableName): {
+  readonly codeField: string;
+  readonly maxLimit: number;
+} {
+  const normalized = table.toLowerCase();
+  if (
+    normalized === TABLE_PAIS ||
+    normalized === TABLE_DEPENDENCIA ||
+    normalized === TABLE_CARGO ||
+    normalized === TABLE_PERSONAL ||
+    normalized === TABLE_ESTREG
+  ) {
+    return TABLE_CODE_META[normalized];
+  }
+  throw new Error(`Unknown table for code metadata: ${table}`);
+}
+
 /**
  * Returns the default primary key field name for a given table.
  * Cites SPEC §4.1.
  */
 export function getCodeFieldName(table: TableName): string {
-  const normalized = table.toLowerCase();
-  switch (normalized) {
-    case TABLE_PAIS:
-      return "PaiCod";
-    case TABLE_DEPENDENCIA:
-      return "DepCod";
-    case TABLE_CARGO:
-      return "CarCod";
-    case TABLE_PERSONAL:
-      return "PerCod";
-    case TABLE_ESTREG:
-      return "EstRegCod";
-    default:
-      throw new Error(`Unknown table for code field: ${table}`);
-  }
+  return resolveTableCodeMeta(table).codeField;
 }
 
 /**
@@ -60,18 +76,7 @@ export function getCodeFieldName(table: TableName): string {
  * Cites SPEC §4.1.
  */
 export function getMaxCodeLimit(table: TableName): number {
-  const normalized = table.toLowerCase();
-  switch (normalized) {
-    case TABLE_PAIS:
-    case TABLE_DEPENDENCIA:
-    case TABLE_CARGO:
-    case TABLE_ESTREG:
-      return MAX_SMALLINT;
-    case TABLE_PERSONAL:
-      return MAX_INTEGER;
-    default:
-      throw new Error(`Unknown table for code limit: ${table}`);
-  }
+  return resolveTableCodeMeta(table).maxLimit;
 }
 
 /**
@@ -263,6 +268,51 @@ export function validateFecNac(
   return [];
 }
 
+function validateEstRegValue(
+  value: unknown,
+  fieldName: string,
+): FieldFailure[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (value !== EST_A && value !== EST_I && value !== EST_X) {
+    return [{ code: ERROR_CODES.RANGE, field: fieldName }];
+  }
+  return [];
+}
+
+function validateReferenceRow(
+  table: typeof TABLE_PAIS | typeof TABLE_DEPENDENCIA | typeof TABLE_CARGO,
+  codeField: "PaiCod" | "DepCod" | "CarCod",
+  nomField: "PaiNom" | "DepNom" | "CarNom",
+  estField: "PaiEstReg" | "DepEstReg" | "CarEstReg",
+  row: Record<string, unknown>,
+  options: { isUpdate?: boolean } = {},
+): FieldFailure[] {
+  const failures: FieldFailure[] = [];
+  const codeValue: unknown = Object.getOwnPropertyDescriptor(
+    row,
+    codeField,
+  )?.value;
+  const nomValue: unknown = Object.getOwnPropertyDescriptor(
+    row,
+    nomField,
+  )?.value;
+  const estValue: unknown = Object.getOwnPropertyDescriptor(
+    row,
+    estField,
+  )?.value;
+
+  if (!options.isUpdate || codeValue !== undefined) {
+    failures.push(...validateCode(table, codeValue, codeField));
+  }
+
+  failures.push(...validateNom(nomValue, nomField));
+  failures.push(...validateEstRegValue(estValue, estField));
+
+  return failures;
+}
+
 /**
  * Validates a full PAIS row or payload.
  * SPEC §5.1, §12.
@@ -271,25 +321,14 @@ export function validatePaisRow(
   row: Partial<PaisRow> | Record<string, unknown>,
   options: { isUpdate?: boolean } = {},
 ): FieldFailure[] {
-  const failures: FieldFailure[] = [];
-
-  if (!options.isUpdate || row.PaiCod !== undefined) {
-    failures.push(...validateCode(TABLE_PAIS, row.PaiCod, "PaiCod"));
-  }
-
-  failures.push(...validateNom(row.PaiNom, "PaiNom"));
-
-  if (row.PaiEstReg !== undefined) {
-    if (
-      row.PaiEstReg !== EST_A &&
-      row.PaiEstReg !== EST_I &&
-      row.PaiEstReg !== EST_X
-    ) {
-      failures.push({ code: ERROR_CODES.RANGE, field: "PaiEstReg" });
-    }
-  }
-
-  return failures;
+  return validateReferenceRow(
+    TABLE_PAIS,
+    "PaiCod",
+    "PaiNom",
+    "PaiEstReg",
+    row,
+    options,
+  );
 }
 
 /**
@@ -300,25 +339,14 @@ export function validateDependenciaRow(
   row: Partial<DependenciaRow> | Record<string, unknown>,
   options: { isUpdate?: boolean } = {},
 ): FieldFailure[] {
-  const failures: FieldFailure[] = [];
-
-  if (!options.isUpdate || row.DepCod !== undefined) {
-    failures.push(...validateCode(TABLE_DEPENDENCIA, row.DepCod, "DepCod"));
-  }
-
-  failures.push(...validateNom(row.DepNom, "DepNom"));
-
-  if (row.DepEstReg !== undefined) {
-    if (
-      row.DepEstReg !== EST_A &&
-      row.DepEstReg !== EST_I &&
-      row.DepEstReg !== EST_X
-    ) {
-      failures.push({ code: ERROR_CODES.RANGE, field: "DepEstReg" });
-    }
-  }
-
-  return failures;
+  return validateReferenceRow(
+    TABLE_DEPENDENCIA,
+    "DepCod",
+    "DepNom",
+    "DepEstReg",
+    row,
+    options,
+  );
 }
 
 /**
@@ -329,25 +357,14 @@ export function validateCargoRow(
   row: Partial<CargoRow> | Record<string, unknown>,
   options: { isUpdate?: boolean } = {},
 ): FieldFailure[] {
-  const failures: FieldFailure[] = [];
-
-  if (!options.isUpdate || row.CarCod !== undefined) {
-    failures.push(...validateCode(TABLE_CARGO, row.CarCod, "CarCod"));
-  }
-
-  failures.push(...validateNom(row.CarNom, "CarNom"));
-
-  if (row.CarEstReg !== undefined) {
-    if (
-      row.CarEstReg !== EST_A &&
-      row.CarEstReg !== EST_I &&
-      row.CarEstReg !== EST_X
-    ) {
-      failures.push({ code: ERROR_CODES.RANGE, field: "CarEstReg" });
-    }
-  }
-
-  return failures;
+  return validateReferenceRow(
+    TABLE_CARGO,
+    "CarCod",
+    "CarNom",
+    "CarEstReg",
+    row,
+    options,
+  );
 }
 
 /**

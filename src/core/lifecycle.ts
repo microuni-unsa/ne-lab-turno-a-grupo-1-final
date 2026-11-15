@@ -89,27 +89,41 @@ export function normalizeLifecycleOp(op: string): LifecycleOp | null {
   }
 }
 
+function isEstReg(value: number): value is EstReg {
+  return value === EST_A || value === EST_I || value === EST_X;
+}
+
+/**
+ * Resolves a lifecycle transition rule cleanly, returning null when the state
+ * or operation name is outside the SPEC §6.1 matrix.
+ */
+function resolveTransitionOutcome(
+  op: string,
+  current: EstReg | number,
+): TransitionRule | null {
+  if (!isEstReg(current)) {
+    return null;
+  }
+
+  const normalized = normalizeLifecycleOp(op);
+  if (normalized === null) {
+    return null;
+  }
+
+  if (normalized === "adición") {
+    return { allowed: true, nextState: EST_A };
+  }
+
+  return TRANSITION_TABLE[normalized][current];
+}
+
 /**
  * SPEC §6.1: Checks if an operation is allowed given current record state.
  * Returns true if allowed, false otherwise.
  */
 export function canTransition(op: string, current: EstReg | number): boolean {
-  if (current !== EST_A && current !== EST_I && current !== EST_X) {
-    return false;
-  }
-
-  const normalized = normalizeLifecycleOp(op);
-  if (normalized === null) {
-    return false;
-  }
-
-  if (normalized === "adición") {
-    return true;
-  }
-
-  const stateRules = TRANSITION_TABLE[normalized];
-  const rule = stateRules[current as EstReg];
-  return rule.allowed;
+  const outcome = resolveTransitionOutcome(op, current);
+  return outcome?.allowed ?? false;
 }
 
 /**
@@ -117,36 +131,16 @@ export function canTransition(op: string, current: EstReg | number): boolean {
  * Throws E-TRANSITION failure object if forbidden or unknown.
  */
 export function getNextState(op: string, current: EstReg | number): EstReg {
-  if (current !== EST_A && current !== EST_I && current !== EST_X) {
+  const outcome = resolveTransitionOutcome(op, current);
+
+  if (!outcome?.allowed || outcome.nextState === undefined) {
     throw {
       code: ERROR_CODES.TRANSITION,
       field: "EstReg",
     } satisfies FieldFailure;
   }
 
-  const normalized = normalizeLifecycleOp(op);
-  if (normalized === null) {
-    throw {
-      code: ERROR_CODES.TRANSITION,
-      field: "EstReg",
-    } satisfies FieldFailure;
-  }
-
-  if (normalized === "adición") {
-    return EST_A;
-  }
-
-  const stateRules = TRANSITION_TABLE[normalized];
-  const rule = stateRules[current as EstReg];
-
-  if (!rule.allowed || rule.nextState === undefined) {
-    throw {
-      code: ERROR_CODES.TRANSITION,
-      field: "EstReg",
-    } satisfies FieldFailure;
-  }
-
-  return rule.nextState;
+  return outcome.nextState;
 }
 
 /**

@@ -10,6 +10,11 @@
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import {
   EST_A,
+  EST_I,
+  EST_X,
+  MAX_INTEGER,
+  MAX_SMALLINT,
+  MIN_CODE,
   TABLE_CARGO,
   TABLE_DEPENDENCIA,
   TABLE_PAIS,
@@ -78,63 +83,105 @@ function normalizeTable(table: TableName | string): string {
  * Returns explicit ORDER BY clauses for a table per SPEC §11.1.
  * Mandatory on all list queries (R18).
  */
+interface ReferenceTableQueryMeta {
+  readonly codeCol: "PaiCod" | "DepCod" | "CarCod";
+  readonly nomCol: "PaiNom" | "DepNom" | "CarNom";
+  readonly estRegCol: "PaiEstReg" | "DepEstReg" | "CarEstReg";
+  readonly gselProjection: string;
+}
+
+const REFERENCE_QUERY_META: Readonly<
+  Record<"pais" | "dependencia" | "cargo", ReferenceTableQueryMeta>
+> = {
+  pais: {
+    codeCol: "PaiCod",
+    nomCol: "PaiNom",
+    estRegCol: "PaiEstReg",
+    gselProjection: '"PaiCod", "PaiNom"',
+  },
+  dependencia: {
+    codeCol: "DepCod",
+    nomCol: "DepNom",
+    estRegCol: "DepEstReg",
+    gselProjection: '"DepCod", "DepNom"',
+  },
+  cargo: {
+    codeCol: "CarCod",
+    nomCol: "CarNom",
+    estRegCol: "CarEstReg",
+    gselProjection: '"CarCod", "CarNom"',
+  },
+};
+
+function isReferenceQueryTable(
+  table: string,
+): table is "pais" | "dependencia" | "cargo" {
+  return table === "pais" || table === "dependencia" || table === "cargo";
+}
+
+/**
+ * Escapes LIKE/ILIKE wildcard characters (`\`, `%`, `_`) so user input is matched literally.
+ */
+export function escapeIlikeLiteral(value: string): string {
+  return value.replace(/[\\%_]/g, "\\$&");
+}
+
+function formatOrIlikeTerm(column: string, pattern: string): string {
+  if (/[,()"\\]/.test(pattern)) {
+    const escaped = pattern.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    return `${column}.ilike."${escaped}"`;
+  }
+  return `${column}.ilike.${pattern}`;
+}
+
 export function getTableOrdering(
   table: TableName | string,
   ordering: OrderingToggle = "default",
 ): readonly OrderClause[] {
   const norm = normalizeTable(table);
-  switch (norm) {
-    case "pais":
-      if (ordering === "alternate") {
-        return [{ column: "PaiCod", ascending: true }];
-      }
-      return [
-        { column: "PaiNom", ascending: true },
-        { column: "PaiCod", ascending: true },
-      ];
-    case "dependencia":
-      if (ordering === "alternate") {
-        return [{ column: "DepCod", ascending: true }];
-      }
-      return [
-        { column: "DepNom", ascending: true },
-        { column: "DepCod", ascending: true },
-      ];
-    case "cargo":
-      if (ordering === "alternate") {
-        return [{ column: "CarCod", ascending: true }];
-      }
-      return [
-        { column: "CarNom", ascending: true },
-        { column: "CarCod", ascending: true },
-      ];
-    case "personal":
-      if (ordering === "alternate") {
-        return [
-          { column: "PerNom", ascending: true },
-          { column: "PerCod", ascending: true },
-        ];
-      }
-      return [{ column: "PerCod", ascending: true }];
-    default:
-      throw new Error(`Unsupported table for ordering: ${table}`);
+  if (isReferenceQueryTable(norm)) {
+    const meta = REFERENCE_QUERY_META[norm];
+    if (ordering === "alternate") {
+      return [{ column: meta.codeCol, ascending: true }];
+    }
+    return [
+      { column: meta.nomCol, ascending: true },
+      { column: meta.codeCol, ascending: true },
+    ];
   }
+  if (norm === "personal") {
+    if (ordering === "alternate") {
+      return [
+        { column: "PerNom", ascending: true },
+        { column: "PerCod", ascending: true },
+      ];
+    }
+    return [{ column: "PerCod", ascending: true }];
+  }
+  throw new Error(`Unsupported table for ordering: ${table}`);
 }
 
 /**
- * Applies ordering clauses and paging range to a Postgrest builder.
+ * Type guard verifying that a PostgREST builder exposes both `.params` and `.then`.
  */
-function attachDescriptor(
+function isExecutableQuery<T>(value: object): value is ExecutableQuery<T> {
+  return "params" in value && "then" in value;
+}
+
+function attachDescriptor<T = unknown>(
   builder: object,
   descriptor: QueryDescriptor,
-): ExecutableQuery {
+): ExecutableQuery<T> {
   Object.defineProperty(builder, "params", {
     value: descriptor,
     writable: false,
     enumerable: true,
     configurable: true,
   });
-  return builder as unknown as ExecutableQuery;
+  if (!isExecutableQuery<T>(builder)) {
+    throw new Error("PostgREST query builder missing params/then contract");
+  }
+  return builder;
 }
 
 interface ChainablePostgrestBuilder<T> {
@@ -164,7 +211,7 @@ function applyOrderAndPaging<T extends ChainablePostgrestBuilder<T>>(
  * Builds a list query returning an unexecuted PostgREST builder (§11.1).
  * Default ordering with toggle in scope. Emits explicit order (R18).
  */
-export function listQuery(
+export function listQuery<TRow = unknown>(
   table: TableName | string,
   ordering: OrderingToggle = "default",
   page: Pick<Page, "offset" | "limit"> = {
@@ -173,7 +220,7 @@ export function listQuery(
   },
   options?: PagingOptions,
   client: SupabaseClient = getSupabaseClient(),
-): ExecutableQuery {
+): ExecutableQuery<TRow> {
   const normTable = normalizeTable(table);
   const orderClauses = getTableOrdering(normTable, ordering);
 
@@ -197,14 +244,14 @@ export function listQuery(
  * Empty input returns unfiltered list with active ordering.
  * Personal: PerNom ILIKE contains OR PerDNI contains OR PerCod exact-on-integer-parse.
  */
-export function simpleSearch(
+export function simpleSearch<TRow = unknown>(
   table: TableName | string,
   q: string,
   ordering: OrderingToggle = "default",
   page?: Pick<Page, "offset" | "limit">,
   options?: PagingOptions,
   client: SupabaseClient = getSupabaseClient(),
-): ExecutableQuery {
+): ExecutableQuery<TRow> {
   const normTable = normalizeTable(table);
   const orderClauses = getTableOrdering(normTable, ordering);
   const selectOpts = getSelectOptions(options);
@@ -213,36 +260,27 @@ export function simpleSearch(
   const trimmed = q ? q.trim() : "";
 
   if (trimmed.length > 0) {
-    switch (normTable) {
-      case "pais":
-        builder = builder.ilike("PaiNom", `%${trimmed}%`);
-        break;
-      case "dependencia":
-        builder = builder.ilike("DepNom", `%${trimmed}%`);
-        break;
-      case "cargo":
-        builder = builder.ilike("CarNom", `%${trimmed}%`);
-        break;
-      case "personal": {
-        const isDigits = /^\d+$/.test(trimmed);
-        const parsedCode = isDigits ? parseInt(trimmed, 10) : null;
-        if (
-          parsedCode !== null &&
-          parsedCode > 0 &&
-          Number.isSafeInteger(parsedCode)
-        ) {
-          builder = builder.or(
-            `PerNom.ilike.%${trimmed}%,PerDNI.ilike.%${trimmed}%,PerCod.eq.${parsedCode}`,
-          );
-        } else {
-          builder = builder.or(
-            `PerNom.ilike.%${trimmed}%,PerDNI.ilike.%${trimmed}%`,
-          );
-        }
-        break;
+    const escapedTerm = escapeIlikeLiteral(trimmed);
+    if (isReferenceQueryTable(normTable)) {
+      const meta = REFERENCE_QUERY_META[normTable];
+      builder = builder.ilike(meta.nomCol, `%${escapedTerm}%`);
+    } else if (normTable === "personal") {
+      const isDigits = /^\d+$/.test(trimmed);
+      const parsedCode = isDigits ? parseInt(trimmed, 10) : null;
+      const nomTerm = formatOrIlikeTerm("PerNom", `%${escapedTerm}%`);
+      const dniTerm = formatOrIlikeTerm("PerDNI", `%${escapedTerm}%`);
+      if (
+        parsedCode !== null &&
+        Number.isSafeInteger(parsedCode) &&
+        parsedCode >= MIN_CODE &&
+        parsedCode <= MAX_INTEGER
+      ) {
+        builder = builder.or(`${nomTerm},${dniTerm},PerCod.eq.${parsedCode}`);
+      } else {
+        builder = builder.or(`${nomTerm},${dniTerm}`);
       }
-      default:
-        throw new Error(`Unsupported table for simple search: ${table}`);
+    } else {
+      throw new Error(`Unsupported table for simple search: ${table}`);
     }
   }
 
@@ -291,23 +329,34 @@ export interface AdvancedSearchFilters {
  * AND-combined; empty/unknown criteria ignored (R20). EstReg-set default all.
  * Emits explicit order (R18).
  */
-export function advancedSearch(
+export function advancedSearch<TRow = unknown>(
   table: TableName | string,
   filters: AdvancedSearchFilters,
   ordering: OrderingToggle = "default",
   page?: Pick<Page, "offset" | "limit">,
   options?: PagingOptions,
   client: SupabaseClient = getSupabaseClient(),
-): ExecutableQuery {
+): ExecutableQuery<TRow> {
   const normTable = normalizeTable(table);
   const orderClauses = getTableOrdering(normTable, ordering);
   const selectOpts = getSelectOptions(options);
   let builder = client.from(normTable).select("*", selectOpts);
 
-  const parseNum = (val: unknown): number | null => {
-    if (typeof val === "number" && Number.isFinite(val)) return val;
-    if (typeof val === "string" && /^\d+$/.test(val.trim()))
-      return parseInt(val.trim(), 10);
+  const parseCodeFilter = (val: unknown, maxLimit: number): number | null => {
+    let num: number | null = null;
+    if (typeof val === "number" && Number.isInteger(val)) {
+      num = val;
+    } else if (typeof val === "string" && /^\d+$/.test(val.trim())) {
+      num = parseInt(val.trim(), 10);
+    }
+    if (
+      num !== null &&
+      Number.isSafeInteger(num) &&
+      num >= MIN_CODE &&
+      num <= maxLimit
+    ) {
+      return num;
+    }
     return null;
   };
 
@@ -317,88 +366,88 @@ export function advancedSearch(
   };
 
   const parseEstRegSet = (val: unknown): number[] | null => {
+    const parseEstItem = (item: unknown): number | null => {
+      const n =
+        typeof item === "number"
+          ? item
+          : typeof item === "string" && /^\d+$/.test(item.trim())
+            ? parseInt(item.trim(), 10)
+            : null;
+      return n === EST_A || n === EST_I || n === EST_X ? n : null;
+    };
     if (Array.isArray(val)) {
-      const nums = val.map(parseNum).filter((n): n is number => n !== null);
-      if (nums.length > 0 && nums.length < 3) return nums;
+      const unique = Array.from(
+        new Set(val.map(parseEstItem).filter((n): n is number => n !== null)),
+      );
+      if (unique.length > 0 && unique.length < 3) return unique;
       return null;
     }
-    if (typeof val === "number") return [val];
+    const single = parseEstItem(val);
+    if (single !== null) return [single];
     return null;
   };
 
-  switch (normTable) {
-    case "pais": {
-      const cod = parseNum(filters.Cod ?? filters.PaiCod);
-      if (cod !== null) builder = builder.eq("PaiCod", cod);
+  if (isReferenceQueryTable(normTable)) {
+    const meta = REFERENCE_QUERY_META[normTable];
+    const cod = parseCodeFilter(
+      filters.Cod ?? filters[meta.codeCol],
+      MAX_SMALLINT,
+    );
+    if (cod !== null) builder = builder.eq(meta.codeCol, cod);
 
-      const nom = parseStr(filters.Nom ?? filters.PaiNom);
-      if (nom !== null) builder = builder.ilike("PaiNom", `%${nom}%`);
-
-      const est = parseEstRegSet(filters.EstReg ?? filters.PaiEstReg);
-      if (est !== null) builder = builder.in("PaiEstReg", est);
-      break;
+    const nom = parseStr(filters.Nom ?? filters[meta.nomCol]);
+    if (nom !== null) {
+      builder = builder.ilike(meta.nomCol, `%${escapeIlikeLiteral(nom)}%`);
     }
 
-    case "dependencia": {
-      const cod = parseNum(filters.Cod ?? filters.DepCod);
-      if (cod !== null) builder = builder.eq("DepCod", cod);
+    const est = parseEstRegSet(filters.EstReg ?? filters[meta.estRegCol]);
+    if (est !== null) builder = builder.in(meta.estRegCol, est);
+  } else if (normTable === "personal") {
+    const cod = parseCodeFilter(filters.Cod ?? filters.PerCod, MAX_INTEGER);
+    if (cod !== null) builder = builder.eq("PerCod", cod);
 
-      const nom = parseStr(filters.Nom ?? filters.DepNom);
-      if (nom !== null) builder = builder.ilike("DepNom", `%${nom}%`);
-
-      const est = parseEstRegSet(filters.EstReg ?? filters.DepEstReg);
-      if (est !== null) builder = builder.in("DepEstReg", est);
-      break;
+    const nom = parseStr(filters.Nom ?? filters.PerNom);
+    if (nom !== null) {
+      builder = builder.ilike("PerNom", `%${escapeIlikeLiteral(nom)}%`);
     }
 
-    case "cargo": {
-      const cod = parseNum(filters.Cod ?? filters.CarCod);
-      if (cod !== null) builder = builder.eq("CarCod", cod);
-
-      const nom = parseStr(filters.Nom ?? filters.CarNom);
-      if (nom !== null) builder = builder.ilike("CarNom", `%${nom}%`);
-
-      const est = parseEstRegSet(filters.EstReg ?? filters.CarEstReg);
-      if (est !== null) builder = builder.in("CarEstReg", est);
-      break;
+    const dni = parseStr(filters.DNI ?? filters.PerDNI);
+    if (dni !== null) {
+      builder = builder.ilike("PerDNI", `${escapeIlikeLiteral(dni)}%`);
     }
 
-    case "personal": {
-      const cod = parseNum(filters.Cod ?? filters.PerCod);
-      if (cod !== null) builder = builder.eq("PerCod", cod);
+    const fecNacFrom = parseStr(
+      filters.FecNacFrom ?? filters.from ?? filters.PerFecNacFrom,
+    );
+    if (fecNacFrom !== null) builder = builder.gte("PerFecNac", fecNacFrom);
 
-      const nom = parseStr(filters.Nom ?? filters.PerNom);
-      if (nom !== null) builder = builder.ilike("PerNom", `%${nom}%`);
+    const fecNacTo = parseStr(
+      filters.FecNacTo ?? filters.to ?? filters.PerFecNacTo,
+    );
+    if (fecNacTo !== null) builder = builder.lte("PerFecNac", fecNacTo);
 
-      const dni = parseStr(filters.DNI ?? filters.PerDNI);
-      if (dni !== null) builder = builder.ilike("PerDNI", `${dni}%`);
+    const paiCod = parseCodeFilter(
+      filters.PaiCod ?? filters.PerPaiCod,
+      MAX_SMALLINT,
+    );
+    if (paiCod !== null) builder = builder.eq("PerPaiCod", paiCod);
 
-      const fecNacFrom = parseStr(
-        filters.FecNacFrom ?? filters.from ?? filters.PerFecNacFrom,
-      );
-      if (fecNacFrom !== null) builder = builder.gte("PerFecNac", fecNacFrom);
+    const depCod = parseCodeFilter(
+      filters.DepCod ?? filters.PerDepCod,
+      MAX_SMALLINT,
+    );
+    if (depCod !== null) builder = builder.eq("PerDepCod", depCod);
 
-      const fecNacTo = parseStr(
-        filters.FecNacTo ?? filters.to ?? filters.PerFecNacTo,
-      );
-      if (fecNacTo !== null) builder = builder.lte("PerFecNac", fecNacTo);
+    const carCod = parseCodeFilter(
+      filters.CarCod ?? filters.PerCarCod,
+      MAX_SMALLINT,
+    );
+    if (carCod !== null) builder = builder.eq("PerCarCod", carCod);
 
-      const paiCod = parseNum(filters.PaiCod ?? filters.PerPaiCod);
-      if (paiCod !== null) builder = builder.eq("PerPaiCod", paiCod);
-
-      const depCod = parseNum(filters.DepCod ?? filters.PerDepCod);
-      if (depCod !== null) builder = builder.eq("PerDepCod", depCod);
-
-      const carCod = parseNum(filters.CarCod ?? filters.PerCarCod);
-      if (carCod !== null) builder = builder.eq("PerCarCod", carCod);
-
-      const est = parseEstRegSet(filters.EstReg ?? filters.PerEstReg);
-      if (est !== null) builder = builder.in("PerEstReg", est);
-      break;
-    }
-
-    default:
-      throw new Error(`Unsupported table for advanced search: ${table}`);
+    const est = parseEstRegSet(filters.EstReg ?? filters.PerEstReg);
+    if (est !== null) builder = builder.in("PerEstReg", est);
+  } else {
+    throw new Error(`Unsupported table for advanced search: ${table}`);
   }
 
   builder = applyOrderAndPaging(builder, orderClauses, page);
@@ -420,51 +469,28 @@ export function advancedSearch(
  * Builds a generic selection query (G-SEL; SPEC §9).
  * Activo-only (EstReg = 1), Nom ASC, Cod ASC tiebreak, Cod + Nom projection.
  */
-export function gsel(
+export function gsel<TRow = unknown>(
   target: "pais" | "dependencia" | "cargo" | TableName | string,
   client: SupabaseClient = getSupabaseClient(),
-): ExecutableQuery {
+): ExecutableQuery<TRow> {
   const normTarget = normalizeTable(target);
 
-  let selectProjection: string;
-  let estRegCol: string;
-  let nomCol: string;
-  let codCol: string;
-
-  switch (normTarget) {
-    case "pais":
-      selectProjection = '"PaiCod", "PaiNom"';
-      estRegCol = "PaiEstReg";
-      nomCol = "PaiNom";
-      codCol = "PaiCod";
-      break;
-    case "dependencia":
-      selectProjection = '"DepCod", "DepNom"';
-      estRegCol = "DepEstReg";
-      nomCol = "DepNom";
-      codCol = "DepCod";
-      break;
-    case "cargo":
-      selectProjection = '"CarCod", "CarNom"';
-      estRegCol = "CarEstReg";
-      nomCol = "CarNom";
-      codCol = "CarCod";
-      break;
-    default:
-      throw new Error(
-        `Invalid G-SEL target table: ${target}. Must be reference table.`,
-      );
+  if (!isReferenceQueryTable(normTarget)) {
+    throw new Error(
+      `Invalid G-SEL target table: ${target}. Must be reference table.`,
+    );
   }
+  const meta = REFERENCE_QUERY_META[normTarget];
 
   const orderClauses: OrderClause[] = [
-    { column: nomCol, ascending: true },
-    { column: codCol, ascending: true },
+    { column: meta.nomCol, ascending: true },
+    { column: meta.codeCol, ascending: true },
   ];
 
   let builder = client
     .from(normTarget)
-    .select(selectProjection)
-    .eq(estRegCol, EST_A);
+    .select(meta.gselProjection)
+    .eq(meta.estRegCol, EST_A);
 
   for (const ord of orderClauses) {
     builder = builder.order(ord.column, { ascending: ord.ascending });
@@ -472,7 +498,7 @@ export function gsel(
 
   const descriptor: QueryDescriptor = {
     table: normTarget,
-    select: selectProjection,
+    select: meta.gselProjection,
     order: orderClauses,
   };
 

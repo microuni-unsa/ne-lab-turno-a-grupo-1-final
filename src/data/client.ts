@@ -17,16 +17,30 @@ function readRequiredEnv(
   if (
     typeof import.meta !== "undefined" &&
     import.meta.env &&
-    import.meta.env[name]
+    typeof import.meta.env[name] === "string"
   ) {
     val = import.meta.env[name];
   } else {
-    // Node / Bun script or test environment via globalThis.process
-    const proc = (
-      globalThis as { process?: { env?: Record<string, string | undefined> } }
-    ).process;
-    if (proc?.env?.[name]) {
-      val = proc.env[name];
+    // Node / Bun script or test environment via globalThis.process without unsafe casts
+    const maybeProcess: unknown = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "process",
+    )?.value;
+    if (
+      typeof maybeProcess === "object" &&
+      maybeProcess !== null &&
+      "env" in maybeProcess
+    ) {
+      const maybeEnv: unknown = maybeProcess.env;
+      if (typeof maybeEnv === "object" && maybeEnv !== null) {
+        const raw: unknown = Object.getOwnPropertyDescriptor(
+          maybeEnv,
+          name,
+        )?.value;
+        if (typeof raw === "string") {
+          val = raw;
+        }
+      }
     }
   }
 
@@ -47,22 +61,10 @@ export function getSupabaseClient(): SupabaseClient {
   if (clientInstance === null) {
     const supabaseUrl = readRequiredEnv("VITE_SUPABASE_URL");
     const supabaseKey = readRequiredEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
-    clientInstance = createClient(supabaseUrl, supabaseKey);
+    // Disable postgrest-js hidden multi-attempt backoff so TanStack Query owns single retry timing on mobile
+    clientInstance = createClient(supabaseUrl, supabaseKey, {
+      db: { retry: false },
+    });
   }
   return clientInstance;
 }
-
-/**
- * Lazy SupabaseClient proxy singleton.
- * Defers client creation until first property access.
- */
-export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
-  get(_target, prop, receiver) {
-    const client = getSupabaseClient();
-    const value = Reflect.get(client, prop, receiver);
-    if (typeof value === "function") {
-      return value.bind(client);
-    }
-    return value;
-  },
-});

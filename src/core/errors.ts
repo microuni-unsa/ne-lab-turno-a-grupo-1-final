@@ -46,11 +46,13 @@ export function isFieldFailure(value: unknown): value is FieldFailure {
   if (typeof value !== "object" || value === null) {
     return false;
   }
-  const candidate = value as Record<string, unknown>;
-  if (typeof candidate.field !== "string") {
+  if (!("field" in value) || typeof value.field !== "string") {
     return false;
   }
-  return Object.values(ERROR_CODES).includes(candidate.code as ErrorCode);
+  if (!("code" in value) || typeof value.code !== "string") {
+    return false;
+  }
+  return Object.values(ERROR_CODES).some((code) => code === value.code);
 }
 
 /**

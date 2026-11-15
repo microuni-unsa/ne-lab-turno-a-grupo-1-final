@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "skills": {
+    "microform": {
+      "source": "https://gitlab.com/microx-technologies/microskills.git",
+      "sourceUrl": "https://gitlab.com/microx-technologies/microskills.git",
+      "sourceType": "gitlab",
+      "skillPath": "skills/microform/SKILL.md",
+      "computedHash": "54bb74538d15d0ea0fa962c13a7557253e823df26252d0f3c3b79d034cffa27c"
+    }
+  }
+}
