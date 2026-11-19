@@ -1,11 +1,11 @@
-import { cn } from "cn";
 import type * as React from "react";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { EST_A, EST_I, EST_X, type EstReg, type PendingOpKind } from "@/core";
 
 export interface RecordDetailCardProps {
   readonly pendingKind?: PendingOpKind;
-  readonly selectedCode: number | null;
+  readonly selectedCode: string | null;
   readonly selectedTitle: string | null;
   readonly selectedSubtitle?: string | null;
   readonly selectedState: EstReg | null;
@@ -22,21 +22,10 @@ const MODE_LABELS: Readonly<Record<PendingOpKind, string>> = {
   eliminación: "MODO ELIMINACIÓN",
 };
 
-const STATE_DISPLAY: Readonly<
-  Record<EstReg, { readonly text: string; readonly className: string }>
-> = {
-  [EST_A]: {
-    text: "A - Activo",
-    className: "border-emerald-300 bg-emerald-50 text-emerald-800",
-  },
-  [EST_I]: {
-    text: "I - Inactivo",
-    className: "border-amber-300 bg-amber-50 text-amber-900",
-  },
-  [EST_X]: {
-    text: "* - Eliminado",
-    className: "border-rose-300 bg-rose-50 text-rose-800",
-  },
+const STATE_PLAIN_LABELS: Readonly<Record<EstReg, string>> = {
+  [EST_A]: "Activo",
+  [EST_I]: "Inactivado",
+  [EST_X]: "Eliminado",
 };
 
 function getTargetStateForOp(
@@ -59,9 +48,8 @@ function getTargetStateForOp(
 }
 
 /**
- * Always-visible inline "Datos del registro" card matching the approved
- * reference layout and keeping Consulta, Adición, Modificación, Inactivar,
- * Reactivar, and Eliminación on a single consistent surface.
+ * Always-visible inline "Datos del registro" card rendered as a consistent form
+ * across Consulta, Adición, Modificación, Inactivar, Reactivar, and Eliminación.
  */
 export function RecordDetailCard({
   pendingKind,
@@ -70,22 +58,26 @@ export function RecordDetailCard({
   selectedSubtitle,
   selectedState,
   codeLabel = "Código",
-  nameLabel = "Nombre / Descripción",
+  nameLabel = "Nombre",
   renderInlineForm,
 }: RecordDetailCardProps) {
   const isFormMode =
     pendingKind === "adición" || pendingKind === "modificación";
   const modeLabel = pendingKind ? MODE_LABELS[pendingKind] : "MODO CONSULTA";
   const nextState = getTargetStateForOp(pendingKind, selectedState);
-  const currentMeta = selectedState ? STATE_DISPLAY[selectedState] : null;
-  const nextMeta = nextState ? STATE_DISPLAY[nextState] : null;
+  const currentStateText = selectedState
+    ? STATE_PLAIN_LABELS[selectedState]
+    : null;
+  const nextStateText = nextState ? STATE_PLAIN_LABELS[nextState] : null;
   const isTransition =
     pendingKind === "inactivar" ||
     pendingKind === "reactivar" ||
     pendingKind === "eliminación";
 
-  const formattedCode =
-    selectedCode !== null ? String(selectedCode).padStart(2, "0") : "—";
+  const stateDisplayText =
+    isTransition && currentStateText && nextStateText
+      ? `${currentStateText} → ${nextStateText}`
+      : (currentStateText ?? "Sin selección");
 
   return (
     <section
@@ -94,106 +86,87 @@ export function RecordDetailCard({
       className="rounded-xl border border-border bg-card p-3 shadow-sm"
     >
       <div className="mb-2.5 flex items-center justify-between gap-2">
-        <h2 className="m-0 text-xs font-semibold tracking-wide text-foreground">
+        <h2 className="m-0 text-sm font-semibold text-foreground">
           Datos del registro
         </h2>
         <Badge
-          variant={pendingKind ? "default" : "secondary"}
+          variant="secondary"
           data-testid="record-mode-badge"
-          className={cn(
-            "px-2.5 py-0.5 text-[11px] font-bold tracking-wide",
-            !pendingKind && "bg-primary/10 text-primary border-primary/20",
-          )}
+          className="border border-border bg-muted px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-foreground"
         >
           {modeLabel}
         </Badge>
       </div>
 
       {isFormMode && renderInlineForm ? (
-        <div className="flex flex-col gap-2">
-          {nextMeta && (
-            <div className="flex items-center justify-between rounded-lg border border-border/70 bg-muted/30 px-2.5 py-1.5 text-xs">
-              <span className="font-medium text-muted-foreground">
-                Estado de registro
-              </span>
-              <span
-                className={cn(
-                  "rounded-md border px-2 py-0.5 text-[11px] font-semibold",
-                  nextMeta.className,
-                )}
-              >
-                {nextMeta.text}
-              </span>
-            </div>
-          )}
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center justify-between border-b border-border/60 pb-2 text-xs">
+            <span className="font-medium text-muted-foreground">
+              Estado de registro
+            </span>
+            <span
+              data-testid="detail-state-value"
+              className="font-semibold text-foreground"
+            >
+              {nextStateText ?? "Activo"}
+            </span>
+          </div>
           {renderInlineForm()}
         </div>
       ) : (
         <div className="flex flex-col gap-2.5">
-          <div className="flex items-center gap-3">
-            <div className="flex min-w-20 flex-col gap-0.5 rounded-lg border border-border bg-muted/20 px-2.5 py-1.5">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                {codeLabel}
-              </span>
-              <span
-                data-testid="detail-code-value"
-                className="text-sm font-semibold tabular-nums text-foreground"
-              >
-                {formattedCode}
-              </span>
-            </div>
-
-            <div className="flex flex-1 flex-col gap-0.5">
-              <span className="text-[10px] font-medium text-muted-foreground">
-                Estado de registro
-              </span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {isTransition && currentMeta && nextMeta ? (
-                  <span
-                    data-testid="detail-state-value"
-                    className={cn(
-                      "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold",
-                      nextMeta.className,
-                    )}
-                  >
-                    {currentMeta.text} → {nextMeta.text}
-                  </span>
-                ) : currentMeta ? (
-                  <span
-                    data-testid="detail-state-value"
-                    className={cn(
-                      "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold",
-                      currentMeta.className,
-                    )}
-                  >
-                    {currentMeta.text}
-                  </span>
-                ) : (
-                  <span
-                    data-testid="detail-state-value"
-                    className="text-xs text-muted-foreground"
-                  >
-                    Sin selección
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-muted/20 px-2.5 py-1.5">
-            <span className="text-[10px] font-medium text-muted-foreground">
-              {nameLabel}
+          <div className="flex items-center justify-between border-b border-border/60 pb-2 text-xs">
+            <span className="font-medium text-muted-foreground">
+              Estado de registro
             </span>
             <span
-              data-testid="detail-name-value"
-              className="text-sm font-medium text-foreground break-words"
+              data-testid="detail-state-value"
+              className="font-semibold text-foreground"
             >
-              {selectedTitle ?? "Seleccione un registro de la lista"}
+              {stateDisplayText}
             </span>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Label
+              htmlFor="readonly-detail-code"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              {codeLabel}
+            </Label>
+            <input
+              id="readonly-detail-code"
+              type="text"
+              readOnly
+              tabIndex={-1}
+              data-testid="detail-code-value"
+              value={selectedCode ?? ""}
+              placeholder="—"
+              className="flex h-10 w-full rounded-md border border-input bg-muted/30 px-3 py-2 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <Label
+              htmlFor="readonly-detail-name"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              {nameLabel}
+            </Label>
+            <input
+              id="readonly-detail-name"
+              type="text"
+              readOnly
+              tabIndex={-1}
+              data-testid="detail-name-value"
+              value={selectedTitle ?? ""}
+              placeholder="Seleccione un registro de la lista"
+              className="flex h-10 w-full rounded-md border border-input bg-muted/30 px-3 py-2 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
+            />
             {selectedSubtitle && (
-              <span className="text-xs text-muted-foreground break-words">
+              <p className="m-0 pt-0.5 text-xs text-muted-foreground break-words">
                 {selectedSubtitle}
-              </span>
+              </p>
             )}
           </div>
         </div>

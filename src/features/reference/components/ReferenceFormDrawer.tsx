@@ -2,7 +2,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createFormDefaults } from "@microx-technologies/microform";
 import * as React from "react";
 import { type FieldValues, useForm } from "react-hook-form";
-import { type EstReg, type FieldFailure, MAX_NAME, MIN_NAME } from "@/core";
+import {
+  type EstReg,
+  type FieldFailure,
+  MAX_CODE_LEN,
+  MAX_NAME,
+  MIN_NAME,
+} from "@/core";
 import {
   MaintenanceFormDrawerShell,
   MaintenanceFormFooter,
@@ -68,15 +74,12 @@ function ReferenceFormSessionBody<TRow>({
       {
         fields: [
           {
-            type: "number",
+            type: "text",
             name: config.codeField,
             label: config.codeLabel,
-            placeholder: isUpdate
-              ? "Código inmutable"
-              : `Entero positivo (1 – ${config.maxCode})`,
+            placeholder: isUpdate ? "Código inmutable" : "Ej. PER",
             readonly: isUpdate,
-            maxLength: String(config.maxCode).length,
-            inputMode: "numeric",
+            maxLength: MAX_CODE_LEN,
             colspan: 12,
           },
           {

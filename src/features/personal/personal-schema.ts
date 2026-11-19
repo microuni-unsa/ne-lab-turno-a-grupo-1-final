@@ -2,10 +2,8 @@ import * as z from "zod";
 import {
   DNI_LEN,
   ERROR_CODES,
-  MAX_INTEGER,
-  MAX_SMALLINT,
+  MAX_CODE_LEN,
   MIN_AGE,
-  MIN_CODE,
   validateDNI,
   validateFecNac,
 } from "@/core";
@@ -23,20 +21,18 @@ export interface PersonalSchemaOptions {
 function createForeignKeySchema(fieldName: string) {
   const label = getFieldLabel(fieldName);
   return z
-    .number({
+    .string({
       error: (issue) =>
         issue.input === undefined || issue.input === null
           ? `[${ERROR_CODES.REQUIRED}] Debe seleccionar un valor para ${label}.`
           : `[${ERROR_CODES.FORMAT}] ${label} seleccionado no es válido.`,
     })
-    .int({
-      error: `[${ERROR_CODES.FORMAT}] ${label} debe ser un código entero válido.`,
+    .trim()
+    .min(1, {
+      error: `[${ERROR_CODES.REQUIRED}] Debe seleccionar un valor para ${label}.`,
     })
-    .min(MIN_CODE, {
-      error: `[${ERROR_CODES.RANGE}] ${label} seleccionado debe ser mayor a 0.`,
-    })
-    .max(MAX_SMALLINT, {
-      error: `[${ERROR_CODES.RANGE}] ${label} debe ser menor o igual a ${MAX_SMALLINT}.`,
+    .max(MAX_CODE_LEN, {
+      error: `[${ERROR_CODES.RANGE}] ${label} debe tener máximo ${MAX_CODE_LEN} caracteres.`,
     });
 }
 
@@ -52,7 +48,7 @@ export function createPersonalSchema({
   const fecNacLabel = getFieldLabel("PerFecNac");
 
   return z.object({
-    PerCod: createCodeSchema("PerCod", MAX_INTEGER, isUpdate),
+    PerCod: createCodeSchema("PerCod", MAX_CODE_LEN, isUpdate),
     PerNom: createNameSchema("PerNom"),
     PerDNI: z
       .string({

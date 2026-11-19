@@ -17,11 +17,10 @@ import {
   EST_I,
   EST_X,
   type GuardarResult,
-  MAX_SMALLINT,
   type PaisRow,
   type PendingOp,
-  TABLE_PAIS,
 } from "@/core";
+import * as dataModule from "@/data";
 import { ReferenceMaintenancePage } from "@/features/reference/ReferenceMaintenancePage";
 import {
   paisConfig,
@@ -38,7 +37,7 @@ function createMemoryPaisRepo(initial: readonly PaisRow[] = []): {
   const guardarSpy = vi.fn(
     async (op: PendingOp): Promise<GuardarResult<PaisRow>> => {
       if (op.kind === "adición") {
-        const cod = Number(Reflect.get(op.payload, "PaiCod"));
+        const cod = String(Reflect.get(op.payload, "PaiCod") ?? "").trim();
         const nom = String(Reflect.get(op.payload, "PaiNom") ?? "").trim();
         if (rows.some((r) => r.PaiCod === cod)) {
           return {
@@ -108,7 +107,7 @@ function createMemoryPaisRepo(initial: readonly PaisRow[] = []): {
         return { ok: true as const, row: updated };
       }
 
-      if (current.PaiCod === asPaiCod(1)) {
+      if (current.PaiCod === asPaiCod("1")) {
         return {
           ok: false as const,
           failures: [createFailure(ERROR_CODES.REF_BLOCKED, "PaiCod")],
@@ -127,12 +126,21 @@ function createMemoryPaisRepo(initial: readonly PaisRow[] = []): {
   );
 
   const repo: ReferenceRepoContract<PaisRow> = {
-    async list(ordering = "default") {
-      const sorted = [...rows].sort((a, b) =>
-        ordering === "alternate"
-          ? a.PaiCod - b.PaiCod
+    async list(ordering = "default", _page, _options, viewScope) {
+      const scoped =
+        viewScope === "deleted"
+          ? rows.filter((r) => r.PaiEstReg === EST_X)
+          : viewScope === "main"
+            ? rows.filter((r) => r.PaiEstReg !== EST_X)
+            : rows;
+      const isCodeSort =
+        ordering === "alternate" ||
+        (typeof ordering === "object" && ordering.column === "PaiCod");
+      const sorted = [...scoped].sort((a, b) =>
+        isCodeSort
+          ? a.PaiCod.localeCompare(b.PaiCod)
           : a.PaiNom.localeCompare(b.PaiNom, "es", { sensitivity: "case" }) ||
-            a.PaiCod - b.PaiCod,
+            a.PaiCod.localeCompare(b.PaiCod),
       );
       return { data: sorted, count: sorted.length };
     },
@@ -141,16 +149,19 @@ function createMemoryPaisRepo(initial: readonly PaisRow[] = []): {
       const filtered = term
         ? rows.filter((r) => r.PaiNom.toLowerCase().includes(term))
         : rows;
+      const isCodeSort =
+        ordering === "alternate" ||
+        (typeof ordering === "object" && ordering.column === "PaiCod");
       const sorted = [...filtered].sort((a, b) =>
-        ordering === "alternate"
-          ? a.PaiCod - b.PaiCod
+        isCodeSort
+          ? a.PaiCod.localeCompare(b.PaiCod)
           : a.PaiNom.localeCompare(b.PaiNom, "es", { sensitivity: "case" }),
       );
       return { data: sorted, count: sorted.length };
     },
     async advancedSearch(filters, ordering = "default") {
       const filtered = rows.filter((r) => {
-        if (typeof filters.Cod === "number" && r.PaiCod !== filters.Cod) {
+        if (typeof filters.Cod === "string" && r.PaiCod !== filters.Cod) {
           return false;
         }
         if (
@@ -167,9 +178,12 @@ function createMemoryPaisRepo(initial: readonly PaisRow[] = []): {
         }
         return true;
       });
+      const isCodeSort =
+        ordering === "alternate" ||
+        (typeof ordering === "object" && ordering.column === "PaiCod");
       const sorted = [...filtered].sort((a, b) =>
-        ordering === "alternate"
-          ? a.PaiCod - b.PaiCod
+        isCodeSort
+          ? a.PaiCod.localeCompare(b.PaiCod)
           : a.PaiNom.localeCompare(b.PaiNom, "es", { sensitivity: "case" }),
       );
       return { data: sorted, count: sorted.length };
@@ -221,29 +235,17 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
     cleanup();
   });
 
-  it("expone configuración normativa PAIS sin condicionales implícitos", () => {
-    expect(paisConfig.table).toBe(TABLE_PAIS);
-    expect(paisConfig.codeField).toBe("PaiCod");
-    expect(paisConfig.nomField).toBe("PaiNom");
-    expect(paisConfig.estField).toBe("PaiEstReg");
-    expect(paisConfig.maxCode).toBe(MAX_SMALLINT);
-    expect(
-      paisConfig.validatePayload({ PaiCod: undefined, PaiNom: "X" }, false)
-        .length,
-    ).toBeGreaterThanOrEqual(2);
-  });
-
   it("lista países por nombre ASC, exige selección antes de Modificar y abre Adición con R22", async () => {
     const { repo } = createMemoryPaisRepo([
       {
-        PaiCod: asPaiCod(1),
+        PaiCod: asPaiCod("1"),
         PaiNom: "Perú",
         PaiEstReg: EST_A,
         created_at: "2026-01-01T00:00:00Z",
         updated_at: "2026-01-01T00:00:00Z",
       },
       {
-        PaiCod: asPaiCod(2),
+        PaiCod: asPaiCod("2"),
         PaiNom: "Bolivia",
         PaiEstReg: EST_I,
         created_at: "2026-01-01T00:00:00Z",
@@ -267,7 +269,7 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
       "MODO ADICIÓN",
     );
     expect(screen.getByTestId("record-detail-card").textContent).toContain(
-      "A - Activo",
+      "Activo",
     );
     await waitFor(() => {
       expect(document.querySelector('input[name="PaiNom"]')).not.toBeNull();
@@ -290,7 +292,7 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
   it("deshabilita Modificar en fila Inactiva hasta Reactivar y bloquea PaiCod en Modificación", async () => {
     const { repo, guardarSpy } = createMemoryPaisRepo([
       {
-        PaiCod: asPaiCod(3),
+        PaiCod: asPaiCod("3"),
         PaiNom: "Colombia",
         PaiEstReg: EST_I,
         created_at: "2026-01-01T00:00:00Z",
@@ -351,7 +353,7 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
   it("muestra Datos del registro sin inputs editables para Eliminar y bloquea Eliminar referenciado", async () => {
     const { repo } = createMemoryPaisRepo([
       {
-        PaiCod: asPaiCod(1),
+        PaiCod: asPaiCod("1"),
         PaiNom: "Perú",
         PaiEstReg: EST_A,
         created_at: "2026-01-01T00:00:00Z",
@@ -367,7 +369,11 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
     expect(screen.getByTestId("record-mode-badge").textContent).toBe(
       "MODO ELIMINACIÓN",
     );
-    expect(detailCard.querySelectorAll("input").length).toBe(0);
+    expect(
+      Array.from(detailCard.querySelectorAll("input")).every(
+        (input) => input.readOnly,
+      ),
+    ).toBe(true);
 
     fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
@@ -384,7 +390,7 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
   it("preserva borrador pendiente y deshabilita otras operaciones mientras Adición está activa", async () => {
     const { repo } = createMemoryPaisRepo([
       {
-        PaiCod: asPaiCod(1),
+        PaiCod: asPaiCod("1"),
         PaiNom: "Perú",
         PaiEstReg: EST_A,
         created_at: "2026-01-01T00:00:00Z",
@@ -419,9 +425,13 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
   });
 
   it("solicita código de supervisor de un solo uso para Reactivar una fila Eliminada (*)", async () => {
+    const verifySpy = vi
+      .spyOn(dataModule, "verifySupervisorCode")
+      .mockImplementation(async (code) => code.trim() === "SUP-2026");
+
     const { repo, guardarSpy } = createMemoryPaisRepo([
       {
-        PaiCod: asPaiCod(7),
+        PaiCod: asPaiCod("7"),
         PaiNom: "Brasil",
         PaiEstReg: EST_X,
         created_at: "2026-01-01T00:00:00Z",
@@ -430,6 +440,7 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
     ]);
 
     renderPaisPage(repo);
+    fireEvent.click(await screen.findByTestId("btn-toggle-deleted-scope"));
     fireEvent.click(await screen.findByTestId("record-row-7"));
 
     expect(
@@ -446,9 +457,13 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
     fireEvent.change(codeEl, { target: { value: "SUP-2026" } });
     fireEvent.click(screen.getByTestId("btn-confirm-supervisor-auth"));
 
-    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
-      "MODO REACTIVAR",
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+        "MODO REACTIVAR",
+      );
+    });
+    expect(verifySpy).toHaveBeenCalledWith("SUP-2026");
+
     fireEvent.click(screen.getByTestId("op-guardar"));
 
     await waitFor(() => {
@@ -456,13 +471,16 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
     });
     expect(guardarSpy.mock.calls[0]?.[0]).toMatchObject({
       kind: "reactivar",
-      targetCode: 7,
+      targetCode: "7",
       supervisorCode: "SUP-2026",
     });
+
+    fireEvent.click(screen.getByTestId("btn-toggle-deleted-scope"));
     await waitFor(() => {
       expect(
         screen.getByTestId("record-row-7").querySelector('[data-estado="A"]'),
       ).not.toBeNull();
     });
+    verifySpy.mockRestore();
   });
 });

@@ -1,32 +1,27 @@
 import { cn } from "cn";
-import { Badge } from "@/components/ui/badge";
 import { EST_A, EST_I, EST_X, type EstReg } from "@/core";
 
 interface EstadoDisplayMeta {
   readonly symbol: "A" | "I" | "*";
   readonly label: "Activo" | "Inactivo" | "Eliminado";
-  readonly variant: "default" | "secondary" | "destructive";
-  readonly className: string;
+  readonly textClassName: string;
 }
 
 const ESTADO_META_MAP: Readonly<Record<EstReg, EstadoDisplayMeta>> = {
   [EST_A]: {
     symbol: "A",
     label: "Activo",
-    variant: "default",
-    className: "bg-emerald-700 text-white border-emerald-800",
+    textClassName: "text-foreground",
   },
   [EST_I]: {
     symbol: "I",
     label: "Inactivo",
-    variant: "secondary",
-    className: "bg-amber-100 text-amber-950 border-amber-300",
+    textClassName: "text-muted-foreground",
   },
   [EST_X]: {
     symbol: "*",
     label: "Eliminado",
-    variant: "destructive",
-    className: "bg-destructive text-white border-destructive",
+    textClassName: "text-destructive",
   },
 };
 
@@ -37,7 +32,7 @@ export interface EstadoBadgeProps {
 }
 
 /**
- * Renders the normative record-state indicator (A / I / *) with high contrast.
+ * Renders the normative record-state indicator (Activo / Inactivo / Eliminado) as plain text without a pill.
  */
 export function EstadoBadge({
   state,
@@ -45,21 +40,20 @@ export function EstadoBadge({
   className,
 }: EstadoBadgeProps) {
   const meta = ESTADO_META_MAP[state];
-  const text = compact ? meta.symbol : `${meta.symbol} · ${meta.label}`;
+  const text = compact ? meta.label : meta.label;
 
   return (
-    <Badge
-      variant={meta.variant}
+    <span
       data-slot="estado-badge"
       data-estado={meta.symbol}
       aria-label={`Estado ${meta.symbol}: ${meta.label}`}
       className={cn(
-        "min-h-6 px-2.5 py-0.5 text-xs font-semibold tracking-tight",
-        meta.className,
+        "inline-block text-xs font-medium tracking-tight",
+        meta.textClassName,
         className,
       )}
     >
       {text}
-    </Badge>
+    </span>
   );
 }

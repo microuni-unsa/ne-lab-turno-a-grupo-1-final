@@ -5,16 +5,22 @@ import {
   EST_I,
   EST_X,
   type EstReg,
-  MAX_INTEGER,
-  MIN_CODE,
+  MAX_CODE_LEN,
   TABLE_PERSONAL,
   type TableName,
 } from "@/core";
 import {
   type AdvancedSearchFilters,
   DEFAULT_PAGE_LIMIT,
+  getDefaultSortSpec,
+  getTableSortableColumns,
+  type OrderingSpec,
   type OrderingToggle,
   type PagingOptions,
+  type SortableColumnOption,
+  type SortDirection,
+  type TableSortSpec,
+  type ViewScope,
 } from "@/data";
 import {
   maintenanceKeys,
@@ -25,31 +31,35 @@ export const ALL_ESTREG_STATES = [EST_A, EST_I, EST_X] as const;
 
 export interface RepoReader<TRow> {
   readonly list: (
-    ordering?: OrderingToggle,
+    ordering?: OrderingSpec,
     page?: { readonly offset: number; readonly limit: number },
     options?: PagingOptions,
+    viewScope?: ViewScope,
   ) => Promise<{
     readonly data: readonly TRow[];
     readonly count: number | null;
   }>;
   readonly search: (
     q: string,
-    ordering?: OrderingToggle,
+    ordering?: OrderingSpec,
     page?: { readonly offset: number; readonly limit: number },
     options?: PagingOptions,
+    viewScope?: ViewScope,
   ) => Promise<{
     readonly data: readonly TRow[];
     readonly count: number | null;
   }>;
   readonly advancedSearch: (
     filters: AdvancedSearchFilters,
-    ordering?: OrderingToggle,
+    ordering?: OrderingSpec,
     page?: { readonly offset: number; readonly limit: number },
     options?: PagingOptions,
+    viewScope?: ViewScope,
   ) => Promise<{
     readonly data: readonly TRow[];
     readonly count: number | null;
   }>;
+  readonly getAvailableEstRegs?: () => Promise<EstReg[]>;
 }
 
 export interface AdvancedFilterDraft {
@@ -59,9 +69,9 @@ export interface AdvancedFilterDraft {
   readonly dniText: string;
   readonly fecNacFrom: string;
   readonly fecNacTo: string;
-  readonly paiCod: number | undefined;
-  readonly depCod: number | undefined;
-  readonly carCod: number | undefined;
+  readonly paiCod: string | undefined;
+  readonly depCod: string | undefined;
+  readonly carCod: string | undefined;
 }
 
 export const EMPTY_ADVANCED_FILTER_DRAFT: AdvancedFilterDraft = {
@@ -81,35 +91,19 @@ function isEstReg(value: unknown): value is EstReg {
 }
 
 /**
- * Parses a positive code filter strictly without NaN or integer overflow (R20).
+ * Parses a code filter string safely without integer coercion.
  */
-export function parsePositiveCodeFilter(value: unknown): number | undefined {
-  if (typeof value === "number") {
-    if (
-      Number.isSafeInteger(value) &&
-      value >= MIN_CODE &&
-      value <= MAX_INTEGER
-    ) {
-      return value;
+export function parsePositiveCodeFilter(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.length > 0 && trimmed.length <= MAX_CODE_LEN) {
+      return trimmed;
     }
     return undefined;
   }
-
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!/^\d+$/.test(trimmed)) {
-      return undefined;
-    }
-    const parsed = Number.parseInt(trimmed, 10);
-    if (
-      Number.isSafeInteger(parsed) &&
-      parsed >= MIN_CODE &&
-      parsed <= MAX_INTEGER
-    ) {
-      return parsed;
-    }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
   }
-
   return undefined;
 }
 
@@ -200,11 +194,11 @@ export function advancedFiltersToDraft(
   filters: AdvancedSearchFilters,
 ): AdvancedFilterDraft {
   const sanitized = sanitizeAdvancedFilters(filters);
-  const codNum = parsePositiveCodeFilter(sanitized.Cod);
+  const codStr = parsePositiveCodeFilter(sanitized.Cod);
   const estReg = normalizeEstRegSubset(sanitized.EstReg);
 
   return {
-    codText: codNum !== undefined ? String(codNum) : "",
+    codText: codStr ?? "",
     nomText: parseOptionalText(sanitized.Nom) ?? "",
     estReg: estReg ? [...estReg] : ALL_ESTREG_STATES,
     dniText: parseOptionalText(sanitized.DNI) ?? "",
@@ -255,6 +249,10 @@ export interface UseMaintenanceListResult<TRow> {
   readonly error: unknown;
   readonly ordering: OrderingToggle;
   readonly orderingLabel: string;
+  readonly sortSpec: TableSortSpec;
+  readonly sortableColumns: readonly SortableColumnOption[];
+  readonly viewScope: ViewScope;
+  readonly availableEstRegs: readonly EstReg[];
   readonly searchMode: SearchMode;
   readonly simpleTerm: string;
   readonly advancedFilters: AdvancedSearchFilters;
@@ -267,6 +265,10 @@ export interface UseMaintenanceListResult<TRow> {
   readonly hasNextPage: boolean;
   readonly setOrdering: (next: OrderingToggle) => void;
   readonly toggleOrdering: () => void;
+  readonly setSortColumn: (column: string) => void;
+  readonly setSortDirection: (direction: SortDirection) => void;
+  readonly toggleSortDirection: () => void;
+  readonly toggleViewScope: () => void;
   readonly applySimpleSearch: (term: string) => void;
   readonly applyAdvancedSearch: (filters: AdvancedSearchFilters) => void;
   readonly clearSearch: () => void;
@@ -276,8 +278,8 @@ export interface UseMaintenanceListResult<TRow> {
 }
 
 /**
- * Generic query hook for Maintenance lists, ordering toggle (R18), simple search (§11.2),
- * advanced search (§11.3) and paging (50-row pages). State survives pending ops & Cancelar (§8.5).
+ * Generic query hook for Maintenance lists, all-column ASC/DESC sorting,
+ * main/deleted view scope toggle, simple/advanced search, and paging.
  */
 export function useMaintenanceList<TRow>({
   table,
@@ -286,8 +288,23 @@ export function useMaintenanceList<TRow>({
   pageSize = DEFAULT_PAGE_LIMIT,
   enabled = true,
 }: UseMaintenanceListOptions<TRow>): UseMaintenanceListResult<TRow> {
+  const sortableColumns = React.useMemo(
+    () => getTableSortableColumns(table),
+    [table],
+  );
+  const defaultSort = React.useMemo(() => {
+    const base = getDefaultSortSpec(table);
+    if (initialOrdering === "alternate") {
+      const alt = sortableColumns.find((col) => col.column !== base.column);
+      return alt ? { column: alt.column, direction: "asc" as const } : base;
+    }
+    return base;
+  }, [initialOrdering, sortableColumns, table]);
+
   const [ordering, setOrderingState] =
     React.useState<OrderingToggle>(initialOrdering);
+  const [sortSpec, setSortSpec] = React.useState<TableSortSpec>(defaultSort);
+  const [viewScope, setViewScope] = React.useState<ViewScope>("main");
   const [searchMode, setSearchMode] = React.useState<SearchMode>("none");
   const [simpleTerm, setSimpleTerm] = React.useState<string>("");
   const [advancedFilters, setAdvancedFilters] =
@@ -296,10 +313,13 @@ export function useMaintenanceList<TRow>({
 
   const limit = Math.max(1, pageSize);
 
+  const activeOrdering: OrderingSpec = sortSpec;
+
   const queryKey = React.useMemo(
     () =>
       maintenanceKeys.list(table, {
-        ordering,
+        ordering: activeOrdering,
+        viewScope,
         searchMode,
         simpleTerm: searchMode === "simple" ? simpleTerm : undefined,
         advancedFilters:
@@ -307,7 +327,16 @@ export function useMaintenanceList<TRow>({
         offset,
         limit,
       }),
-    [table, ordering, searchMode, simpleTerm, advancedFilters, offset, limit],
+    [
+      table,
+      activeOrdering,
+      viewScope,
+      searchMode,
+      simpleTerm,
+      advancedFilters,
+      offset,
+      limit,
+    ],
   );
 
   const query = useQuery({
@@ -319,17 +348,61 @@ export function useMaintenanceList<TRow>({
       const options: PagingOptions = { countExact: true };
 
       if (searchMode === "simple") {
-        return repo.search(simpleTerm, ordering, page, options);
+        return repo.search(
+          simpleTerm,
+          activeOrdering,
+          page,
+          options,
+          viewScope,
+        );
       }
       if (searchMode === "advanced") {
-        return repo.advancedSearch(advancedFilters, ordering, page, options);
+        return repo.advancedSearch(
+          advancedFilters,
+          activeOrdering,
+          page,
+          options,
+          viewScope,
+        );
       }
-      return repo.list(ordering, page, options);
+      return repo.list(activeOrdering, page, options, viewScope);
     },
   });
 
   const rows = query.data?.data ?? [];
   const totalCount = query.data?.count ?? null;
+
+  const estRegQuery = useQuery({
+    queryKey: [...maintenanceKeys.lists(table), "available-estreg"],
+    enabled: enabled && Boolean(repo.getAvailableEstRegs),
+    queryFn: async () => {
+      if (!repo.getAvailableEstRegs) {
+        return [...ALL_ESTREG_STATES];
+      }
+      return repo.getAvailableEstRegs();
+    },
+  });
+
+  const availableEstRegs = React.useMemo<readonly EstReg[]>(() => {
+    if (estRegQuery.data && estRegQuery.data.length > 0) {
+      return estRegQuery.data;
+    }
+    const fromRows = new Set<EstReg>();
+    for (const row of rows) {
+      if (typeof row === "object" && row !== null) {
+        const rec = row as Record<string, unknown>;
+        const est =
+          rec.PaiEstReg ?? rec.DepEstReg ?? rec.CarEstReg ?? rec.PerEstReg;
+        if (isEstReg(est)) {
+          fromRows.add(est);
+        }
+      }
+    }
+    if (fromRows.size > 0) {
+      return ALL_ESTREG_STATES.filter((s) => fromRows.has(s));
+    }
+    return ALL_ESTREG_STATES;
+  }, [estRegQuery.data, rows]);
 
   const pageIndex = Math.floor(offset / limit);
   const totalPages =
@@ -340,13 +413,59 @@ export function useMaintenanceList<TRow>({
     !query.isPlaceholderData &&
     (totalCount !== null ? offset + limit < totalCount : rows.length >= limit);
 
-  const setOrdering = React.useCallback((next: OrderingToggle) => {
-    setOrderingState(next);
+  const setOrdering = React.useCallback(
+    (next: OrderingToggle) => {
+      setOrderingState(next);
+      if (next === "default") {
+        setSortSpec(getDefaultSortSpec(table));
+      } else {
+        const base = getDefaultSortSpec(table);
+        const alt = sortableColumns.find((col) => col.column !== base.column);
+        setSortSpec(alt ? { column: alt.column, direction: "asc" } : base);
+      }
+      setOffset(0);
+    },
+    [sortableColumns, table],
+  );
+
+  const toggleOrdering = React.useCallback(() => {
+    setOrderingState((prev) => {
+      const next = prev === "default" ? "alternate" : "default";
+      if (next === "default") {
+        setSortSpec(getDefaultSortSpec(table));
+      } else {
+        const base = getDefaultSortSpec(table);
+        const alt = sortableColumns.find((col) => col.column !== base.column);
+        setSortSpec(alt ? { column: alt.column, direction: "asc" } : base);
+      }
+      return next;
+    });
+    setOffset(0);
+  }, [sortableColumns, table]);
+
+  const setSortColumn = React.useCallback((column: string) => {
+    setSortSpec((prev) => ({ ...prev, column }));
     setOffset(0);
   }, []);
 
-  const toggleOrdering = React.useCallback(() => {
-    setOrderingState((prev) => (prev === "default" ? "alternate" : "default"));
+  const setSortDirection = React.useCallback((direction: SortDirection) => {
+    setSortSpec((prev) => ({ ...prev, direction }));
+    setOffset(0);
+  }, []);
+
+  const toggleSortDirection = React.useCallback(() => {
+    setSortSpec((prev) => ({
+      ...prev,
+      direction: prev.direction === "asc" ? "desc" : "asc",
+    }));
+    setOffset(0);
+  }, []);
+
+  const toggleViewScope = React.useCallback(() => {
+    setViewScope((prev) => (prev === "main" ? "deleted" : "main"));
+    setSimpleTerm("");
+    setAdvancedFilters({});
+    setSearchMode("none");
     setOffset(0);
   }, []);
 
@@ -394,10 +513,13 @@ export function useMaintenanceList<TRow>({
     setOffset((prev) => Math.max(0, prev - limit));
   }, [limit]);
 
-  const orderingLabel = React.useMemo(
-    () => getOrderingLabel(table, ordering),
-    [table, ordering],
-  );
+  const orderingLabel = React.useMemo(() => {
+    const colLabel =
+      sortableColumns.find((c) => c.column === sortSpec.column)?.label ??
+      sortSpec.column;
+    const dirLabel = sortSpec.direction === "asc" ? "ASC" : "DESC";
+    return `${colLabel} (${dirLabel})`;
+  }, [sortSpec.column, sortSpec.direction, sortableColumns]);
 
   return {
     rows,
@@ -409,6 +531,10 @@ export function useMaintenanceList<TRow>({
     error: query.error,
     ordering,
     orderingLabel,
+    sortSpec,
+    sortableColumns,
+    viewScope,
+    availableEstRegs,
     searchMode,
     simpleTerm,
     advancedFilters,
@@ -421,6 +547,10 @@ export function useMaintenanceList<TRow>({
     hasNextPage,
     setOrdering,
     toggleOrdering,
+    setSortColumn,
+    setSortDirection,
+    toggleSortDirection,
+    toggleViewScope,
     applySimpleSearch,
     applyAdvancedSearch,
     clearSearch,

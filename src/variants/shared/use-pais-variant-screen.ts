@@ -18,8 +18,8 @@ export interface PaisStateCounts {
   readonly deleted: number;
 }
 
-export function formatPaisCode(code: number): string {
-  return String(code).padStart(2, "0");
+export function formatPaisCode(code: string): string {
+  return code;
 }
 
 export function getStateMeta(estReg: EstReg): {

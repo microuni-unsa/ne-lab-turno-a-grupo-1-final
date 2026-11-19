@@ -1,8 +1,23 @@
 import { cn } from "cn";
-import { ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon } from "lucide-react";
+import {
+  ArchiveIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  RefreshCwIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { EstReg } from "@/core";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { EST_I, type EstReg } from "@/core";
+import type { SortableColumnOption, SortDirection, ViewScope } from "@/data";
 import { EstadoBadge } from "@/features/maintenance/components/EstadoBadge";
 
 export interface RecordListViewProps<TRow> {
@@ -12,11 +27,16 @@ export interface RecordListViewProps<TRow> {
   readonly isFetching?: boolean;
   readonly isError?: boolean;
   readonly orderingLabel: string;
-  readonly ordering?: "default" | "alternate";
-  readonly isCodeDefault?: boolean;
-  readonly onToggleOrdering?: () => void;
-  readonly selectedCode: number | null;
-  readonly getRowCode: (row: TRow) => number;
+  readonly sortColumn?: string;
+  readonly sortDirection?: SortDirection;
+  readonly sortableColumns?: readonly SortableColumnOption[];
+  readonly onSortColumnChange?: (column: string) => void;
+  readonly onToggleSortDirection?: () => void;
+  readonly viewScope?: ViewScope;
+  readonly onToggleViewScope?: () => void;
+  readonly hasPending?: boolean;
+  readonly selectedCode: string | null;
+  readonly getRowCode: (row: TRow) => string;
   readonly getRowTitle: (row: TRow) => string;
   readonly getRowSubtitle?: (row: TRow) => string | undefined;
   readonly getRowState: (row: TRow) => EstReg;
@@ -35,7 +55,8 @@ export interface RecordListViewProps<TRow> {
 }
 
 /**
- * Touch-friendly paged Card list (50 rows per page) preserving row selection across filters (R18-R21).
+ * Touch-friendly paged record table (50 rows per page) with all-column ASC/DESC sorting,
+ * main/deleted view toggle, horizontal overflow scrolling, and plain state display.
  */
 export function RecordListView<TRow>({
   rows,
@@ -44,9 +65,14 @@ export function RecordListView<TRow>({
   isFetching = false,
   isError = false,
   orderingLabel,
-  ordering = "default",
-  isCodeDefault = false,
-  onToggleOrdering,
+  sortColumn,
+  sortDirection = "asc",
+  sortableColumns = [],
+  onSortColumnChange,
+  onToggleSortDirection,
+  viewScope = "main",
+  onToggleViewScope,
+  hasPending = false,
   selectedCode,
   getRowCode,
   getRowTitle,
@@ -66,10 +92,7 @@ export function RecordListView<TRow>({
   emptyMessage = "No se encontraron registros con los criterios actuales.",
 }: RecordListViewProps<TRow>) {
   const showPaging = hasPrevPage || hasNextPage || (totalCount ?? 0) > limit;
-
-  const isOrderedByCode = isCodeDefault
-    ? ordering === "default"
-    : ordering === "alternate";
+  const isDeletedScope = viewScope === "deleted";
 
   return (
     <section
@@ -77,82 +100,97 @@ export function RecordListView<TRow>({
       data-testid="record-list-view"
       className="flex flex-col gap-2"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 text-xs text-muted-foreground">
-        {onToggleOrdering ? (
-          <fieldset
-            aria-label="Ordenar por"
-            className="m-0 flex items-center gap-2 border-0 p-0"
-          >
-            <span className="font-medium text-foreground">Ordenar por:</span>
-            <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium text-foreground hover:bg-muted">
-              <input
-                type="radio"
-                name="record-sort-order"
-                checked={isOrderedByCode}
-                data-testid="btn-sort-code"
-                onChange={() => {
-                  if (!isOrderedByCode) {
-                    onToggleOrdering();
-                  }
-                }}
-                className="sr-only"
-              />
-              <span
-                className={cn(
-                  "flex size-3.5 items-center justify-center rounded-full border",
-                  isOrderedByCode
-                    ? "border-primary bg-primary/10"
-                    : "border-muted-foreground/50",
-                )}
-              >
-                {isOrderedByCode && (
-                  <span className="size-1.5 rounded-full bg-primary" />
-                )}
+      <div className="flex flex-col gap-2 px-0.5 text-xs text-muted-foreground">
+        <div className="flex items-end justify-between gap-2">
+          {sortableColumns.length > 0 && onSortColumnChange ? (
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="text-xs font-medium text-foreground">
+                Ordenar por
               </span>
-              <span>Código</span>
-            </label>
-            <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium text-foreground hover:bg-muted">
-              <input
-                type="radio"
-                name="record-sort-order"
-                checked={!isOrderedByCode}
-                data-testid="btn-sort-name"
-                onChange={() => {
-                  if (isOrderedByCode) {
-                    onToggleOrdering();
-                  }
-                }}
-                className="sr-only"
-              />
-              <span
-                className={cn(
-                  "flex size-3.5 items-center justify-center rounded-full border",
-                  !isOrderedByCode
-                    ? "border-primary bg-primary/10"
-                    : "border-muted-foreground/50",
+              <div className="flex items-center gap-1.5">
+                <Select
+                  value={sortColumn ?? sortableColumns[0]?.column}
+                  onValueChange={onSortColumnChange}
+                >
+                  <SelectTrigger
+                    aria-label="Ordenar por columna"
+                    data-testid="select-sort-column"
+                    className="h-9 min-h-9 w-full max-w-44 bg-card text-xs font-medium text-foreground"
+                  >
+                    <SelectValue placeholder="Columna" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortableColumns.map((col) => (
+                      <SelectItem
+                        key={col.column}
+                        value={col.column}
+                        data-testid={`sort-option-${col.column}`}
+                      >
+                        {col.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {onToggleSortDirection && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    data-testid="btn-toggle-sort-dir"
+                    aria-label={
+                      sortDirection === "asc"
+                        ? "Orden ascendente"
+                        : "Orden descendente"
+                    }
+                    onClick={onToggleSortDirection}
+                    className="h-9 min-h-9 shrink-0 gap-1 px-2.5 text-xs font-medium text-foreground"
+                  >
+                    {sortDirection === "asc" ? (
+                      <ArrowUpIcon className="size-3.5" />
+                    ) : (
+                      <ArrowDownIcon className="size-3.5" />
+                    )}
+                    <span>{sortDirection === "asc" ? "ASC" : "DESC"}</span>
+                  </Button>
                 )}
-              >
-                {!isOrderedByCode && (
-                  <span className="size-1.5 rounded-full bg-primary" />
-                )}
+              </div>
+              <span data-testid="active-ordering-label" className="sr-only">
+                Orden activo: {orderingLabel}
               </span>
-              <span>Nombre</span>
-            </label>
-            <span data-testid="active-ordering-label" className="sr-only">
+            </div>
+          ) : (
+            <span data-testid="active-ordering-label" className="font-medium">
               Orden activo: {orderingLabel}
             </span>
-          </fieldset>
-        ) : (
-          <span data-testid="active-ordering-label" className="font-medium">
-            Orden activo: {orderingLabel}
-          </span>
-        )}
-        <span data-testid="list-total-summary" className="tabular-nums">
-          {totalCount !== null
-            ? `${totalCount} registro(s)`
-            : `${rows.length} visibles`}
-          {isFetching && !isLoading ? " · actualizando..." : ""}
-        </span>
+          )}
+
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            {onToggleViewScope && (
+              <Button
+                type="button"
+                variant={isDeletedScope ? "default" : "outline"}
+                size="sm"
+                disabled={hasPending}
+                data-testid="btn-toggle-deleted-scope"
+                aria-pressed={isDeletedScope}
+                onClick={onToggleViewScope}
+                className="h-9 min-h-9 gap-1.5 px-2.5 text-xs font-medium"
+              >
+                <ArchiveIcon className="size-3.5 shrink-0" />
+                <span>
+                  {isDeletedScope ? "Ver principales" : "Ver eliminados"}
+                </span>
+              </Button>
+            )}
+            <span data-testid="list-total-summary" className="tabular-nums">
+              {totalCount !== null
+                ? `${totalCount} registro(s)`
+                : `${rows.length} visibles`}
+              {isFetching && !isLoading ? " · actualizando..." : ""}
+            </span>
+          </div>
+        </div>
       </div>
 
       {isError ? (
@@ -168,7 +206,7 @@ export function RecordListView<TRow>({
                 variant="outline"
                 size="sm"
                 onClick={onRetry}
-                className="min-h-11 gap-1.5"
+                className="min-h-10 gap-1.5"
               >
                 <RefreshCwIcon className="size-3.5" />
                 <span>Reintentar</span>
@@ -181,23 +219,25 @@ export function RecordListView<TRow>({
           <CardContent className="flex flex-col gap-2.5 pt-4 text-sm text-muted-foreground">
             <span>Cargando registros...</span>
             <div className="flex flex-col gap-2" aria-hidden="true">
-              <div className="h-12 w-full animate-pulse rounded-md bg-muted/60" />
-              <div className="h-12 w-full animate-pulse rounded-md bg-muted/50" />
-              <div className="h-12 w-full animate-pulse rounded-md bg-muted/40" />
+              <div className="h-11 w-full animate-pulse rounded-md bg-muted/60" />
+              <div className="h-11 w-full animate-pulse rounded-md bg-muted/50" />
+              <div className="h-11 w-full animate-pulse rounded-md bg-muted/40" />
             </div>
           </CardContent>
         </Card>
       ) : rows.length === 0 ? (
         <Card data-testid="empty-list-state">
           <CardContent className="flex flex-wrap items-center justify-between gap-2 pt-4 text-sm text-muted-foreground">
-            <span>{emptyMessage}</span>
+            <span>
+              {isDeletedScope ? "No hay registros eliminados." : emptyMessage}
+            </span>
             {onClearFilters && (
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={onClearFilters}
-                className="min-h-11"
+                className="min-h-10"
               >
                 Limpiar búsqueda
               </Button>
@@ -206,55 +246,61 @@ export function RecordListView<TRow>({
         </Card>
       ) : (
         <div
-          className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+          className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm"
           data-testid="record-list-rows"
         >
-          <div className="grid grid-cols-[3.5rem_1fr_3.5rem] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-            <span>Código</span>
-            <span>Nombre / Descripción</span>
-            <span className="text-right">Estado</span>
-          </div>
-          <div className="divide-y divide-border">
-            {rows.map((row) => {
-              const code = getRowCode(row);
-              const title = getRowTitle(row);
-              const subtitle = getRowSubtitle?.(row);
-              const state = getRowState(row);
-              const isSelected = selectedCode !== null && selectedCode === code;
+          <div className="min-w-[20rem]">
+            <div className="grid grid-cols-[4.5rem_minmax(10rem,1fr)_5rem] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+              <span>Código</span>
+              <span>Nombre</span>
+              <span className="text-right">Estado</span>
+            </div>
+            <div className="divide-y divide-border">
+              {rows.map((row) => {
+                const code = getRowCode(row);
+                const title = getRowTitle(row);
+                const subtitle = getRowSubtitle?.(row);
+                const state = getRowState(row);
+                const isInactive = state === EST_I;
+                const isSelected =
+                  selectedCode !== null && selectedCode === code;
 
-              return (
-                <button
-                  key={code}
-                  type="button"
-                  data-testid={`record-row-${code}`}
-                  aria-pressed={isSelected}
-                  onClick={() => onSelectRow(row)}
-                  className={cn(
-                    "grid min-h-12 w-full grid-cols-[3.5rem_1fr_3.5rem] items-center gap-2 px-3 py-2.5 text-left transition-colors",
-                    isSelected
-                      ? "bg-amber-50/90 ring-1 ring-inset ring-amber-300"
-                      : "hover:bg-muted/40",
-                  )}
-                >
-                  <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
-                    {String(code).padStart(2, "0")}
-                  </span>
-                  <div className="flex min-w-0 flex-col gap-0.5">
-                    <span className="break-words text-sm font-medium leading-snug text-foreground">
-                      {title}
-                    </span>
-                    {subtitle && (
-                      <span className="line-clamp-2 break-words text-xs leading-snug tabular-nums text-muted-foreground">
-                        {subtitle}
-                      </span>
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    data-testid={`record-row-${code}`}
+                    aria-pressed={isSelected}
+                    onClick={() => onSelectRow(row)}
+                    className={cn(
+                      "grid min-h-11 w-full grid-cols-[4.5rem_minmax(10rem,1fr)_5rem] items-center gap-2 px-3 py-2 text-left transition-colors",
+                      isInactive &&
+                        "bg-muted/25 text-muted-foreground opacity-65",
+                      isSelected
+                        ? "bg-amber-50/90 ring-1 ring-inset ring-amber-300 opacity-100"
+                        : "hover:bg-muted/40",
                     )}
-                  </div>
-                  <div className="flex justify-end">
-                    <EstadoBadge state={state} compact />
-                  </div>
-                </button>
-              );
-            })}
+                  >
+                    <span className="truncate font-mono text-xs font-semibold text-foreground">
+                      {code}
+                    </span>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="break-words text-sm font-medium leading-snug text-foreground">
+                        {title}
+                      </span>
+                      {subtitle && (
+                        <span className="line-clamp-2 break-words text-xs leading-snug text-muted-foreground">
+                          {subtitle}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex justify-end">
+                      <EstadoBadge state={state} compact />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -271,7 +317,7 @@ export function RecordListView<TRow>({
             disabled={!hasPrevPage}
             data-testid="btn-page-prev"
             onClick={onPrevPage}
-            className="min-h-11 gap-1 px-3"
+            className="min-h-10 gap-1 px-3"
           >
             <ChevronLeftIcon className="size-4" />
             <span>Anterior</span>
@@ -290,7 +336,7 @@ export function RecordListView<TRow>({
             disabled={!hasNextPage}
             data-testid="btn-page-next"
             onClick={onNextPage}
-            className="min-h-11 gap-1 px-3"
+            className="min-h-10 gap-1 px-3"
           >
             <span>Siguiente</span>
             <ChevronRightIcon className="size-4" />

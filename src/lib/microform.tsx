@@ -409,6 +409,7 @@ const textControl = defineControl({
       placeholder={props.placeholder}
       aria-invalid={props.invalid || undefined}
       aria-describedby={props.ariaDescribedBy}
+      className="min-h-10 text-sm"
     />
   ),
 });
@@ -439,6 +440,7 @@ const numberControl = defineControl({
       placeholder={props.placeholder}
       aria-invalid={props.invalid || undefined}
       aria-describedby={props.ariaDescribedBy}
+      className="min-h-10 text-sm"
     />
   ),
 });
@@ -528,8 +530,8 @@ function renderMicroformItem<
     [descId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={rhf.name}>
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={rhf.name} className="text-xs font-medium text-foreground">
         <span>{field.label}</span>
         {required && <span className="text-destructive">*</span>}
       </Label>
@@ -566,6 +568,6 @@ function renderMicroformItem<
 export const AppStructForm = createStructForm({
   microform,
   renderItem: renderMicroformItem,
-  classNames: { row: "gap-x-3 gap-y-4", section: "gap-5" },
-  formClassName: "space-y-4",
+  classNames: { row: "gap-x-2.5 gap-y-2.5", section: "gap-2.5" },
+  formClassName: "space-y-2.5",
 });

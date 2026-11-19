@@ -46,9 +46,12 @@ function isPersonalFieldName(name: string): name is PersonalFieldName {
   return PERSONAL_FORM_FIELDS.has(name);
 }
 
-function toOptionalNumber(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) {
+function toOptionalCode(value: unknown): string | undefined {
+  if (typeof value === "string") {
     return value;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
   }
   return undefined;
 }
@@ -66,13 +69,13 @@ function buildInitialPersonalValues(
 ): Partial<PersonalFormValues> {
   const merged: Record<string, unknown> = { ...defaults, ...draft };
   return {
-    PerCod: toOptionalNumber(merged.PerCod),
+    PerCod: toOptionalCode(merged.PerCod) ?? "",
     PerNom: toOptionalString(merged.PerNom) ?? "",
     PerDNI: toOptionalString(merged.PerDNI) ?? "",
     PerFecNac: toOptionalString(merged.PerFecNac) ?? "",
-    PerPaiCod: toOptionalNumber(merged.PerPaiCod),
-    PerDepCod: toOptionalNumber(merged.PerDepCod),
-    PerCarCod: toOptionalNumber(merged.PerCarCod),
+    PerPaiCod: toOptionalCode(merged.PerPaiCod),
+    PerDepCod: toOptionalCode(merged.PerDepCod),
+    PerCarCod: toOptionalCode(merged.PerCarCod),
   };
 }
 

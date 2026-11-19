@@ -27,7 +27,7 @@ import {
   type PendingOp,
   type PersonalRow,
 } from "@/core";
-import type { AdvancedSearchFilters, OrderingToggle } from "@/data";
+import type { AdvancedSearchFilters, OrderingSpec } from "@/data";
 import {
   PersonalMaintenancePage,
   type PersonalRepoContract,
@@ -42,7 +42,7 @@ const TEST_TODAY = "2026-05-15";
 
 function createCatalogRepo<TRow>(
   rows: readonly TRow[],
-  getCod: (r: TRow) => number,
+  getCod: (r: TRow) => string,
   getNom: (r: TRow) => string,
   getEst: (r: TRow) => EstReg,
   codeCol: string,
@@ -53,7 +53,7 @@ function createCatalogRepo<TRow>(
       const sorted = [...rows].sort(
         (a, b) =>
           getNom(a).localeCompare(getNom(b), "es", { sensitivity: "case" }) ||
-          getCod(a) - getCod(b),
+          getCod(a).localeCompare(getCod(b)),
       );
       return { data: sorted, count: sorted.length };
     },
@@ -71,21 +71,21 @@ function createCatalogRepo<TRow>(
 function createSampleCatalogs() {
   const pais: PaisRow[] = [
     {
-      PaiCod: asPaiCod(1),
+      PaiCod: asPaiCod("1"),
       PaiNom: "Perú",
       PaiEstReg: EST_A,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },
     {
-      PaiCod: asPaiCod(2),
+      PaiCod: asPaiCod("2"),
       PaiNom: "Chile",
       PaiEstReg: EST_A,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },
     {
-      PaiCod: asPaiCod(3),
+      PaiCod: asPaiCod("3"),
       PaiNom: "Colombia",
       PaiEstReg: EST_I,
       created_at: "2026-01-01T00:00:00Z",
@@ -94,7 +94,7 @@ function createSampleCatalogs() {
   ];
   const dependencia: DependenciaRow[] = [
     {
-      DepCod: asDepCod(1),
+      DepCod: asDepCod("1"),
       DepNom: "Sistemas",
       DepEstReg: EST_A,
       created_at: "2026-01-01T00:00:00Z",
@@ -103,7 +103,7 @@ function createSampleCatalogs() {
   ];
   const cargo: CargoRow[] = [
     {
-      CarCod: asCarCod(1),
+      CarCod: asCarCod("1"),
       CarNom: "Analista de Sistemas",
       CarEstReg: EST_A,
       created_at: "2026-01-01T00:00:00Z",
@@ -151,16 +151,20 @@ function createMemoryPersonalRepo(
 
   const sortRows = (
     items: readonly PersonalRow[],
-    ordering: OrderingToggle,
-  ): PersonalRow[] =>
-    [...items].sort((a, b) =>
-      ordering === "alternate"
+    ordering: OrderingSpec,
+  ): PersonalRow[] => {
+    const isNameSort =
+      ordering === "alternate" ||
+      (typeof ordering === "object" && ordering.column === "PerNom");
+    return [...items].sort((a, b) =>
+      isNameSort
         ? a.PerNom.localeCompare(b.PerNom, "es", { sensitivity: "case" }) ||
-          a.PerCod - b.PerCod
-        : a.PerCod - b.PerCod,
+          a.PerCod.localeCompare(b.PerCod)
+        : a.PerCod.localeCompare(b.PerCod),
     );
+  };
 
-  const checkFk = (pai: number, dep: number, car: number) => {
+  const checkFk = (pai: string, dep: string, car: string) => {
     const p = catalogs.pais.find((r) => r.PaiCod === pai);
     if (!p) return createFailure(ERROR_CODES.REF, "PerPaiCod");
     if (p.PaiEstReg !== EST_A)
@@ -179,15 +183,15 @@ function createMemoryPersonalRepo(
   const guardarSpy = vi.fn(
     async (op: PendingOp): Promise<GuardarResult<PersonalRow>> => {
       if (op.kind === "adición") {
-        const cod = Number(Reflect.get(op.payload, "PerCod"));
+        const cod = String(Reflect.get(op.payload, "PerCod") ?? "").trim();
         const nom = String(Reflect.get(op.payload, "PerNom") ?? "").trim();
         const dni = String(Reflect.get(op.payload, "PerDNI") ?? "").trim();
         const fecnac = String(
           Reflect.get(op.payload, "PerFecNac") ?? "",
         ).trim();
-        const pai = Number(Reflect.get(op.payload, "PerPaiCod"));
-        const dep = Number(Reflect.get(op.payload, "PerDepCod"));
-        const car = Number(Reflect.get(op.payload, "PerCarCod"));
+        const pai = String(Reflect.get(op.payload, "PerPaiCod") ?? "").trim();
+        const dep = String(Reflect.get(op.payload, "PerDepCod") ?? "").trim();
+        const car = String(Reflect.get(op.payload, "PerCarCod") ?? "").trim();
 
         if (rows.some((r) => r.PerCod === cod)) {
           return {
@@ -242,9 +246,9 @@ function createMemoryPersonalRepo(
         const fecnac = String(
           Reflect.get(op.payload, "PerFecNac") ?? "",
         ).trim();
-        const pai = Number(Reflect.get(op.payload, "PerPaiCod"));
-        const dep = Number(Reflect.get(op.payload, "PerDepCod"));
-        const car = Number(Reflect.get(op.payload, "PerCarCod"));
+        const pai = String(Reflect.get(op.payload, "PerPaiCod") ?? "").trim();
+        const dep = String(Reflect.get(op.payload, "PerDepCod") ?? "").trim();
+        const car = String(Reflect.get(op.payload, "PerCarCod") ?? "").trim();
         if (rows.some((r) => r.PerCod !== curr.PerCod && r.PerDNI === dni)) {
           return {
             ok: false,
@@ -315,7 +319,7 @@ function createMemoryPersonalRepo(
           return false;
         }
         if (
-          typeof filters.PaiCod === "number" &&
+          typeof filters.PaiCod === "string" &&
           r.PerPaiCod !== filters.PaiCod
         ) {
           return false;
@@ -429,13 +433,13 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     const { repo, guardarSpy } = createMemoryPersonalRepo(
       [
         {
-          PerCod: asPerCod(1),
+          PerCod: asPerCod("1"),
           PerNom: "Juan Pérez",
           PerDNI: "41234567",
           PerFecNac: "1995-03-14",
-          PerPaiCod: asPaiCod(1),
-          PerDepCod: asDepCod(1),
-          PerCarCod: asCarCod(1),
+          PerPaiCod: asPaiCod("1"),
+          PerDepCod: asDepCod("1"),
+          PerCarCod: asCarCod("1"),
           PerEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -506,13 +510,13 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     const { repo } = createMemoryPersonalRepo(
       [
         {
-          PerCod: asPerCod(2),
+          PerCod: asPerCod("2"),
           PerNom: "María Gómez",
           PerDNI: "42345678",
           PerFecNac: "1992-07-22",
-          PerPaiCod: asPaiCod(3), // Colombia (EST_I)
-          PerDepCod: asDepCod(1),
-          PerCarCod: asCarCod(1),
+          PerPaiCod: asPaiCod("3"), // Colombia (EST_I)
+          PerDepCod: asDepCod("1"),
+          PerCarCod: asCarCod("1"),
           PerEstReg: EST_I,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -597,25 +601,25 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     const { repo } = createMemoryPersonalRepo(
       [
         {
-          PerCod: asPerCod(1),
+          PerCod: asPerCod("1"),
           PerNom: "Juan Pérez",
           PerDNI: "41234567",
           PerFecNac: "1995-03-14",
-          PerPaiCod: asPaiCod(1),
-          PerDepCod: asDepCod(1),
-          PerCarCod: asCarCod(1),
+          PerPaiCod: asPaiCod("1"),
+          PerDepCod: asDepCod("1"),
+          PerCarCod: asCarCod("1"),
           PerEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
         },
         {
-          PerCod: asPerCod(25),
+          PerCod: asPerCod("25"),
           PerNom: "Elena Paz",
           PerDNI: "78901234",
           PerFecNac: "1991-09-09",
-          PerPaiCod: asPaiCod(2),
-          PerDepCod: asDepCod(1),
-          PerCarCod: asCarCod(1),
+          PerPaiCod: asPaiCod("2"),
+          PerDepCod: asDepCod("1"),
+          PerCarCod: asCarCod("1"),
           PerEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -628,7 +632,7 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     expect(await screen.findByText("Juan Pérez")).toBeTruthy();
     expect(screen.getByText("Elena Paz")).toBeTruthy();
 
-    fireEvent.click(screen.getByTestId("op-buscar"));
+    fireEvent.click(screen.getByTestId("btn-open-advanced"));
     const dniField = await screen.findByTestId("adv-filter-dni");
     const dniIon = dniField.closest("ion-input");
     dniIon?.dispatchEvent(

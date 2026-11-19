@@ -51,7 +51,6 @@ export function ReferenceMaintenancePage<TRow>({
       screen={screen}
       getRowCode={config.getRowCode}
       getRowTitle={config.getRowNom}
-      getRowSubtitle={(row) => `${config.codeField}: ${config.getRowCode(row)}`}
       getRowState={config.getRowState}
       renderFormDrawer={() =>
         screen.isFormPending ? (

@@ -5,7 +5,7 @@ import { maintenanceKeys } from "@/features/maintenance/query-keys";
 
 export interface GselRepoContract<TRow> {
   gsel(): Promise<ReadonlyArray<{ readonly [key: string]: unknown }>>;
-  getByCode(code: number): Promise<TRow | null>;
+  getByCode(code: string): Promise<TRow | null>;
   list?(
     ordering?: "default" | "alternate",
     page?: { readonly offset: number; readonly limit: number },
@@ -45,16 +45,20 @@ export interface GselBinding<TRow> {
 }
 
 interface NormalizedGselEntry {
-  readonly cod: number;
+  readonly cod: string;
   readonly nom: string;
 }
 
-function readPositiveInt(obj: object, key: string): number | null {
+function readCodeString(obj: object, key: string): string | null {
   const raw: unknown = Reflect.get(obj, key);
-  if (typeof raw !== "number" || !Number.isInteger(raw) || raw <= 0) {
-    return null;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    return trimmed.length > 0 ? trimmed : null;
   }
-  return raw;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return String(raw);
+  }
+  return null;
 }
 
 function readTrimmedString(obj: object, key: string): string | null {
@@ -126,7 +130,7 @@ function extractSortedGselEntries(
     if (!includeAllStates && estCol && est !== undefined && est !== EST_A) {
       continue;
     }
-    const cod = readPositiveInt(row, codeCol);
+    const cod = readCodeString(row, codeCol);
     const nom = readTrimmedString(row, nomCol);
     if (cod === null || nom === null) {
       continue;
@@ -140,7 +144,7 @@ function extractSortedGselEntries(
     if (byNom !== 0) {
       return byNom;
     }
-    return a.cod - b.cod;
+    return a.cod.localeCompare(b.cod);
   });
 
   return entries;
@@ -205,8 +209,8 @@ export function createGselLabelResolver<TRow>(
   config: GselLabelResolverConfig<TRow>,
 ): (value: string | number) => Promise<string | undefined> {
   return async (value: string | number): Promise<string | undefined> => {
-    const code = Number(value);
-    if (!Number.isInteger(code) || code <= 0) {
+    const code = String(value).trim();
+    if (code.length === 0) {
       return undefined;
     }
 

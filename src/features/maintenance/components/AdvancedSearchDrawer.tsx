@@ -1,10 +1,9 @@
+import { cn } from "cn";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Drawer,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -23,17 +22,19 @@ import {
 
 const ESTREG_OPTIONS: readonly {
   readonly value: EstReg;
+  readonly symbol: "A" | "I" | "*";
   readonly label: string;
 }[] = [
-  { value: EST_A, label: "A · Activo" },
-  { value: EST_I, label: "I · Inactivo" },
-  { value: EST_X, label: "* · Eliminado" },
+  { value: EST_A, symbol: "A", label: "Activo" },
+  { value: EST_I, symbol: "I", label: "Inactivo" },
+  { value: EST_X, symbol: "*", label: "Eliminado" },
 ];
 
 export interface AdvancedSearchDrawerProps {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
   readonly filters: AdvancedSearchFilters;
+  readonly availableEstRegs?: readonly EstReg[];
   readonly onApply: (filters: AdvancedSearchFilters) => void;
   readonly onReset: () => void;
   readonly tableLabel: string;
@@ -45,12 +46,13 @@ export interface AdvancedSearchDrawerProps {
 
 /**
  * Mobile bottom Drawer for SPEC §11.3 Advanced Search.
- * Shares Cod, Nom and EstReg ⊆ {A, I, *} filters with an OCP slot for PERSONAL extra fields.
+ * Shares Cod, Nom and available EstReg filters with an OCP slot for PERSONAL extra fields.
  */
 export function AdvancedSearchDrawer({
   open,
   onOpenChange,
   filters,
+  availableEstRegs = ALL_ESTREG_STATES,
   onApply,
   onReset,
   tableLabel,
@@ -73,13 +75,18 @@ export function AdvancedSearchDrawer({
     [],
   );
 
-  const toggleEstado = (state: EstReg, checked: boolean) => {
+  const visibleEstOptions = React.useMemo(
+    () => ESTREG_OPTIONS.filter((opt) => availableEstRegs.includes(opt.value)),
+    [availableEstRegs],
+  );
+
+  const toggleEstado = (state: EstReg) => {
     setDraft((prev) => {
       const nextSet = new Set(prev.estReg);
-      if (checked) {
-        nextSet.add(state);
-      } else {
+      if (nextSet.has(state)) {
         nextSet.delete(state);
+      } else {
+        nextSet.add(state);
       }
       const nextList = ALL_ESTREG_STATES.filter((item) => nextSet.has(item));
       return {
@@ -103,44 +110,39 @@ export function AdvancedSearchDrawer({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent initialBreakpoint={0.75} breakpoints={[0, 0.75, 0.9]}>
-        <DrawerHeader>
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex flex-col gap-1">
-              <DrawerTitle>Búsqueda avanzada · {tableLabel}</DrawerTitle>
-              <DrawerDescription>
-                Combina filtros opcionales (AND). Los campos vacíos se omiten.
-              </DrawerDescription>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              data-testid="adv-filter-close"
-              className="min-h-11 shrink-0"
-            >
-              Cerrar
-            </Button>
-          </div>
+        <DrawerHeader className="px-0 pb-2">
+          <DrawerTitle className="text-base font-semibold">
+            Búsqueda avanzada · {tableLabel}
+          </DrawerTitle>
         </DrawerHeader>
 
-        <div className="flex max-h-[46dvh] flex-col gap-3.5 overflow-y-auto overscroll-contain px-4 pb-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="adv-filter-cod">Código exacto</Label>
+        <div className="flex max-h-[52dvh] flex-col gap-3 overflow-y-auto overscroll-contain pb-2">
+          <div className="flex flex-col gap-1">
+            <Label
+              htmlFor="adv-filter-cod"
+              className="text-xs font-medium text-foreground"
+            >
+              Código exacto
+            </Label>
             <Input
               id="adv-filter-cod"
               name="advCod"
               type="text"
-              inputMode="numeric"
               value={draft.codText}
-              placeholder="Ej. 1"
+              placeholder="Ej. PER"
               data-testid="adv-filter-cod"
               onChange={(event) => patchDraft({ codText: event.target.value })}
+              className="min-h-10 text-sm"
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="adv-filter-nom">Nombre contiene</Label>
+          <div className="flex flex-col gap-1">
+            <Label
+              htmlFor="adv-filter-nom"
+              className="text-xs font-medium text-foreground"
+            >
+              Nombre contiene
+            </Label>
             <Input
               id="adv-filter-nom"
               name="advNom"
@@ -149,49 +151,56 @@ export function AdvancedSearchDrawer({
               placeholder="Ej. Perú"
               data-testid="adv-filter-nom"
               onChange={(event) => patchDraft({ nomText: event.target.value })}
+              className="min-h-10 text-sm"
             />
           </div>
 
-          <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
-            <legend className="mb-2 p-0 text-sm font-medium text-foreground">
-              Estado de registro (EstReg)
-            </legend>
-            <div className="grid grid-cols-1 gap-2 rounded-lg border border-border p-2.5">
-              {ESTREG_OPTIONS.map((opt) => {
-                const isChecked = draft.estReg.includes(opt.value);
-                return (
-                  <div key={opt.value} className="flex items-center">
-                    <Checkbox
-                      id={`adv-est-${opt.value}`}
+          {visibleEstOptions.length > 0 && (
+            <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0">
+              <legend className="p-0 text-xs font-medium text-foreground">
+                Estado de registro
+              </legend>
+              <div
+                className={cn(
+                  "grid gap-1.5",
+                  visibleEstOptions.length === 1
+                    ? "grid-cols-1"
+                    : visibleEstOptions.length === 2
+                      ? "grid-cols-2"
+                      : "grid-cols-3",
+                )}
+              >
+                {visibleEstOptions.map((opt) => {
+                  const isSelected = draft.estReg.includes(opt.value);
+                  return (
+                    <Button
+                      key={opt.value}
+                      type="button"
+                      variant={isSelected ? "default" : "outline"}
+                      size="sm"
                       data-testid={`adv-est-${opt.value}`}
-                      checked={isChecked}
-                      onCheckedChange={(nextState) =>
-                        toggleEstado(opt.value, nextState === true)
-                      }
-                      className="size-auto min-h-11 w-full justify-start"
+                      aria-pressed={isSelected}
+                      onClick={() => toggleEstado(opt.value)}
+                      className="min-h-10 w-full justify-center text-xs font-medium"
                     >
-                      <span className="text-sm font-medium">{opt.label}</span>
-                    </Checkbox>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="m-0 text-xs text-muted-foreground">
-              Por defecto o sin selección específica se consultan los 3 estados
-              (A, I y *).
-            </p>
-          </fieldset>
+                      {opt.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
 
           {renderExtraFilters?.(draft, patchDraft)}
         </div>
 
-        <DrawerFooter className="grid grid-cols-2 gap-2">
+        <DrawerFooter className="grid grid-cols-2 gap-2 px-0 pt-2">
           <Button
             type="button"
             variant="outline"
             data-testid="adv-btn-reset"
             onClick={handleReset}
-            className="min-h-11 w-full"
+            className="min-h-10 w-full text-xs font-semibold"
           >
             Limpiar filtros
           </Button>
@@ -200,7 +209,7 @@ export function AdvancedSearchDrawer({
             variant="default"
             data-testid="adv-btn-apply"
             onClick={handleApply}
-            className="min-h-11 w-full"
+            className="min-h-10 w-full text-xs font-semibold"
           >
             Aplicar filtros
           </Button>

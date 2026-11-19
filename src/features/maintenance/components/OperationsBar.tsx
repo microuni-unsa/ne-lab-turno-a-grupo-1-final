@@ -7,7 +7,6 @@ import {
   PencilIcon,
   PlusIcon,
   RotateCcwIcon,
-  SearchIcon,
   Trash2Icon,
 } from "lucide-react";
 import type * as React from "react";
@@ -26,7 +25,7 @@ export interface OperationsBarProps {
   readonly onReactivar: () => void;
   readonly onGuardar: () => void;
   readonly onCancelar: () => void;
-  readonly onBuscar: () => void;
+  readonly onBuscar?: () => void;
   readonly onSalir: () => void;
   readonly className?: string;
 }
@@ -38,7 +37,6 @@ interface OperationButtonSpec {
     | "eliminar"
     | "inactivar"
     | "reactivar"
-    | "buscar"
     | "guardar"
     | "cancelar"
     | "salir";
@@ -48,7 +46,6 @@ interface OperationButtonSpec {
     | "Eliminar"
     | "Inactivar"
     | "Reactivar"
-    | "Buscar"
     | "Guardar"
     | "Cancelar"
     | "Salir";
@@ -114,14 +111,6 @@ const OPERATIONS_GRID: readonly OperationButtonSpec[] = [
       (props.selectedState !== EST_I && props.selectedState !== EST_X),
   },
   {
-    id: "buscar",
-    label: "Buscar",
-    variant: "outline",
-    icon: SearchIcon,
-    getHandler: (props) => props.onBuscar,
-    isDisabled: (props) => Boolean(props.isSaving) || props.hasPending,
-  },
-  {
     id: "cancelar",
     label: "Cancelar",
     variant: "outline",
@@ -135,7 +124,7 @@ const OPERATIONS_GRID: readonly OperationButtonSpec[] = [
   {
     id: "guardar",
     label: "Guardar",
-    variant: "default",
+    variant: "outline",
     icon: CheckIcon,
     getHandler: (props) => props.onGuardar,
     isDisabled: (props) => Boolean(props.isSaving) || !props.hasPending,
@@ -151,7 +140,7 @@ const OPERATIONS_GRID: readonly OperationButtonSpec[] = [
 ];
 
 /**
- * Fixed 3x3 bottom operation dock preserving the 9 exact lab labels (PRODUCT.md / SPEC §8).
+ * Fixed 4x2 bottom operation dock for the 8 maintenance operations (Buscar lives in the top search bar).
  * Buttons dynamically enable/disable (gray out) according to selection and pending state.
  */
 export function OperationsBar(props: OperationsBarProps) {
@@ -160,37 +149,29 @@ export function OperationsBar(props: OperationsBarProps) {
       aria-label="Operaciones de mantenimiento"
       data-testid="operations-bar"
       className={cn(
-        "rounded-xl border border-border bg-card p-2 shadow-sm",
+        "rounded-xl border border-border bg-card p-1.5 shadow-sm",
         props.className,
       )}
     >
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-4 gap-1.5">
         {OPERATIONS_GRID.map((op) => {
           const Icon = op.icon;
-          const activeVariant =
-            op.id === "buscar" && props.searchOpen ? "default" : op.variant;
           const disabled = op.isDisabled ? op.isDisabled(props) : false;
 
           return (
             <Button
               key={op.id}
               type="button"
-              variant={disabled ? "secondary" : activeVariant}
+              variant={disabled ? "secondary" : op.variant}
               disabled={disabled}
               data-testid={`op-${op.id}`}
-              aria-pressed={op.id === "buscar" ? props.searchOpen : undefined}
               onClick={op.getHandler(props)}
               className={cn(
-                "min-h-11 w-full justify-center gap-1.5 px-2 text-xs font-semibold transition-colors sm:text-sm",
+                "min-h-10 w-full justify-center gap-1 px-1.5 text-[11px] font-semibold transition-colors sm:text-xs",
                 !disabled &&
-                  op.id !== "guardar" &&
-                  !(op.id === "buscar" && props.searchOpen) &&
                   "border-sky-200 bg-sky-50/90 text-sky-950 hover:bg-sky-100",
                 disabled &&
                   "border-transparent bg-muted text-muted-foreground opacity-55",
-                op.id === "guardar" &&
-                  props.hasPending &&
-                  "ring-2 ring-primary/35",
               )}
             >
               <Icon className="size-3.5 shrink-0" />

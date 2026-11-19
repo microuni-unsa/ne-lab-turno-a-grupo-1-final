@@ -45,7 +45,7 @@ export interface ReferenceMaintenanceConfig<TRow> {
   readonly maxCode: number;
   readonly defaultOrdering?: OrderingToggle;
   readonly createRepo: (client?: SupabaseClient) => ReferenceRepoContract<TRow>;
-  readonly getRowCode: (row: TRow) => number;
+  readonly getRowCode: (row: TRow) => string;
   readonly getRowNom: (row: TRow) => string;
   readonly getRowState: (row: TRow) => EstReg;
   readonly rowToPayload: (row: TRow) => Record<string, unknown>;

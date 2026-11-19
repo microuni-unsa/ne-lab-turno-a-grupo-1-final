@@ -21,21 +21,21 @@ import {
 
 const ROWS: readonly PaisRow[] = [
   {
-    PaiCod: asPaiCod(1),
+    PaiCod: asPaiCod("1"),
     PaiNom: "Perú",
     PaiEstReg: EST_A,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    PaiCod: asPaiCod(2),
+    PaiCod: asPaiCod("2"),
     PaiNom: "Bolivia",
     PaiEstReg: EST_I,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    PaiCod: asPaiCod(3),
+    PaiCod: asPaiCod("3"),
     PaiNom: "Argentina",
     PaiEstReg: EST_X,
     created_at: "2026-01-01T00:00:00Z",
@@ -46,9 +46,12 @@ const ROWS: readonly PaisRow[] = [
 function createMockRepo(): RepoReader<PaisRow> {
   return {
     async list(ordering = "default") {
+      const isCodeSort =
+        ordering === "alternate" ||
+        (typeof ordering === "object" && ordering.column === "PaiCod");
       const sorted = [...ROWS].sort((a, b) =>
-        ordering === "alternate"
-          ? a.PaiCod - b.PaiCod
+        isCodeSort
+          ? a.PaiCod.localeCompare(b.PaiCod)
           : a.PaiNom.localeCompare(b.PaiNom),
       );
       return { data: sorted, count: sorted.length };
@@ -87,7 +90,7 @@ function SearchHarness({
 }) {
   const [simpleInput, setSimpleInput] = React.useState("");
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [selectedCode, setSelectedCode] = React.useState<number | null>(null);
+  const [selectedCode, setSelectedCode] = React.useState<string | null>(null);
 
   const list = useMaintenanceList({ table: TABLE_PAIS, repo });
 
@@ -158,9 +161,9 @@ describe("Fase 5: SearchControlsBar, RecordListView y AdvancedSearchDrawer", () 
       expect(screen.getByTestId("record-row-3")).toBeTruthy();
     });
 
-    // Ordering inicial es Nombre (A→Z), Código: Argentina (#3), Bolivia (#2), Perú (#1)
+    // Ordering inicial es Nombre (ASC): Argentina (#3), Bolivia (#2), Perú (#1)
     expect(screen.getByTestId("active-ordering-label").textContent).toContain(
-      "Nombre (A→Z), Código",
+      "Nombre (ASC)",
     );
     const initialOrder = Array.from(
       screen.getByTestId("record-list-rows").querySelectorAll("button"),
@@ -171,11 +174,11 @@ describe("Fase 5: SearchControlsBar, RecordListView y AdvancedSearchDrawer", () 
       "record-row-1",
     ]);
 
-    // Toggle a Código (1→N)
+    // Toggle a Código (ASC)
     fireEvent.click(screen.getByTestId("btn-toggle-ordering"));
     await waitFor(() => {
       expect(screen.getByTestId("active-ordering-label").textContent).toContain(
-        "Código (1→N)",
+        "Código (ASC)",
       );
       const nextOrder = Array.from(
         screen.getByTestId("record-list-rows").querySelectorAll("button"),
@@ -242,20 +245,8 @@ describe("Fase 5: SearchControlsBar, RecordListView y AdvancedSearchDrawer", () 
 
     const checkA = screen.getByTestId("adv-est-1");
     const checkX = screen.getByTestId("adv-est-3");
-    fireEvent(
-      checkA,
-      new CustomEvent("ionChange", {
-        bubbles: true,
-        detail: { checked: false },
-      }),
-    );
-    fireEvent(
-      checkX,
-      new CustomEvent("ionChange", {
-        bubbles: true,
-        detail: { checked: false },
-      }),
-    );
+    fireEvent.click(checkA);
+    fireEvent.click(checkX);
 
     fireEvent.click(screen.getByTestId("adv-btn-apply"));
 

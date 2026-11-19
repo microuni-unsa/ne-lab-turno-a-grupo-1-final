@@ -20,24 +20,20 @@ import {
 } from "@/features/maintenance/use-maintenance-list";
 
 describe("Fase 5: sanitización AdvancedSearchFilters y etiquetas ORDER BY (R18-R20)", () => {
-  it("rechaza NaN, no enteros y códigos fuera de rango sin errores (R20)", () => {
+  it("acepta códigos string alfanuméricos y rechaza vacíos o mayores a MAX_CODE_LEN (R20)", () => {
     expect(parsePositiveCodeFilter("")).toBeUndefined();
     expect(parsePositiveCodeFilter("   ")).toBeUndefined();
-    expect(parsePositiveCodeFilter("abc")).toBeUndefined();
-    expect(parsePositiveCodeFilter("-5")).toBeUndefined();
-    expect(parsePositiveCodeFilter("0")).toBeUndefined();
     expect(parsePositiveCodeFilter(Number.NaN)).toBeUndefined();
-    expect(parsePositiveCodeFilter(1.5)).toBeUndefined();
-    expect(parsePositiveCodeFilter(MAX_INTEGER + 1)).toBeUndefined();
-    expect(parsePositiveCodeFilter("99999999999999")).toBeUndefined();
+    expect(parsePositiveCodeFilter("A".repeat(17))).toBeUndefined();
 
-    expect(parsePositiveCodeFilter("42")).toBe(42);
-    expect(parsePositiveCodeFilter(7)).toBe(7);
+    expect(parsePositiveCodeFilter("PER")).toBe("PER");
+    expect(parsePositiveCodeFilter("42")).toBe("42");
+    expect(parsePositiveCodeFilter(7)).toBe("7");
   });
 
   it("omite campos en blanco, preserva subconjuntos EstReg y trata {A,I,*} como sin filtro (R19)", () => {
     const cleanDefault = sanitizeAdvancedFilters({
-      Cod: "abc",
+      Cod: "   ",
       Nom: "   ",
       EstReg: ALL_ESTREG_STATES,
       DNI: " ",
@@ -46,19 +42,19 @@ describe("Fase 5: sanitización AdvancedSearchFilters y etiquetas ORDER BY (R18-
     expect(hasActiveAdvancedFilters(cleanDefault)).toBe(false);
 
     const subset = sanitizeAdvancedFilters({
-      Cod: "12",
+      Cod: "PER",
       Nom: " Perú ",
       EstReg: [EST_I, EST_A],
     });
     expect(subset).toEqual({
-      Cod: 12,
+      Cod: "PER",
       Nom: "Perú",
       EstReg: [EST_A, EST_I],
     });
     expect(hasActiveAdvancedFilters(subset)).toBe(true);
 
     const onlyInactive = draftToAdvancedFilters({
-      codText: "no-num",
+      codText: "   ",
       nomText: "",
       estReg: [EST_I],
       dniText: "",
@@ -71,11 +67,11 @@ describe("Fase 5: sanitización AdvancedSearchFilters y etiquetas ORDER BY (R18-
     expect(onlyInactive).toEqual({ EstReg: [EST_I] });
 
     const backToDraft = advancedFiltersToDraft({
-      Cod: 5,
+      Cod: "SIS",
       Nom: "Sistemas",
       EstReg: [EST_X],
     });
-    expect(backToDraft.codText).toBe("5");
+    expect(backToDraft.codText).toBe("SIS");
     expect(backToDraft.nomText).toBe("Sistemas");
     expect(backToDraft.estReg).toEqual([EST_X]);
   });

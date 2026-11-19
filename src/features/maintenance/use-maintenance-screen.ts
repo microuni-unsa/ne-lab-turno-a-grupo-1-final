@@ -9,7 +9,10 @@ import {
   type PendingOpKind,
   type TableName,
 } from "@/core";
-import type { OrderingToggle } from "@/data";
+import {
+  verifySupervisorCode as defaultVerifySupervisorCode,
+  type OrderingToggle,
+} from "@/data";
 import { useGuardedExit } from "@/features/maintenance/use-guarded-exit";
 import {
   getLocalIsoDate,
@@ -33,7 +36,7 @@ export interface UseMaintenanceScreenOptions<TTable extends TableName, TRow> {
   readonly repo: RepoReader<TRow> & RepoWriter<TRow>;
   readonly defaultOrdering?: OrderingToggle;
   readonly pageSize?: number;
-  readonly getRowCode: (row: TRow) => number;
+  readonly getRowCode: (row: TRow) => string;
   readonly getRowState: (row: TRow) => EstReg;
   readonly rowToPayload: (row: TRow) => Record<string, unknown>;
   readonly validatePayload: (
@@ -42,6 +45,7 @@ export interface UseMaintenanceScreenOptions<TTable extends TableName, TRow> {
     todayLocal: string,
   ) => readonly FieldFailure[];
   readonly getTodayLocal?: () => string;
+  readonly verifySupervisor?: (code: string) => Promise<boolean>;
 }
 
 export function isStateTransitionOp(
@@ -74,6 +78,7 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
   rowToPayload,
   validatePayload,
   getTodayLocal,
+  verifySupervisor,
 }: UseMaintenanceScreenOptions<TTable, TRow>) {
   const feedback = useFeedback();
   const queryClient = useQueryClient();
@@ -90,6 +95,15 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
 
   const submitTriggerRef = React.useRef<(() => void) | null>(null);
   const pendingKindRef = React.useRef<PendingOpKind | undefined>(undefined);
+  const scrollToTopRef = React.useRef<(() => void) | null>(null);
+
+  const registerScrollToTop = React.useCallback((fn: () => void) => {
+    scrollToTopRef.current = fn;
+  }, []);
+
+  const triggerScrollToTop = React.useCallback(() => {
+    scrollToTopRef.current?.();
+  }, []);
 
   const controller = useMaintenanceController<TTable, TRow>({
     table,
@@ -149,7 +163,8 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
     setExternalFailures([]);
     setFormSessionKey((prev) => prev + 1);
     setFormDrawerOpen(true);
-  }, [controller]);
+    triggerScrollToTop();
+  }, [controller, triggerScrollToTop]);
 
   const handleStartModificacion = React.useCallback(() => {
     const started = controller.startModificacion();
@@ -161,7 +176,8 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
     setExternalFailures([]);
     setFormSessionKey((prev) => prev + 1);
     setFormDrawerOpen(true);
-  }, [controller, rowToPayload]);
+    triggerScrollToTop();
+  }, [controller, rowToPayload, triggerScrollToTop]);
 
   const handleDraftChange = React.useCallback(
     (nextDraft: Record<string, unknown>) => {
@@ -254,26 +270,76 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
     controller.selectRow(null);
   }, [controller]);
 
+  const handleStartInactivar = React.useCallback(() => {
+    const res = controller.startInactivar();
+    if (res.ok) {
+      triggerScrollToTop();
+    }
+  }, [controller, triggerScrollToTop]);
+
+  const handleStartEliminar = React.useCallback(() => {
+    const res = controller.startEliminar();
+    if (res.ok) {
+      triggerScrollToTop();
+    }
+  }, [controller, triggerScrollToTop]);
+
   const handleRequestReactivar = React.useCallback(() => {
     const selected = controller.getSelectedRow();
     if (selected && getRowState(selected) === EST_X && !controller.hasPending) {
       setSupervisorDialogOpen(true);
       return;
     }
-    controller.startReactivar();
-  }, [controller, getRowState]);
+    const res = controller.startReactivar();
+    if (res.ok) {
+      triggerScrollToTop();
+    }
+  }, [controller, getRowState, triggerScrollToTop]);
 
   const handleConfirmSupervisorReactivar = React.useCallback(
-    (supervisorCode: string) => {
+    async (
+      supervisorCode: string,
+    ): Promise<{ readonly ok: boolean; readonly error?: string }> => {
       const trimmed = supervisorCode.trim();
       if (trimmed.length === 0) {
-        return;
+        return { ok: false, error: "Ingrese el código de autorización." };
       }
+
+      try {
+        const verifyFn = verifySupervisor ?? defaultVerifySupervisorCode;
+        const isValid = await verifyFn(trimmed);
+        if (!isValid) {
+          return {
+            ok: false,
+            error: "Código de supervisor inválido.",
+          };
+        }
+      } catch {
+        return {
+          ok: false,
+          error:
+            "No se pudo validar el código con el servidor. Verifique su conexión.",
+        };
+      }
+
       setSupervisorDialogOpen(false);
-      controller.startReactivar(trimmed);
+      const res = controller.startReactivar(trimmed);
+      if (res.ok) {
+        triggerScrollToTop();
+      }
+      return { ok: true };
     },
-    [controller],
+    [controller, triggerScrollToTop, verifySupervisor],
   );
+
+  const handleToggleViewScope = React.useCallback(() => {
+    if (controller.hasPending) {
+      return;
+    }
+    controller.selectRow(null);
+    setSimpleInput("");
+    list.toggleViewScope();
+  }, [controller, list]);
 
   const handleSalir = useGuardedExit(controller.salir);
 
@@ -296,6 +362,7 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
     setFormDraft: handleDraftChange,
     externalFailures,
     submitTriggerRef,
+    registerScrollToTop,
     pendingKind,
     isFormPending,
     formMode,
@@ -308,8 +375,11 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
       : null,
     handleStartAdicion,
     handleStartModificacion,
+    handleStartInactivar,
+    handleStartEliminar,
     handleRequestReactivar,
     handleConfirmSupervisorReactivar,
+    handleToggleViewScope,
     handleSubmitPayload,
     handleGuardarAction,
     handleCancelPending,

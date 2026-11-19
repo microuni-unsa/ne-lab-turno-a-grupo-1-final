@@ -7,12 +7,7 @@ import {
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
-import {
-  AlertTriangleIcon,
-  ArrowLeftIcon,
-  WifiIcon,
-  WifiOffIcon,
-} from "lucide-react";
+import { AlertTriangleIcon, ArrowLeftIcon, WifiOffIcon } from "lucide-react";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,25 +23,40 @@ export interface MaintenanceLayoutProps {
   readonly onSalir: () => boolean;
   readonly onExitAllowed?: () => void;
   readonly pendingLabel?: string | null;
+  readonly onRegisterScrollToTop?: (scrollToTop: () => void) => void;
   readonly footer?: React.ReactNode;
   readonly children: React.ReactNode;
 }
 
 /**
  * Mobile IonPage frame for all maintenance screens with explicit guarded Salir button
- * and honest network/configuration indicator (SPEC §8.7, §14).
+ * and honest offline/configuration indicator (SPEC §8.7, §14).
  */
 export function MaintenanceLayout({
   id,
   title,
   onSalir,
   onExitAllowed,
+  onRegisterScrollToTop,
   footer,
   children,
 }: MaintenanceLayoutProps) {
   const handleExit = useGuardedExit(onSalir, onExitAllowed);
   const envStatus = React.useMemo(() => getSupabaseEnvStatus(), []);
   const isOnline = useNetworkStatus();
+  const contentRef = React.useRef<HTMLIonContentElement | null>(null);
+
+  React.useEffect(() => {
+    if (!onRegisterScrollToTop) {
+      return;
+    }
+    onRegisterScrollToTop(() => {
+      const el = contentRef.current;
+      if (el && typeof el.scrollToTop === "function") {
+        void el.scrollToTop(300);
+      }
+    });
+  }, [onRegisterScrollToTop]);
 
   return (
     <IonPage id={id}>
@@ -70,41 +80,34 @@ export function MaintenanceLayout({
             <h1 className="m-0 truncate text-base font-semibold">{title}</h1>
           </IonTitle>
 
-          <IonButtons slot="end" className="pr-2">
-            {!envStatus.configured ? (
-              <Badge
-                variant="destructive"
-                data-testid="network-status-badge"
-                className="gap-1 text-[11px]"
-              >
-                <AlertTriangleIcon className="size-3" />
-                <span>Sin config.</span>
-              </Badge>
-            ) : !isOnline ? (
-              <Badge
-                variant="destructive"
-                data-testid="network-status-badge"
-                className="gap-1 text-[11px]"
-              >
-                <WifiOffIcon className="size-3" />
-                <span>Sin red</span>
-              </Badge>
-            ) : (
-              <Badge
-                variant="secondary"
-                data-testid="network-status-badge"
-                className="gap-1 text-[11px]"
-              >
-                <WifiIcon className="size-3 text-emerald-700" />
-                <span>En línea</span>
-              </Badge>
-            )}
-          </IonButtons>
+          {(!envStatus.configured || !isOnline) && (
+            <IonButtons slot="end" className="pr-2">
+              {!envStatus.configured ? (
+                <Badge
+                  variant="destructive"
+                  data-testid="network-status-badge"
+                  className="gap-1 text-[11px]"
+                >
+                  <AlertTriangleIcon className="size-3" />
+                  <span>Sin config.</span>
+                </Badge>
+              ) : (
+                <Badge
+                  variant="destructive"
+                  data-testid="network-status-badge"
+                  className="gap-1 text-[11px]"
+                >
+                  <WifiOffIcon className="size-3" />
+                  <span>Sin red</span>
+                </Badge>
+              )}
+            </IonButtons>
+          )}
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding">
-        <main className="mx-auto flex w-full max-w-md flex-col gap-3 px-4 pt-3 pb-6">
+      <IonContent ref={contentRef}>
+        <main className="mx-auto flex w-full max-w-md flex-col gap-2.5 px-2.5 pt-2.5 pb-4 sm:px-3">
           {!isOnline && (
             <div
               role="alert"

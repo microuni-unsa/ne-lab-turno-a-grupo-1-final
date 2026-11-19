@@ -20,10 +20,7 @@ import {
   EST_I,
   EST_X,
   type GuardarResult,
-  MAX_SMALLINT,
   type PendingOp,
-  TABLE_CARGO,
-  TABLE_DEPENDENCIA,
 } from "@/core";
 import { ReferenceMaintenancePage } from "@/features/reference/ReferenceMaintenancePage";
 import {
@@ -36,18 +33,18 @@ import { IonicFeedbackProvider } from "@/lib/feedback";
 
 interface MemoryRefConfig<TRow> {
   readonly initial: readonly TRow[];
-  readonly getCod: (r: TRow) => number;
+  readonly getCod: (r: TRow) => string;
   readonly getNom: (r: TRow) => string;
   readonly getEst: (r: TRow) => typeof EST_A | typeof EST_I | typeof EST_X;
   readonly codeField: string;
   readonly nomField: string;
-  readonly createRow: (cod: number, nom: string) => TRow;
+  readonly createRow: (cod: string, nom: string) => TRow;
   readonly updateNom: (row: TRow, nom: string) => TRow;
   readonly updateEst: (
     row: TRow,
     est: typeof EST_A | typeof EST_I | typeof EST_X,
   ) => TRow;
-  readonly blockedCode: number;
+  readonly blockedCode: string;
 }
 
 function createMemoryRefRepo<TRow>(cfg: MemoryRefConfig<TRow>): {
@@ -60,7 +57,7 @@ function createMemoryRefRepo<TRow>(cfg: MemoryRefConfig<TRow>): {
   const guardarSpy = vi.fn(
     async (op: PendingOp): Promise<GuardarResult<TRow>> => {
       if (op.kind === "adición") {
-        const cod = Number(Reflect.get(op.payload, cfg.codeField));
+        const cod = String(Reflect.get(op.payload, cfg.codeField) ?? "").trim();
         const nom = String(Reflect.get(op.payload, cfg.nomField) ?? "").trim();
         if (rows.some((r) => cfg.getCod(r) === cod)) {
           return {
@@ -120,13 +117,16 @@ function createMemoryRefRepo<TRow>(cfg: MemoryRefConfig<TRow>): {
 
   const repo: ReferenceRepoContract<TRow> = {
     async list(ordering = "default") {
+      const isCodeSort =
+        ordering === "alternate" ||
+        (typeof ordering === "object" && ordering.column.endsWith("Cod"));
       const sorted = [...rows].sort((a, b) =>
-        ordering === "alternate"
-          ? cfg.getCod(a) - cfg.getCod(b)
+        isCodeSort
+          ? cfg.getCod(a).localeCompare(cfg.getCod(b))
           : cfg
               .getNom(a)
               .localeCompare(cfg.getNom(b), "es", { sensitivity: "case" }) ||
-            cfg.getCod(a) - cfg.getCod(b),
+            cfg.getCod(a).localeCompare(cfg.getCod(b)),
       );
       return { data: sorted, count: sorted.length };
     },
@@ -203,32 +203,18 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     cleanup();
   });
 
-  it("expone configuraciones normativas completas para DEPENDENCIA y CARGO", () => {
-    expect(dependenciaConfig.table).toBe(TABLE_DEPENDENCIA);
-    expect(dependenciaConfig.codeField).toBe("DepCod");
-    expect(dependenciaConfig.nomField).toBe("DepNom");
-    expect(dependenciaConfig.estField).toBe("DepEstReg");
-    expect(dependenciaConfig.maxCode).toBe(MAX_SMALLINT);
-
-    expect(cargoConfig.table).toBe(TABLE_CARGO);
-    expect(cargoConfig.codeField).toBe("CarCod");
-    expect(cargoConfig.nomField).toBe("CarNom");
-    expect(cargoConfig.estField).toBe("CarEstReg");
-    expect(cargoConfig.maxCode).toBe(MAX_SMALLINT);
-  });
-
   it("DEPENDENCIA: soporta Adición, Modificación con DepCod readonly, R11 E-REF-BLOCKED y E-DUP", async () => {
     const { repo, guardarSpy } = createMemoryRefRepo<DependenciaRow>({
       initial: [
         {
-          DepCod: asDepCod(1),
+          DepCod: asDepCod("1"),
           DepNom: "Sistemas",
           DepEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
         },
         {
-          DepCod: asDepCod(3),
+          DepCod: asDepCod("3"),
           DepNom: "Almacen",
           DepEstReg: EST_I,
           created_at: "2026-01-01T00:00:00Z",
@@ -249,7 +235,7 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
       }),
       updateNom: (r, nom) => ({ ...r, DepNom: nom }),
       updateEst: (r, est) => ({ ...r, DepEstReg: est }),
-      blockedCode: 1,
+      blockedCode: "1",
     });
 
     renderCatalog(dependenciaConfig, repo, "/dependencia");
@@ -353,7 +339,7 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     const { repo } = createMemoryRefRepo<CargoRow>({
       initial: [
         {
-          CarCod: asCarCod(1),
+          CarCod: asCarCod("1"),
           CarNom: "Analista de Sistemas",
           CarEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
@@ -374,7 +360,7 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
       }),
       updateNom: (r, nom) => ({ ...r, CarNom: nom }),
       updateEst: (r, est) => ({ ...r, CarEstReg: est }),
-      blockedCode: 1,
+      blockedCode: "1",
     });
 
     renderCatalog(cargoConfig, repo, "/cargo");

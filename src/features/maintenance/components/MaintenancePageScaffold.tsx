@@ -1,8 +1,14 @@
-import { EraserIcon } from "lucide-react";
+import {
+  EraserIcon,
+  SearchIcon,
+  SlidersHorizontalIcon,
+  XIcon,
+} from "lucide-react";
 import type * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { type EstReg, TABLE_PERSONAL, type TableName } from "@/core";
+import { Input } from "@/components/ui/input";
+import type { EstReg, TableName } from "@/core";
 import { AdvancedSearchDrawer } from "@/features/maintenance/components/AdvancedSearchDrawer";
 import { MaintenanceLayout } from "@/features/maintenance/components/MaintenanceLayout";
 import { OperationsBar } from "@/features/maintenance/components/OperationsBar";
@@ -21,7 +27,7 @@ export interface MaintenancePageScaffoldProps<TTable extends TableName, TRow> {
   readonly searchPlaceholder: string;
   readonly emptyMessage: string;
   readonly screen: ReturnType<typeof useMaintenanceScreen<TTable, TRow>>;
-  readonly getRowCode: (row: TRow) => number;
+  readonly getRowCode: (row: TRow) => string;
   readonly getRowTitle: (row: TRow) => string;
   readonly getRowSubtitle?: (row: TRow) => string | undefined;
   readonly getRowState: (row: TRow) => EstReg;
@@ -34,15 +40,16 @@ export interface MaintenancePageScaffoldProps<TTable extends TableName, TRow> {
 
 /**
  * Shared scaffold for Reference and Personal maintenance screens (DRY / OCP):
- * renders inline RecordDetailCard ("Datos del registro"), ordering/count + paged
- * RecordListView with column headers, Buscar-triggered AdvancedSearchDrawer,
- * SupervisorAuthDialog for * -> A, and fixed 3x3 OperationsBar in IonFooter.
+ * renders top simple search bar + Advanced Search button, inline RecordDetailCard
+ * ("Datos del registro"), sortable/scoped RecordListView, AdvancedSearchDrawer,
+ * SupervisorAuthDialog for * -> A, and fixed 4x2 OperationsBar in IonFooter.
  */
 export function MaintenancePageScaffold<TTable extends TableName, TRow>({
   id,
   title,
   subtitle,
   tableLabel,
+  searchPlaceholder,
   emptyMessage,
   screen,
   getRowCode,
@@ -53,8 +60,11 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
   renderExtraFilters,
 }: MaintenancePageScaffoldProps<TTable, TRow>) {
   const selectedRow = screen.controller.selectedRow;
-  const isCodeDefault =
-    screen.table === TABLE_PERSONAL || screen.table === "PERSONAL";
+
+  const handleSimpleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    screen.list.applySimpleSearch(screen.simpleInput);
+  };
 
   return (
     <MaintenanceLayout
@@ -63,30 +73,102 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
       subtitle={subtitle}
       onSalir={screen.controller.salir}
       pendingLabel={screen.pendingKind ?? null}
+      onRegisterScrollToTop={screen.registerScrollToTop}
       footer={
         <OperationsBar
           hasPending={screen.controller.hasPending}
           selectedState={screen.selectedState}
           isSaving={screen.controller.isSaving}
-          searchOpen={screen.advancedOpen}
           onAdicionar={screen.handleStartAdicion}
           onModificar={screen.handleStartModificacion}
-          onEliminar={() => {
-            screen.controller.startEliminar();
-          }}
-          onInactivar={() => {
-            screen.controller.startInactivar();
-          }}
+          onEliminar={screen.handleStartEliminar}
+          onInactivar={screen.handleStartInactivar}
           onReactivar={screen.handleRequestReactivar}
           onGuardar={() => {
             void screen.handleGuardarAction();
           }}
           onCancelar={screen.handleCancelPending}
-          onBuscar={() => screen.setAdvancedOpen(true)}
           onSalir={screen.handleSalir}
         />
       }
     >
+      <div data-testid="top-search-bar" className="flex items-center gap-1.5">
+        <form
+          onSubmit={handleSimpleSubmit}
+          className="relative flex min-w-0 flex-1 items-center gap-1.5"
+        >
+          <div className="relative min-w-0 flex-1">
+            <Input
+              id="simple-search-input"
+              name="simpleSearch"
+              type="search"
+              value={screen.simpleInput}
+              placeholder={searchPlaceholder}
+              aria-label="Búsqueda simple"
+              data-testid="input-simple-search"
+              disabled={screen.controller.hasPending}
+              onChange={(event) => {
+                const nextVal = event.target.value;
+                screen.setSimpleInput(nextVal);
+                if (
+                  nextVal.trim().length === 0 &&
+                  screen.list.searchMode === "simple"
+                ) {
+                  screen.list.clearSearch();
+                }
+              }}
+              className="min-h-10 text-sm"
+            />
+          </div>
+
+          {screen.simpleInput.trim().length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              data-testid="btn-reset-simple-input"
+              aria-label="Limpiar texto"
+              onClick={() => {
+                screen.setSimpleInput("");
+                if (screen.list.searchMode === "simple") {
+                  screen.list.clearSearch();
+                }
+              }}
+              className="min-h-10 min-w-10 shrink-0"
+            >
+              <XIcon className="size-4" />
+            </Button>
+          )}
+
+          <Button
+            type="submit"
+            variant="outline"
+            size="icon"
+            data-testid="btn-simple-search"
+            aria-label="Buscar"
+            disabled={screen.controller.hasPending}
+            className="min-h-10 min-w-10 shrink-0"
+          >
+            <SearchIcon className="size-4" />
+          </Button>
+        </form>
+
+        <Button
+          type="button"
+          variant={
+            screen.list.searchMode === "advanced" ? "default" : "outline"
+          }
+          size="icon"
+          data-testid="btn-open-advanced"
+          aria-label="Búsqueda avanzada"
+          disabled={screen.controller.hasPending}
+          onClick={() => screen.setAdvancedOpen(true)}
+          className="min-h-10 min-w-10 shrink-0"
+        >
+          <SlidersHorizontalIcon className="size-4" />
+        </Button>
+      </div>
+
       <RecordDetailCard
         pendingKind={screen.pendingKind}
         selectedCode={selectedRow ? getRowCode(selectedRow) : null}
@@ -131,9 +213,14 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
         isFetching={screen.list.isFetching}
         isError={screen.list.isError}
         orderingLabel={screen.list.orderingLabel}
-        ordering={screen.list.ordering}
-        isCodeDefault={isCodeDefault}
-        onToggleOrdering={() => screen.list.toggleOrdering()}
+        sortColumn={screen.list.sortSpec.column}
+        sortDirection={screen.list.sortSpec.direction}
+        sortableColumns={screen.list.sortableColumns}
+        onSortColumnChange={screen.list.setSortColumn}
+        onToggleSortDirection={screen.list.toggleSortDirection}
+        viewScope={screen.list.viewScope}
+        onToggleViewScope={screen.handleToggleViewScope}
+        hasPending={screen.controller.hasPending}
         selectedCode={screen.selectedCode}
         getRowCode={getRowCode}
         getRowTitle={getRowTitle}
@@ -167,6 +254,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
         onOpenChange={screen.setAdvancedOpen}
         tableLabel={tableLabel}
         filters={screen.list.advancedFilters}
+        availableEstRegs={screen.list.availableEstRegs}
         onApply={(filters) => {
           screen.setSimpleInput("");
           screen.list.applyAdvancedSearch(filters);

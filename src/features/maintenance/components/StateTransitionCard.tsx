@@ -15,7 +15,7 @@ export type { StateTransitionOpKind };
 export interface StateTransitionCardProps {
   readonly kind: StateTransitionOpKind;
   readonly singularLabel: string;
-  readonly rowCode: number;
+  readonly rowCode: string;
   readonly rowNom: string;
   readonly currentState: EstReg;
   readonly isSaving: boolean;

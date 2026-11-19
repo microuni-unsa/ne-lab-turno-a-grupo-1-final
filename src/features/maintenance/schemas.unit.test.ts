@@ -9,25 +9,25 @@ import {
 } from "@/features/maintenance/schemas";
 
 describe("maintenance Zod v4 schemas", () => {
-  it("valida códigos SMALLINT (PAIS/DEPENDENCIA/CARGO) y INTEGER (PERSONAL) usando constantes de @/core", () => {
+  it("valida códigos alfanuméricos string (PAIS/DEPENDENCIA/CARGO/PERSONAL) usando MAX_CODE_LEN de @/core", () => {
     const refInsert = createReferenceSchema({
       codeField: "PaiCod",
       nomField: "PaiNom",
       isUpdate: false,
     });
 
-    expect(refInsert.safeParse({ PaiCod: 0, PaiNom: "Perú" }).success).toBe(
+    expect(refInsert.safeParse({ PaiCod: "", PaiNom: "Perú" }).success).toBe(
       false,
     );
-    expect(refInsert.safeParse({ PaiCod: -1, PaiNom: "Perú" }).success).toBe(
-      false,
-    );
-    expect(refInsert.safeParse({ PaiCod: 32767, PaiNom: "Perú" }).success).toBe(
+    expect(
+      refInsert.safeParse({ PaiCod: "PE R", PaiNom: "Perú" }).success,
+    ).toBe(false);
+    expect(refInsert.safeParse({ PaiCod: "PER", PaiNom: "Perú" }).success).toBe(
       true,
     );
-    expect(refInsert.safeParse({ PaiCod: 32768, PaiNom: "Perú" }).success).toBe(
-      false,
-    );
+    expect(
+      refInsert.safeParse({ PaiCod: "A".repeat(17), PaiNom: "Perú" }).success,
+    ).toBe(false);
 
     const refUpdate = createReferenceSchema({
       codeField: "PaiCod",
@@ -37,9 +37,9 @@ describe("maintenance Zod v4 schemas", () => {
     expect(refUpdate.safeParse({ PaiNom: "Perú Actualizado" }).success).toBe(
       true,
     );
-    expect(refUpdate.safeParse({ PaiCod: 32768, PaiNom: "Perú" }).success).toBe(
-      false,
-    );
+    expect(
+      refUpdate.safeParse({ PaiCod: "A".repeat(17), PaiNom: "Perú" }).success,
+    ).toBe(false);
 
     const personalInsert = createPersonalSchema({
       isUpdate: false,
@@ -50,47 +50,48 @@ describe("maintenance Zod v4 schemas", () => {
       PerNom: "Ana Torres",
       PerDNI: "12345678",
       PerFecNac: "2000-01-15",
-      PerPaiCod: 1,
-      PerDepCod: 1,
-      PerCarCod: 1,
+      PerPaiCod: "PER",
+      PerDepCod: "SIS",
+      PerCarCod: "PRG",
     };
 
     expect(
-      personalInsert.safeParse({ ...basePersonal, PerCod: 2147483647 }).success,
+      personalInsert.safeParse({ ...basePersonal, PerCod: "EMP-01" }).success,
     ).toBe(true);
     expect(
-      personalInsert.safeParse({ ...basePersonal, PerCod: 2147483648 }).success,
+      personalInsert.safeParse({ ...basePersonal, PerCod: "A".repeat(17) })
+        .success,
     ).toBe(false);
     expect(
-      personalInsert.safeParse({ ...basePersonal, PerCod: 0 }).success,
+      personalInsert.safeParse({ ...basePersonal, PerCod: "" }).success,
     ).toBe(false);
   });
 
-  it("valida nombres trimmed (MIN_NAME..MAX_NAME), DNI 8 dígitos ASCII y FKs > 0", () => {
+  it("valida nombres trimmed (MIN_NAME..MAX_NAME), DNI 8 dígitos ASCII y FKs string no vacías", () => {
     const refInsert = createReferenceSchema({
       codeField: "CarCod",
       nomField: "CarNom",
       isUpdate: false,
     });
 
-    expect(refInsert.safeParse({ CarCod: 1, CarNom: " A " }).success).toBe(
+    expect(refInsert.safeParse({ CarCod: "1", CarNom: " A " }).success).toBe(
       false,
     );
-    expect(refInsert.safeParse({ CarCod: 1, CarNom: "   " }).success).toBe(
+    expect(refInsert.safeParse({ CarCod: "1", CarNom: "   " }).success).toBe(
       false,
     );
 
-    const abParsed = refInsert.safeParse({ CarCod: 1, CarNom: "  Ab  " });
+    const abParsed = refInsert.safeParse({ CarCod: "1", CarNom: "  Ab  " });
     expect(abParsed.success).toBe(true);
     if (abParsed.success) {
       expect(abParsed.data.CarNom).toBe("Ab");
     }
 
     expect(
-      refInsert.safeParse({ CarCod: 1, CarNom: "x".repeat(100) }).success,
+      refInsert.safeParse({ CarCod: "1", CarNom: "x".repeat(100) }).success,
     ).toBe(true);
     expect(
-      refInsert.safeParse({ CarCod: 1, CarNom: "x".repeat(101) }).success,
+      refInsert.safeParse({ CarCod: "1", CarNom: "x".repeat(101) }).success,
     ).toBe(false);
 
     const personalSchema = createPersonalSchema({
@@ -99,13 +100,13 @@ describe("maintenance Zod v4 schemas", () => {
     });
 
     const validBase = {
-      PerCod: 10,
+      PerCod: "10",
       PerNom: "Carlos Vega",
       PerDNI: "12345678",
       PerFecNac: "1995-03-10",
-      PerPaiCod: 1,
-      PerDepCod: 2,
-      PerCarCod: 3,
+      PerPaiCod: "PER",
+      PerDepCod: "SIS",
+      PerCarCod: "PRG",
     };
 
     expect(personalSchema.safeParse(validBase).success).toBe(true);
@@ -136,13 +137,14 @@ describe("maintenance Zod v4 schemas", () => {
     }
 
     expect(
-      personalSchema.safeParse({ ...validBase, PerPaiCod: 0 }).success,
+      personalSchema.safeParse({ ...validBase, PerPaiCod: "" }).success,
     ).toBe(false);
     expect(
-      personalSchema.safeParse({ ...validBase, PerDepCod: 0 }).success,
+      personalSchema.safeParse({ ...validBase, PerDepCod: "" }).success,
     ).toBe(false);
     expect(
-      personalSchema.safeParse({ ...validBase, PerCarCod: 32768 }).success,
+      personalSchema.safeParse({ ...validBase, PerCarCod: "A".repeat(17) })
+        .success,
     ).toBe(false);
   });
 
@@ -153,12 +155,12 @@ describe("maintenance Zod v4 schemas", () => {
     });
 
     const base = {
-      PerCod: 1,
+      PerCod: "1",
       PerNom: "Lucía Paredes",
       PerDNI: "87654321",
-      PerPaiCod: 1,
-      PerDepCod: 1,
-      PerCarCod: 1,
+      PerPaiCod: "PER",
+      PerDepCod: "SIS",
+      PerCarCod: "PRG",
     };
 
     // Cumple exactamente 18 años en todayLocal (2026-05-10)
@@ -197,7 +199,7 @@ describe("maintenance Zod v4 schemas", () => {
       isUpdate: false,
     });
     const refDefaults = createFormDefaults(refSchema);
-    expect(refDefaults.PaiCod).toBeUndefined();
+    expect(refDefaults.PaiCod).toBe("");
     expect(refDefaults.PaiNom).toBe("");
 
     const refRequired = buildRequiredMap(refSchema);

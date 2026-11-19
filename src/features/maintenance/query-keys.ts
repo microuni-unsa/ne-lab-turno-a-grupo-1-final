@@ -1,11 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
 import type { TableName } from "@/core";
-import type { AdvancedSearchFilters, OrderingToggle } from "@/data";
+import type { AdvancedSearchFilters, OrderingSpec, ViewScope } from "@/data";
 
 export type SearchMode = "none" | "simple" | "advanced";
 
 export interface MaintenanceListKeyParams {
-  readonly ordering: OrderingToggle;
+  readonly ordering: OrderingSpec;
+  readonly viewScope?: ViewScope;
   readonly searchMode: SearchMode;
   readonly simpleTerm?: string;
   readonly advancedFilters?: AdvancedSearchFilters;
@@ -55,6 +56,7 @@ function canonicalizeAdvancedFilters(
 function canonicalizeListParams(params: MaintenanceListKeyParams) {
   return {
     ordering: params.ordering,
+    viewScope: params.viewScope ?? "main",
     searchMode: params.searchMode,
     simpleTerm: params.simpleTerm ? params.simpleTerm.trim() : "",
     advancedFilters: canonicalizeAdvancedFilters(params.advancedFilters),

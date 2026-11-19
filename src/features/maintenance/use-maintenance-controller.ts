@@ -35,7 +35,7 @@ export interface UseMaintenanceControllerOptions<
     todayLocal: string,
   ) => Promise<readonly FieldFailure[]> | readonly FieldFailure[];
   readonly onApplyFieldErrors?: (failures: readonly FieldFailure[]) => void;
-  readonly getRowCode: (row: TRow) => number;
+  readonly getRowCode: (row: TRow) => string;
   readonly getRowState: (row: TRow) => EstReg;
   readonly rowToPayload?: (row: TRow) => TPayload;
 }

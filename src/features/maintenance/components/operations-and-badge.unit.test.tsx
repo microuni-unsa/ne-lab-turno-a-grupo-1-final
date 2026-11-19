@@ -13,7 +13,6 @@ const EXPECTED_OPERATIONS = [
   { id: "reactivar", label: "Reactivar", handlerKey: "onReactivar" },
   { id: "guardar", label: "Guardar", handlerKey: "onGuardar" },
   { id: "cancelar", label: "Cancelar", handlerKey: "onCancelar" },
-  { id: "buscar", label: "Buscar", handlerKey: "onBuscar" },
   { id: "salir", label: "Salir", handlerKey: "onSalir" },
 ] as const;
 
@@ -22,29 +21,23 @@ function isButtonDisabled(el: HTMLElement): boolean {
 }
 
 describe("EstadoBadge", () => {
-  it("muestra símbolo y etiqueta normativos para EstReg 1 (A), 2 (I) y 3 (*)", () => {
+  it("muestra texto plano normativo para EstReg 1 (Activo), 2 (Inactivo) y 3 (Eliminado)", () => {
     render(
       <div>
         <EstadoBadge state={EST_A} />
         <EstadoBadge state={EST_I} />
         <EstadoBadge state={EST_X} />
-        <EstadoBadge state={EST_A} compact />
-        <EstadoBadge state={EST_I} compact />
-        <EstadoBadge state={EST_X} compact />
       </div>,
     );
 
-    expect(screen.getByText("A · Activo")).toBeTruthy();
-    expect(screen.getByText("I · Inactivo")).toBeTruthy();
-    expect(screen.getByText("* · Eliminado")).toBeTruthy();
-    expect(screen.getByText("A")).toBeTruthy();
-    expect(screen.getByText("I")).toBeTruthy();
-    expect(screen.getByText("*")).toBeTruthy();
+    expect(screen.getByText("Activo")).toBeTruthy();
+    expect(screen.getByText("Inactivo")).toBeTruthy();
+    expect(screen.getByText("Eliminado")).toBeTruthy();
   });
 });
 
 describe("OperationsBar", () => {
-  it("expone las 9 etiquetas normativas en español y habilita/deshabilita botones según contexto", () => {
+  it("expone las 8 etiquetas de operación en español y habilita/deshabilita botones según contexto", () => {
     const handlers = {
       onAdicionar: vi.fn(),
       onModificar: vi.fn(),
@@ -53,7 +46,6 @@ describe("OperationsBar", () => {
       onReactivar: vi.fn(),
       onGuardar: vi.fn(),
       onCancelar: vi.fn(),
-      onBuscar: vi.fn(),
       onSalir: vi.fn(),
     };
 
@@ -66,9 +58,8 @@ describe("OperationsBar", () => {
       expect(btn.textContent?.trim()).toBe(op.label);
     }
 
-    // Idle sin selección: solo Adicionar, Buscar, Salir habilitados
+    // Idle sin selección: solo Adicionar y Salir habilitados
     expect(isButtonDisabled(screen.getByTestId("op-adicionar"))).toBe(false);
-    expect(isButtonDisabled(screen.getByTestId("op-buscar"))).toBe(false);
     expect(isButtonDisabled(screen.getByTestId("op-salir"))).toBe(false);
     expect(isButtonDisabled(screen.getByTestId("op-modificar"))).toBe(true);
     expect(isButtonDisabled(screen.getByTestId("op-guardar"))).toBe(true);
@@ -101,7 +92,7 @@ describe("OperationsBar", () => {
     expect(isButtonDisabled(screen.getByTestId("op-modificar"))).toBe(true);
     expect(isButtonDisabled(screen.getByTestId("op-eliminar"))).toBe(true);
 
-    // Operación pendiente: Guardar, Cancelar y Salir habilitados; mutaciones y Buscar deshabilitados
+    // Operación pendiente: Guardar, Cancelar y Salir habilitados; mutaciones deshabilitados
     rerender(
       <OperationsBar hasPending={true} selectedState={EST_A} {...handlers} />,
     );
@@ -109,7 +100,6 @@ describe("OperationsBar", () => {
     expect(isButtonDisabled(screen.getByTestId("op-cancelar"))).toBe(false);
     expect(isButtonDisabled(screen.getByTestId("op-salir"))).toBe(false);
     expect(isButtonDisabled(screen.getByTestId("op-adicionar"))).toBe(true);
-    expect(isButtonDisabled(screen.getByTestId("op-buscar"))).toBe(true);
 
     fireEvent.click(screen.getByTestId("op-guardar"));
     expect(handlers.onGuardar).toHaveBeenCalledTimes(1);
