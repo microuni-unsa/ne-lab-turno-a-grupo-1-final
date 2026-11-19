@@ -11,11 +11,11 @@ import {
   EST_A,
   EST_I,
   EST_X,
+  MAX_CODE_LEN,
   MAX_INTEGER,
   MAX_NAME,
   MAX_SMALLINT,
   MIN_AGE,
-  MIN_CODE,
   MIN_NAME,
   TABLE_CARGO,
   TABLE_DEPENDENCIA,
@@ -80,9 +80,8 @@ export function getMaxCodeLimit(table: TableName): number {
 }
 
 /**
- * Validates a table primary key or foreign key code value.
- * SPEC §4.1, §4.3, §5, §12.
- * Positive integer, range <= 32767 for reference tables and <= 2147483647 for personal.
+ * Validates a table primary key or foreign key code value as an alphanumeric string.
+ * Required, trimmed length 1..MAX_CODE_LEN (16), characters [A-Za-z0-9._-].
  */
 export function validateCode(
   table: TableName,
@@ -90,41 +89,29 @@ export function validateCode(
   fieldName?: string,
 ): FieldFailure[] {
   const field = fieldName ?? getCodeFieldName(table);
-  const maxLimit = getMaxCodeLimit(table);
 
   if (value === undefined || value === null) {
     return [{ code: ERROR_CODES.REQUIRED, field }];
   }
 
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (trimmed.length === 0) {
-      return [{ code: ERROR_CODES.REQUIRED, field }];
-    }
-    if (!/^-?\d+$/.test(trimmed)) {
-      return [{ code: ERROR_CODES.FORMAT, field }];
-    }
-    const num = Number(trimmed);
-    if (!Number.isSafeInteger(num)) {
-      return [{ code: ERROR_CODES.RANGE, field }];
-    }
-    if (num < MIN_CODE || num > maxLimit) {
-      return [{ code: ERROR_CODES.RANGE, field }];
-    }
-    return [];
+  if (typeof value !== "string") {
+    return [{ code: ERROR_CODES.FORMAT, field }];
   }
 
-  if (typeof value === "number") {
-    if (!Number.isFinite(value) || !Number.isInteger(value)) {
-      return [{ code: ERROR_CODES.FORMAT, field }];
-    }
-    if (value < MIN_CODE || value > maxLimit) {
-      return [{ code: ERROR_CODES.RANGE, field }];
-    }
-    return [];
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return [{ code: ERROR_CODES.REQUIRED, field }];
   }
 
-  return [{ code: ERROR_CODES.FORMAT, field }];
+  if (trimmed.length > MAX_CODE_LEN) {
+    return [{ code: ERROR_CODES.RANGE, field }];
+  }
+
+  if (!/^[A-Za-z0-9._-]+$/.test(trimmed)) {
+    return [{ code: ERROR_CODES.FORMAT, field }];
+  }
+
+  return [];
 }
 
 /**

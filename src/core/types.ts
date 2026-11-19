@@ -29,15 +29,15 @@ export type { ErrorCode, FieldFailure };
 declare const brand: unique symbol;
 export type Brand<T, B> = T & { readonly [brand]: B };
 
-export type PaiCod = Brand<number, "PaiCod">;
-export type DepCod = Brand<number, "DepCod">;
-export type CarCod = Brand<number, "CarCod">;
-export type PerCod = Brand<number, "PerCod">;
+export type PaiCod = Brand<string, "PaiCod">;
+export type DepCod = Brand<string, "DepCod">;
+export type CarCod = Brand<string, "CarCod">;
+export type PerCod = Brand<string, "PerCod">;
 
-export const asPaiCod = (value: number): PaiCod => value as PaiCod;
-export const asDepCod = (value: number): DepCod => value as DepCod;
-export const asCarCod = (value: number): CarCod => value as CarCod;
-export const asPerCod = (value: number): PerCod => value as PerCod;
+export const asPaiCod = (value: string): PaiCod => value as PaiCod;
+export const asDepCod = (value: string): DepCod => value as DepCod;
+export const asCarCod = (value: string): CarCod => value as CarCod;
+export const asPerCod = (value: string): PerCod => value as PerCod;
 
 // ============================================================
 // EstReg Domain Types (SPEC §4.2, §6)
@@ -118,31 +118,31 @@ export interface PersonalRow {
 // ============================================================
 
 export interface PaisPayload {
-  readonly PaiCod?: number;
+  readonly PaiCod?: string;
   readonly PaiNom: string;
   readonly PaiEstReg?: EstReg;
 }
 
 export interface DependenciaPayload {
-  readonly DepCod?: number;
+  readonly DepCod?: string;
   readonly DepNom: string;
   readonly DepEstReg?: EstReg;
 }
 
 export interface CargoPayload {
-  readonly CarCod?: number;
+  readonly CarCod?: string;
   readonly CarNom: string;
   readonly CarEstReg?: EstReg;
 }
 
 export interface PersonalPayload {
-  readonly PerCod?: number;
+  readonly PerCod?: string;
   readonly PerNom: string;
   readonly PerDNI: string;
   readonly PerFecNac: string;
-  readonly PerPaiCod: number;
-  readonly PerDepCod: number;
-  readonly PerCarCod: number;
+  readonly PerPaiCod: string;
+  readonly PerDepCod: string;
+  readonly PerCarCod: string;
   readonly PerEstReg?: EstReg;
 }
 
@@ -181,25 +181,25 @@ export interface ModificacionOp<
   readonly kind: "modificación";
   readonly table: TTable;
   readonly payload: TPayload;
-  readonly targetCode: number;
+  readonly targetCode: string;
 }
 
 export interface EliminacionOp<TTable extends string = TableName> {
   readonly kind: "eliminación";
   readonly table: TTable;
-  readonly targetCode: number;
+  readonly targetCode: string;
 }
 
 export interface InactivarOp<TTable extends string = TableName> {
   readonly kind: "inactivar";
   readonly table: TTable;
-  readonly targetCode: number;
+  readonly targetCode: string;
 }
 
 export interface ReactivarOp<TTable extends string = TableName> {
   readonly kind: "reactivar";
   readonly table: TTable;
-  readonly targetCode: number;
+  readonly targetCode: string;
   readonly supervisorCode?: string;
 }
 

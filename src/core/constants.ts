@@ -62,6 +62,11 @@ export const EST_SIM_X = "*" as const;
 export const MIN_CODE = 1 as const;
 
 /**
+ * Maximum length of alphanumeric string primary/foreign key codes.
+ */
+export const MAX_CODE_LEN = 16 as const;
+
+/**
  * SPEC §4.1: Maximum value for Postgres SMALLINT (used by PAIS, DEPENDENCIA, CARGO).
  */
 export const MAX_SMALLINT = 32767 as const;
