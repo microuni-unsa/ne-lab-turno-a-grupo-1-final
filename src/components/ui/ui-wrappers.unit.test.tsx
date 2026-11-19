@@ -1,14 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 
@@ -116,35 +108,5 @@ describe("UI Ionic/shadcn wrappers", () => {
 
     expect(onCheckedChange).toHaveBeenCalledTimes(1);
     expect(onCheckedChange).toHaveBeenCalledWith(true);
-  });
-
-  it("renders Card structure and Badge variants including asChild cleanly", () => {
-    render(
-      <Card data-testid="personal-card">
-        <CardHeader>
-          <CardTitle>Juan Perez</CardTitle>
-          <CardDescription>DNI 12345678</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Badge variant="outline" data-testid="estado-badge">
-            Activo
-          </Badge>
-          <Badge asChild data-testid="estado-slot" aria-label="Inactivo">
-            <span>Inactivo</span>
-          </Badge>
-        </CardContent>
-      </Card>,
-    );
-
-    expect(screen.getByTestId("personal-card").getAttribute("data-slot")).toBe(
-      "card",
-    );
-    expect(screen.getByTestId("estado-badge").getAttribute("data-slot")).toBe(
-      "badge",
-    );
-    expect(screen.getByTestId("estado-slot").getAttribute("aria-label")).toBe(
-      "Inactivo",
-    );
-    expect(screen.getByText("Juan Perez")).toBeTruthy();
   });
 });

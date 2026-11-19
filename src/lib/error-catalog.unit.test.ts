@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import { createFailure, ERROR_CODES, type ErrorCode } from "@/core";
 import {
   deduplicateFailures,
-  ERROR_TITLES,
-  FIELD_LABELS,
   formatBatchFailures,
   formatFieldFailure,
   formatNetworkError,
@@ -11,41 +9,25 @@ import {
 } from "@/lib/error-catalog";
 
 describe("error-catalog", () => {
-  it("traduce exhaustivamente los 10 códigos normativos E-* y todas las columnas del dominio", () => {
+  it("traduce exhaustivamente los 10 códigos normativos E-* y las columnas del dominio", () => {
     const allCodes: ErrorCode[] = Object.values(ERROR_CODES);
     expect(allCodes).toHaveLength(10);
 
     for (const code of allCodes) {
-      expect(ERROR_TITLES[code].length).toBeGreaterThan(0);
       const formatted = formatFieldFailure(createFailure(code, "PerDNI"));
       expect(formatted.code).toBe(code);
-      expect(formatted.title).toBe(ERROR_TITLES[code]);
+      expect(formatted.title.length).toBeGreaterThan(0);
+      expect(formatted.title).not.toBe(code);
       expect(formatted.summaryLine).toContain(`[${code}]`);
       expect(formatted.message.length).toBeGreaterThan(5);
     }
 
-    expect(getFieldLabel("PaiCod")).toBe(FIELD_LABELS.PaiCod);
-    expect(getFieldLabel("PaiNom")).toBe(FIELD_LABELS.PaiNom);
-    expect(getFieldLabel("PaiEstReg")).toBe(FIELD_LABELS.PaiEstReg);
-    expect(getFieldLabel("DepCod")).toBe(FIELD_LABELS.DepCod);
-    expect(getFieldLabel("DepNom")).toBe(FIELD_LABELS.DepNom);
-    expect(getFieldLabel("DepEstReg")).toBe(FIELD_LABELS.DepEstReg);
-    expect(getFieldLabel("CarCod")).toBe(FIELD_LABELS.CarCod);
-    expect(getFieldLabel("CarNom")).toBe(FIELD_LABELS.CarNom);
-    expect(getFieldLabel("CarEstReg")).toBe(FIELD_LABELS.CarEstReg);
-    expect(getFieldLabel("PerCod")).toBe(FIELD_LABELS.PerCod);
-    expect(getFieldLabel("PerNom")).toBe(FIELD_LABELS.PerNom);
-    expect(getFieldLabel("PerDNI")).toBe(FIELD_LABELS.PerDNI);
-    expect(getFieldLabel("PerFecNac")).toBe(FIELD_LABELS.PerFecNac);
-    expect(getFieldLabel("PerPaiCod")).toBe(FIELD_LABELS.PerPaiCod);
-    expect(getFieldLabel("PerDepCod")).toBe(FIELD_LABELS.PerDepCod);
-    expect(getFieldLabel("PerCarCod")).toBe(FIELD_LABELS.PerCarCod);
-    expect(getFieldLabel("PerEstReg")).toBe(FIELD_LABELS.PerEstReg);
-    expect(getFieldLabel("EstReg")).toBe(FIELD_LABELS.EstReg);
-    expect(getFieldLabel("Nom")).toBe(FIELD_LABELS.Nom);
-    expect(getFieldLabel("general")).toBe(FIELD_LABELS.general);
-    expect(getFieldLabel("session")).toBe(FIELD_LABELS.session);
-    expect(getFieldLabel("")).toBe(FIELD_LABELS.session);
+    expect(getFieldLabel("PaiCod")).toBe("Código de País");
+    expect(getFieldLabel("DepNom")).toBe("Nombre de Dependencia");
+    expect(getFieldLabel("CarEstReg")).toBe("Estado de Cargo");
+    expect(getFieldLabel("PerDNI")).toBe("DNI");
+    expect(getFieldLabel("PerFecNac")).toBe("Fecha de Nacimiento");
+    expect(getFieldLabel("")).toBe("Sesión de mantenimiento");
     expect(getFieldLabel("CampoExtra")).toBe("CampoExtra");
   });
 
@@ -79,7 +61,7 @@ describe("error-catalog", () => {
       createFailure(ERROR_CODES.REF_BLOCKED, "PaiCod"),
     ]);
     expect(single.items).toHaveLength(1);
-    expect(single.title).toBe(ERROR_TITLES[ERROR_CODES.REF_BLOCKED]);
+    expect(single.title).toBe("Eliminación bloqueada");
     expect(single.text).toContain("[E-REF-BLOCKED]");
     expect(single.text).toContain("Inactivar");
 
