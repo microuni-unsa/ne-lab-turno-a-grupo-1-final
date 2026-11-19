@@ -12,9 +12,7 @@ import {
   EST_A,
   EST_I,
   EST_X,
-  MAX_INTEGER,
-  MAX_SMALLINT,
-  MIN_CODE,
+  MAX_CODE_LEN,
   TABLE_CARGO,
   TABLE_DEPENDENCIA,
   TABLE_PAIS,
@@ -31,6 +29,20 @@ import {
 } from "@/data/paging";
 
 export type OrderingToggle = "default" | "alternate";
+export type SortDirection = "asc" | "desc";
+export type ViewScope = "main" | "deleted";
+
+export interface TableSortSpec {
+  readonly column: string;
+  readonly direction: SortDirection;
+}
+
+export type OrderingSpec = OrderingToggle | TableSortSpec;
+
+export interface SortableColumnOption {
+  readonly column: string;
+  readonly label: string;
+}
 
 export interface OrderClause {
   readonly column: string;
@@ -134,11 +146,81 @@ function formatOrIlikeTerm(column: string, pattern: string): string {
   return `${column}.ilike.${pattern}`;
 }
 
+export function getTableSortableColumns(
+  table: TableName | string,
+): readonly SortableColumnOption[] {
+  const norm = normalizeTable(table);
+  if (isReferenceQueryTable(norm)) {
+    const meta = REFERENCE_QUERY_META[norm];
+    return [
+      { column: meta.codeCol, label: "Código" },
+      { column: meta.nomCol, label: "Nombre" },
+      { column: meta.estRegCol, label: "Estado" },
+    ];
+  }
+  if (norm === "personal") {
+    return [
+      { column: "PerCod", label: "Código" },
+      { column: "PerNom", label: "Nombre" },
+      { column: "PerDNI", label: "DNI" },
+      { column: "PerFecNac", label: "Fecha de nacimiento" },
+      { column: "PerPaiCod", label: "País" },
+      { column: "PerDepCod", label: "Dependencia" },
+      { column: "PerCarCod", label: "Cargo" },
+      { column: "PerEstReg", label: "Estado" },
+    ];
+  }
+  throw new Error(`Unsupported table for sorting: ${table}`);
+}
+
+export function getDefaultSortSpec(table: TableName | string): TableSortSpec {
+  const norm = normalizeTable(table);
+  if (isReferenceQueryTable(norm)) {
+    return { column: REFERENCE_QUERY_META[norm].nomCol, direction: "asc" };
+  }
+  if (norm === "personal") {
+    return { column: "PerCod", direction: "asc" };
+  }
+  throw new Error(`Unsupported table for default sort: ${table}`);
+}
+
+function getEstRegColumn(table: string): string {
+  if (isReferenceQueryTable(table)) {
+    return REFERENCE_QUERY_META[table].estRegCol;
+  }
+  if (table === "personal") {
+    return "PerEstReg";
+  }
+  throw new Error(`Unsupported table for EstReg: ${table}`);
+}
+
 export function getTableOrdering(
   table: TableName | string,
-  ordering: OrderingToggle = "default",
+  ordering: OrderingSpec = "default",
 ): readonly OrderClause[] {
   const norm = normalizeTable(table);
+
+  if (typeof ordering === "object" && ordering !== null) {
+    const validColumns = getTableSortableColumns(norm);
+    const matched = validColumns.find((col) => col.column === ordering.column);
+    if (!matched) {
+      throw new Error(
+        `Unsupported sort column ${ordering.column} for table ${norm}`,
+      );
+    }
+    const pkCol = isReferenceQueryTable(norm)
+      ? REFERENCE_QUERY_META[norm].codeCol
+      : "PerCod";
+    const ascending = ordering.direction === "asc";
+    if (matched.column === pkCol) {
+      return [{ column: pkCol, ascending }];
+    }
+    return [
+      { column: matched.column, ascending },
+      { column: pkCol, ascending: true },
+    ];
+  }
+
   if (isReferenceQueryTable(norm)) {
     const meta = REFERENCE_QUERY_META[norm];
     if (ordering === "alternate") {
@@ -207,25 +289,47 @@ function applyOrderAndPaging<T extends ChainablePostgrestBuilder<T>>(
   return chained;
 }
 
+interface ViewScopeFilterable<T> {
+  in(column: string, values: readonly number[]): T;
+  eq(column: string, value: number): T;
+}
+
+function applyViewScope<T extends ViewScopeFilterable<T>>(
+  builder: T,
+  table: string,
+  viewScope?: ViewScope,
+): T {
+  if (!viewScope) {
+    return builder;
+  }
+  const estCol = getEstRegColumn(table);
+  if (viewScope === "main") {
+    return builder.in(estCol, [EST_A, EST_I]);
+  }
+  return builder.eq(estCol, EST_X);
+}
+
 /**
  * Builds a list query returning an unexecuted PostgREST builder (§11.1).
  * Default ordering with toggle in scope. Emits explicit order (R18).
  */
 export function listQuery<TRow = unknown>(
   table: TableName | string,
-  ordering: OrderingToggle = "default",
+  ordering: OrderingSpec = "default",
   page: Pick<Page, "offset" | "limit"> = {
     offset: 0,
     limit: DEFAULT_PAGE_LIMIT,
   },
   options?: PagingOptions,
   client: SupabaseClient = getSupabaseClient(),
+  viewScope?: ViewScope,
 ): ExecutableQuery<TRow> {
   const normTable = normalizeTable(table);
   const orderClauses = getTableOrdering(normTable, ordering);
 
   const selectOpts = getSelectOptions(options);
   let builder = client.from(normTable).select("*", selectOpts);
+  builder = applyViewScope(builder, normTable, viewScope);
   builder = applyOrderAndPaging(builder, orderClauses, page);
 
   const descriptor: QueryDescriptor = {
@@ -242,20 +346,23 @@ export function listQuery<TRow = unknown>(
  * Builds a simple search query returning an unexecuted PostgREST builder (§11.2).
  * Single input string; case-insensitive, accent-sensitive contains match.
  * Empty input returns unfiltered list with active ordering.
- * Personal: PerNom ILIKE contains OR PerDNI contains OR PerCod exact-on-integer-parse.
+ * Reference: Nom ILIKE contains OR Cod ILIKE contains.
+ * Personal: PerNom ILIKE contains OR PerDNI contains OR PerCod ILIKE contains.
  */
 export function simpleSearch<TRow = unknown>(
   table: TableName | string,
   q: string,
-  ordering: OrderingToggle = "default",
+  ordering: OrderingSpec = "default",
   page?: Pick<Page, "offset" | "limit">,
   options?: PagingOptions,
   client: SupabaseClient = getSupabaseClient(),
+  viewScope?: ViewScope,
 ): ExecutableQuery<TRow> {
   const normTable = normalizeTable(table);
   const orderClauses = getTableOrdering(normTable, ordering);
   const selectOpts = getSelectOptions(options);
   let builder = client.from(normTable).select("*", selectOpts);
+  builder = applyViewScope(builder, normTable, viewScope);
 
   const trimmed = q ? q.trim() : "";
 
@@ -263,22 +370,14 @@ export function simpleSearch<TRow = unknown>(
     const escapedTerm = escapeIlikeLiteral(trimmed);
     if (isReferenceQueryTable(normTable)) {
       const meta = REFERENCE_QUERY_META[normTable];
-      builder = builder.ilike(meta.nomCol, `%${escapedTerm}%`);
+      const nomTerm = formatOrIlikeTerm(meta.nomCol, `%${escapedTerm}%`);
+      const codTerm = formatOrIlikeTerm(meta.codeCol, `%${escapedTerm}%`);
+      builder = builder.or(`${nomTerm},${codTerm}`);
     } else if (normTable === "personal") {
-      const isDigits = /^\d+$/.test(trimmed);
-      const parsedCode = isDigits ? parseInt(trimmed, 10) : null;
       const nomTerm = formatOrIlikeTerm("PerNom", `%${escapedTerm}%`);
       const dniTerm = formatOrIlikeTerm("PerDNI", `%${escapedTerm}%`);
-      if (
-        parsedCode !== null &&
-        Number.isSafeInteger(parsedCode) &&
-        parsedCode >= MIN_CODE &&
-        parsedCode <= MAX_INTEGER
-      ) {
-        builder = builder.or(`${nomTerm},${dniTerm},PerCod.eq.${parsedCode}`);
-      } else {
-        builder = builder.or(`${nomTerm},${dniTerm}`);
-      }
+      const codTerm = formatOrIlikeTerm("PerCod", `%${escapedTerm}%`);
+      builder = builder.or(`${nomTerm},${dniTerm},${codTerm}`);
     } else {
       throw new Error(`Unsupported table for simple search: ${table}`);
     }
@@ -332,30 +431,26 @@ export interface AdvancedSearchFilters {
 export function advancedSearch<TRow = unknown>(
   table: TableName | string,
   filters: AdvancedSearchFilters,
-  ordering: OrderingToggle = "default",
+  ordering: OrderingSpec = "default",
   page?: Pick<Page, "offset" | "limit">,
   options?: PagingOptions,
   client: SupabaseClient = getSupabaseClient(),
+  viewScope?: ViewScope,
 ): ExecutableQuery<TRow> {
   const normTable = normalizeTable(table);
   const orderClauses = getTableOrdering(normTable, ordering);
   const selectOpts = getSelectOptions(options);
   let builder = client.from(normTable).select("*", selectOpts);
 
-  const parseCodeFilter = (val: unknown, maxLimit: number): number | null => {
-    let num: number | null = null;
-    if (typeof val === "number" && Number.isInteger(val)) {
-      num = val;
-    } else if (typeof val === "string" && /^\d+$/.test(val.trim())) {
-      num = parseInt(val.trim(), 10);
+  const parseCodeFilter = (val: unknown): string | null => {
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      return trimmed.length > 0 && trimmed.length <= MAX_CODE_LEN
+        ? trimmed
+        : null;
     }
-    if (
-      num !== null &&
-      Number.isSafeInteger(num) &&
-      num >= MIN_CODE &&
-      num <= maxLimit
-    ) {
-      return num;
+    if (typeof val === "number" && Number.isFinite(val)) {
+      return String(val);
     }
     return null;
   };
@@ -389,10 +484,7 @@ export function advancedSearch<TRow = unknown>(
 
   if (isReferenceQueryTable(normTable)) {
     const meta = REFERENCE_QUERY_META[normTable];
-    const cod = parseCodeFilter(
-      filters.Cod ?? filters[meta.codeCol],
-      MAX_SMALLINT,
-    );
+    const cod = parseCodeFilter(filters.Cod ?? filters[meta.codeCol]);
     if (cod !== null) builder = builder.eq(meta.codeCol, cod);
 
     const nom = parseStr(filters.Nom ?? filters[meta.nomCol]);
@@ -401,9 +493,13 @@ export function advancedSearch<TRow = unknown>(
     }
 
     const est = parseEstRegSet(filters.EstReg ?? filters[meta.estRegCol]);
-    if (est !== null) builder = builder.in(meta.estRegCol, est);
+    if (est !== null) {
+      builder = builder.in(meta.estRegCol, est);
+    } else if (viewScope) {
+      builder = applyViewScope(builder, normTable, viewScope);
+    }
   } else if (normTable === "personal") {
-    const cod = parseCodeFilter(filters.Cod ?? filters.PerCod, MAX_INTEGER);
+    const cod = parseCodeFilter(filters.Cod ?? filters.PerCod);
     if (cod !== null) builder = builder.eq("PerCod", cod);
 
     const nom = parseStr(filters.Nom ?? filters.PerNom);
@@ -426,26 +522,21 @@ export function advancedSearch<TRow = unknown>(
     );
     if (fecNacTo !== null) builder = builder.lte("PerFecNac", fecNacTo);
 
-    const paiCod = parseCodeFilter(
-      filters.PaiCod ?? filters.PerPaiCod,
-      MAX_SMALLINT,
-    );
+    const paiCod = parseCodeFilter(filters.PaiCod ?? filters.PerPaiCod);
     if (paiCod !== null) builder = builder.eq("PerPaiCod", paiCod);
 
-    const depCod = parseCodeFilter(
-      filters.DepCod ?? filters.PerDepCod,
-      MAX_SMALLINT,
-    );
+    const depCod = parseCodeFilter(filters.DepCod ?? filters.PerDepCod);
     if (depCod !== null) builder = builder.eq("PerDepCod", depCod);
 
-    const carCod = parseCodeFilter(
-      filters.CarCod ?? filters.PerCarCod,
-      MAX_SMALLINT,
-    );
+    const carCod = parseCodeFilter(filters.CarCod ?? filters.PerCarCod);
     if (carCod !== null) builder = builder.eq("PerCarCod", carCod);
 
     const est = parseEstRegSet(filters.EstReg ?? filters.PerEstReg);
-    if (est !== null) builder = builder.in("PerEstReg", est);
+    if (est !== null) {
+      builder = builder.in("PerEstReg", est);
+    } else if (viewScope) {
+      builder = applyViewScope(builder, normTable, viewScope);
+    }
   } else {
     throw new Error(`Unsupported table for advanced search: ${table}`);
   }

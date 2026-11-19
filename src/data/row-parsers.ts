@@ -36,6 +36,24 @@ export function readOptionalNumberField(
     : undefined;
 }
 
+export function readOptionalCodeField(
+  source: unknown,
+  key: string,
+): string | undefined {
+  if (!isPlainRecord(source)) {
+    return undefined;
+  }
+  const value: unknown = Object.getOwnPropertyDescriptor(source, key)?.value;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+}
+
 export function readOptionalStringField(
   source: unknown,
   key: string,
@@ -65,12 +83,12 @@ function readAuditTimestampField(source: unknown, key: string): string | null {
   return typeof value === "string" ? value : null;
 }
 
-function parseReferenceFields<TCod extends number>(
+function parseReferenceFields<TCod extends string>(
   raw: unknown,
   codeKey: string,
   nomKey: string,
   estKey: string,
-  brandCode: (value: number) => TCod,
+  brandCode: (value: string) => TCod,
 ): {
   readonly code: TCod;
   readonly nom: string;
@@ -81,7 +99,7 @@ function parseReferenceFields<TCod extends number>(
   if (!isPlainRecord(raw)) {
     return null;
   }
-  const code = readOptionalNumberField(raw, codeKey);
+  const code = readOptionalCodeField(raw, codeKey);
   const nom = readOptionalStringField(raw, nomKey);
   const estReg = parseEstReg(
     Object.getOwnPropertyDescriptor(raw, estKey)?.value,
@@ -164,13 +182,13 @@ export function parsePersonalRow(raw: unknown): PersonalRow | null {
   if (!isPlainRecord(raw)) {
     return null;
   }
-  const perCod = readOptionalNumberField(raw, "PerCod");
+  const perCod = readOptionalCodeField(raw, "PerCod");
   const perNom = readOptionalStringField(raw, "PerNom");
   const perDni = readOptionalStringField(raw, "PerDNI");
   const perFecNac = readOptionalStringField(raw, "PerFecNac");
-  const perPaiCod = readOptionalNumberField(raw, "PerPaiCod");
-  const perDepCod = readOptionalNumberField(raw, "PerDepCod");
-  const perCarCod = readOptionalNumberField(raw, "PerCarCod");
+  const perPaiCod = readOptionalCodeField(raw, "PerPaiCod");
+  const perDepCod = readOptionalCodeField(raw, "PerDepCod");
+  const perCarCod = readOptionalCodeField(raw, "PerCarCod");
   const perEstReg = parseEstReg(
     Object.getOwnPropertyDescriptor(raw, "PerEstReg")?.value,
   );

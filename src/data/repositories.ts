@@ -20,10 +20,8 @@ import {
   EST_A,
   EST_I,
   EST_X,
-  MAX_INTEGER,
+  MAX_CODE_LEN,
   MAX_NAME,
-  MAX_SMALLINT,
-  MIN_CODE,
   MIN_NAME,
   TABLE_CARGO,
   TABLE_DEPENDENCIA,
@@ -60,8 +58,9 @@ import {
   escapeIlikeLiteral,
   gsel,
   listQuery,
-  type OrderingToggle,
+  type OrderingSpec,
   simpleSearch,
+  type ViewScope,
 } from "@/data/query";
 import {
   isPlainRecord,
@@ -69,7 +68,7 @@ import {
   parseDependenciaRow,
   parsePaisRow,
   parsePersonalRow,
-  readOptionalNumberField,
+  readOptionalCodeField,
   readOptionalStringField,
 } from "@/data/row-parsers";
 import {
@@ -87,16 +86,36 @@ function assertNeverPendingOp(op: never): never {
   throw new Error(`Unsupported pending operation: ${String(op)}`);
 }
 
-function isValidIntegerInRange(
-  value: number | undefined,
-  maxLimit: number,
-): value is number {
+function isValidCodeString(value: string | undefined): value is string {
+  if (typeof value !== "string") {
+    return false;
+  }
+  const trimmed = value.trim();
   return (
-    typeof value === "number" &&
-    Number.isInteger(value) &&
-    value >= MIN_CODE &&
-    value <= maxLimit
+    trimmed.length >= 1 &&
+    trimmed.length <= MAX_CODE_LEN &&
+    /^[A-Za-z0-9._-]+$/.test(trimmed)
   );
+}
+
+/**
+ * Verifies a supervisor authorization code immediately against the hashed secret in Supabase.
+ */
+export async function verifySupervisorCode(
+  code: string,
+  client: SupabaseClient = getSupabaseClient(),
+): Promise<boolean> {
+  const trimmed = code.trim();
+  if (trimmed.length === 0) {
+    return false;
+  }
+  const { data, error } = await client.rpc("verify_supervisor_code", {
+    p_supervisor_code: trimmed,
+  });
+  if (error) {
+    throw error;
+  }
+  return data === true;
 }
 
 /**
@@ -148,12 +167,13 @@ export abstract class BaseRepo<TRow> {
    * Paged enumeration with explicit order (§11.1).
    */
   async list(
-    ordering: OrderingToggle = "default",
+    ordering: OrderingSpec = "default",
     page: Pick<Page, "offset" | "limit"> = {
       offset: 0,
       limit: DEFAULT_PAGE_LIMIT,
     },
     options?: PagingOptions,
+    viewScope?: ViewScope,
   ): Promise<{ data: TRow[]; count: number | null }> {
     const query = listQuery<unknown>(
       this.table,
@@ -161,6 +181,7 @@ export abstract class BaseRepo<TRow> {
       page,
       options,
       this.client,
+      viewScope,
     );
     const { data, error, count } = await query;
     if (error) {
@@ -174,9 +195,10 @@ export abstract class BaseRepo<TRow> {
    */
   async search(
     q: string,
-    ordering: OrderingToggle = "default",
+    ordering: OrderingSpec = "default",
     page?: Pick<Page, "offset" | "limit">,
     options?: PagingOptions,
+    viewScope?: ViewScope,
   ): Promise<{ data: TRow[]; count: number | null }> {
     const query = simpleSearch<unknown>(
       this.table,
@@ -185,6 +207,7 @@ export abstract class BaseRepo<TRow> {
       page,
       options,
       this.client,
+      viewScope,
     );
     const { data, error, count } = await query;
     if (error) {
@@ -198,9 +221,10 @@ export abstract class BaseRepo<TRow> {
    */
   async advancedSearch(
     filters: AdvancedSearchFilters,
-    ordering: OrderingToggle = "default",
+    ordering: OrderingSpec = "default",
     page?: Pick<Page, "offset" | "limit">,
     options?: PagingOptions,
+    viewScope?: ViewScope,
   ): Promise<{ data: TRow[]; count: number | null }> {
     const query = advancedSearch<unknown>(
       this.table,
@@ -209,6 +233,7 @@ export abstract class BaseRepo<TRow> {
       page,
       options,
       this.client,
+      viewScope,
     );
     const { data, error, count } = await query;
     if (error) {
@@ -218,13 +243,33 @@ export abstract class BaseRepo<TRow> {
   }
 
   /**
+   * Returns the distinct EstReg values currently present in the table.
+   */
+  async getAvailableEstRegs(): Promise<EstReg[]> {
+    const candidates: readonly EstReg[] = [EST_A, EST_I, EST_X];
+    const results = await Promise.all(
+      candidates.map(async (state) => {
+        const { count, error } = await this.client
+          .from(this.table)
+          .select("*", { count: "exact", head: true })
+          .eq(this.estRegCol, state);
+        if (error) {
+          throw error;
+        }
+        return (count ?? 0) > 0 ? state : null;
+      }),
+    );
+    return results.filter((s): s is EstReg => s !== null);
+  }
+
+  /**
    * Reads a single record by primary key code.
    */
-  async getByCode(code: number): Promise<TRow | null> {
+  async getByCode(code: string): Promise<TRow | null> {
     const { data, error } = await this.client
       .from(this.table)
       .select("*")
-      .eq(this.codeCol, code)
+      .eq(this.codeCol, code.trim())
       .maybeSingle<unknown>();
 
     if (error) {
@@ -237,11 +282,11 @@ export abstract class BaseRepo<TRow> {
    * Head/count probe: checks whether a primary key code exists.
    * Uses head: true to avoid full-row fetches.
    */
-  async probeCodeExists(code: number): Promise<boolean> {
+  async probeCodeExists(code: string): Promise<boolean> {
     const { count, error } = await this.client
       .from(this.table)
       .select("*", { count: "exact", head: true })
-      .eq(this.codeCol, code);
+      .eq(this.codeCol, code.trim());
 
     if (error) {
       throw error;
@@ -286,7 +331,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
    * Head/count probe: checks whether a reference name exists case-insensitively.
    * Escapes LIKE/ILIKE wildcards (`%`, `_`, `\`) so literal names are probed safely.
    */
-  async probeNomCiExists(nom: string, excludeCode?: number): Promise<boolean> {
+  async probeNomCiExists(nom: string, excludeCode?: string): Promise<boolean> {
     const escapedNom = escapeIlikeLiteral(nom.trim());
     let builder = this.client
       .from(this.table)
@@ -294,7 +339,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
       .ilike(this.nomCol, escapedNom);
 
     if (excludeCode !== undefined) {
-      builder = builder.neq(this.codeCol, excludeCode);
+      builder = builder.neq(this.codeCol, excludeCode.trim());
     }
 
     const { count, error } = await builder;
@@ -321,11 +366,11 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
    * EXISTS personal with EstReg IN (1,2) referencing code.
    * Head/count probe, no full-row fetch.
    */
-  async probeLiveReferences(code: number): Promise<boolean> {
+  async probeLiveReferences(code: string): Promise<boolean> {
     const { count, error } = await this.client
       .from("personal")
       .select("*", { count: "exact", head: true })
-      .eq(this.personalFkCol, code)
+      .eq(this.personalFkCol, code.trim())
       .in("PerEstReg", [EST_A, EST_I]);
 
     if (error) {
@@ -341,7 +386,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
    */
   async guardar(params: {
     op: GuardarOp;
-    p_cod?: number;
+    p_cod?: string;
     p_nom?: string;
     p_est?: EstReg | number;
     p_supervisor_code?: string;
@@ -350,6 +395,8 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
     const isUpdate = params.op === "update";
     const isInsert = params.op === "insert";
     const isSetState = params.op === "set_state";
+    const trimmedCod =
+      typeof params.p_cod === "string" ? params.p_cod.trim() : undefined;
     const trimmedNom =
       typeof params.p_nom === "string" ? params.p_nom.trim() : undefined;
 
@@ -370,9 +417,9 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
       failures.push(...validateCode(this.table, params.p_cod, this.codeCol));
     }
 
-    // 2. Uniqueness probes (only when inputs are within valid type/range bounds)
-    if (isInsert && isValidIntegerInRange(params.p_cod, MAX_SMALLINT)) {
-      const codeExists = await this.probeCodeExists(params.p_cod);
+    // 2. Uniqueness probes (only when inputs are within valid bounds)
+    if (isInsert && isValidCodeString(trimmedCod)) {
+      const codeExists = await this.probeCodeExists(trimmedCod);
       if (codeExists) {
         failures.push(createFailure(ERROR_CODES.DUP, this.codeCol));
       }
@@ -385,9 +432,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
       trimmedNom.length <= MAX_NAME
     ) {
       const excludeCode =
-        isUpdate && isValidIntegerInRange(params.p_cod, MAX_SMALLINT)
-          ? params.p_cod
-          : undefined;
+        isUpdate && isValidCodeString(trimmedCod) ? trimmedCod : undefined;
       const nomExists = await this.probeNomCiExists(trimmedNom, excludeCode);
       if (nomExists) {
         failures.push(createFailure(ERROR_CODES.DUP, this.nomCol));
@@ -395,12 +440,8 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
     }
 
     // 3. R11 probe on reference Eliminación (p_est = EST_X = 3)
-    if (
-      isSetState &&
-      params.p_est === EST_X &&
-      isValidIntegerInRange(params.p_cod, MAX_SMALLINT)
-    ) {
-      const hasLiveRefs = await this.probeLiveReferences(params.p_cod);
+    if (isSetState && params.p_est === EST_X && isValidCodeString(trimmedCod)) {
+      const hasLiveRefs = await this.probeLiveReferences(trimmedCod);
       if (hasLiveRefs) {
         failures.push(createFailure(ERROR_CODES.REF_BLOCKED, this.codeCol));
       }
@@ -415,7 +456,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
     // R8/R9/R17: Force p_est=1 on insert, p_est=null on update, never send created_at/updated_at
     const rpcPayload: Record<string, unknown> = {
       op: params.op,
-      p_cod: params.p_cod ?? null,
+      p_cod: trimmedCod ?? null,
       p_nom: trimmedNom ?? null,
       p_est: isInsert ? EST_A : isUpdate ? null : (params.p_est ?? null),
       ...(params.p_supervisor_code !== undefined
@@ -448,7 +489,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
       case "adición": {
         return this.guardar({
           op: "insert",
-          p_cod: readOptionalNumberField(pendingOp.payload, this.codeCol),
+          p_cod: readOptionalCodeField(pendingOp.payload, this.codeCol),
           p_nom: readOptionalStringField(pendingOp.payload, this.nomCol),
         });
       }
@@ -545,13 +586,13 @@ export class CargoRepo extends ReferenceRepo<CargoRow> {
 
 interface PersonalGuardarParams {
   readonly op: GuardarOp;
-  readonly p_cod?: number;
+  readonly p_cod?: string;
   readonly p_nom?: string;
   readonly p_dni?: string;
   readonly p_fecnac?: string;
-  readonly p_pai?: number;
-  readonly p_dep?: number;
-  readonly p_car?: number;
+  readonly p_pai?: string;
+  readonly p_dep?: string;
+  readonly p_car?: string;
   readonly p_est?: EstReg | number;
   readonly p_supervisor_code?: string;
 }
@@ -603,14 +644,14 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
   /**
    * Head/count probe: checks whether a PerDNI already exists.
    */
-  async probeDniExists(dni: string, excludeCode?: number): Promise<boolean> {
+  async probeDniExists(dni: string, excludeCode?: string): Promise<boolean> {
     let builder = this.client
       .from("personal")
       .select("*", { count: "exact", head: true })
       .eq("PerDNI", dni.trim());
 
     if (excludeCode !== undefined) {
-      builder = builder.neq("PerCod", excludeCode);
+      builder = builder.neq("PerCod", excludeCode.trim());
     }
 
     const { count, error } = await builder;
@@ -627,12 +668,13 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
     table: "pais" | "dependencia" | "cargo",
     codeCol: string,
     estRegCol: string,
-    code: number,
+    code: string,
   ): Promise<{ exists: boolean; activo: boolean }> {
+    const trimmed = code.trim();
     const { count: existCount, error: existErr } = await this.client
       .from(table)
       .select("*", { count: "exact", head: true })
-      .eq(codeCol, code);
+      .eq(codeCol, trimmed);
 
     if (existErr) throw existErr;
     if ((existCount ?? 0) === 0) {
@@ -642,7 +684,7 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
     const { count: actCount, error: actErr } = await this.client
       .from(table)
       .select("*", { count: "exact", head: true })
-      .eq(codeCol, code)
+      .eq(codeCol, trimmed)
       .eq(estRegCol, EST_A);
 
     if (actErr) throw actErr;
@@ -661,12 +703,20 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
     const isUpdate = params.op === "update";
     const isInsert = params.op === "insert";
     const isSetState = params.op === "set_state";
+    const trimmedCod =
+      typeof params.p_cod === "string" ? params.p_cod.trim() : undefined;
     const trimmedNom =
       typeof params.p_nom === "string" ? params.p_nom.trim() : undefined;
     const trimmedDni =
       typeof params.p_dni === "string" ? params.p_dni.trim() : undefined;
     const trimmedFecNac =
       typeof params.p_fecnac === "string" ? params.p_fecnac.trim() : undefined;
+    const trimmedPai =
+      typeof params.p_pai === "string" ? params.p_pai.trim() : undefined;
+    const trimmedDep =
+      typeof params.p_dep === "string" ? params.p_dep.trim() : undefined;
+    const trimmedCar =
+      typeof params.p_car === "string" ? params.p_car.trim() : undefined;
 
     // 1. Full client validation
     if (isInsert || isUpdate) {
@@ -689,9 +739,9 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
       failures.push(...validateCode("personal", params.p_cod, "PerCod"));
     }
 
-    // 2. Uniqueness probes (only when inputs are within valid type/range bounds)
-    if (isInsert && isValidIntegerInRange(params.p_cod, MAX_INTEGER)) {
-      const codeExists = await this.probeCodeExists(params.p_cod);
+    // 2. Uniqueness probes (only when inputs are within valid bounds)
+    if (isInsert && isValidCodeString(trimmedCod)) {
+      const codeExists = await this.probeCodeExists(trimmedCod);
       if (codeExists) {
         failures.push(createFailure(ERROR_CODES.DUP, "PerCod"));
       }
@@ -703,28 +753,26 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
       DNI_EXACT_REGEX.test(trimmedDni)
     ) {
       const excludeCode =
-        isUpdate && isValidIntegerInRange(params.p_cod, MAX_INTEGER)
-          ? params.p_cod
-          : undefined;
+        isUpdate && isValidCodeString(trimmedCod) ? trimmedCod : undefined;
       const dniExists = await this.probeDniExists(trimmedDni, excludeCode);
       if (dniExists) {
         failures.push(createFailure(ERROR_CODES.DUP, "PerDNI"));
       }
     }
 
-    // 3. FK probes (exists + Activo) in parallel for valid SMALLINT codes
+    // 3. FK probes (exists + Activo) in parallel for valid string codes
     if (isInsert || isUpdate) {
       const fkChecks = await Promise.all(
         PERSONAL_FK_SPECS.map(async (spec) => {
           const fkVal = spec.getValue(params);
-          if (!isValidIntegerInRange(fkVal, MAX_SMALLINT)) {
+          if (!isValidCodeString(fkVal)) {
             return null;
           }
           const target = await this.probeFkTarget(
             spec.table,
             spec.codeCol,
             spec.estRegCol,
-            fkVal,
+            fkVal.trim(),
           );
           if (!target.exists) {
             return createFailure(ERROR_CODES.REF, spec.field);
@@ -751,13 +799,13 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
     // R8/R9/R17: Force p_est=1 on insert, p_est=null on update, never send created_at or updated_at
     const rpcPayload: Record<string, unknown> = {
       op: params.op,
-      p_cod: params.p_cod ?? null,
+      p_cod: trimmedCod ?? null,
       p_nom: trimmedNom ?? null,
       p_dni: trimmedDni ?? null,
       p_fecnac: trimmedFecNac ?? null,
-      p_pai: params.p_pai ?? null,
-      p_dep: params.p_dep ?? null,
-      p_car: params.p_car ?? null,
+      p_pai: trimmedPai ?? null,
+      p_dep: trimmedDep ?? null,
+      p_car: trimmedCar ?? null,
       p_est: isInsert ? EST_A : isUpdate ? null : (params.p_est ?? null),
       ...(params.p_supervisor_code !== undefined
         ? { p_supervisor_code: params.p_supervisor_code }
@@ -789,13 +837,13 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
       case "adición": {
         return this.guardar({
           op: "insert",
-          p_cod: readOptionalNumberField(pendingOp.payload, "PerCod"),
+          p_cod: readOptionalCodeField(pendingOp.payload, "PerCod"),
           p_nom: readOptionalStringField(pendingOp.payload, "PerNom"),
           p_dni: readOptionalStringField(pendingOp.payload, "PerDNI"),
           p_fecnac: readOptionalStringField(pendingOp.payload, "PerFecNac"),
-          p_pai: readOptionalNumberField(pendingOp.payload, "PerPaiCod"),
-          p_dep: readOptionalNumberField(pendingOp.payload, "PerDepCod"),
-          p_car: readOptionalNumberField(pendingOp.payload, "PerCarCod"),
+          p_pai: readOptionalCodeField(pendingOp.payload, "PerPaiCod"),
+          p_dep: readOptionalCodeField(pendingOp.payload, "PerDepCod"),
+          p_car: readOptionalCodeField(pendingOp.payload, "PerCarCod"),
         });
       }
       case "modificación": {
@@ -805,9 +853,9 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
           p_nom: readOptionalStringField(pendingOp.payload, "PerNom"),
           p_dni: readOptionalStringField(pendingOp.payload, "PerDNI"),
           p_fecnac: readOptionalStringField(pendingOp.payload, "PerFecNac"),
-          p_pai: readOptionalNumberField(pendingOp.payload, "PerPaiCod"),
-          p_dep: readOptionalNumberField(pendingOp.payload, "PerDepCod"),
-          p_car: readOptionalNumberField(pendingOp.payload, "PerCarCod"),
+          p_pai: readOptionalCodeField(pendingOp.payload, "PerPaiCod"),
+          p_dep: readOptionalCodeField(pendingOp.payload, "PerDepCod"),
+          p_car: readOptionalCodeField(pendingOp.payload, "PerCarCod"),
         });
       }
       case "inactivar":

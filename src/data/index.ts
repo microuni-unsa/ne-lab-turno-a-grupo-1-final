@@ -24,13 +24,20 @@ export {
   type AdvancedSearchFilters,
   advancedSearch,
   type ExecutableQuery,
+  getDefaultSortSpec,
   getTableOrdering,
+  getTableSortableColumns,
   gsel,
   listQuery,
   type OrderClause,
+  type OrderingSpec,
   type OrderingToggle,
   type QueryDescriptor,
+  type SortableColumnOption,
+  type SortDirection,
   simpleSearch,
+  type TableSortSpec,
+  type ViewScope,
 } from "@/data/query";
 
 // Repositories & RPC Commits (§5, §8, §12)
@@ -44,4 +51,5 @@ export {
   PaisRepo,
   PersonalRepo,
   ReferenceRepo,
+  verifySupervisorCode,
 } from "@/data/repositories";
