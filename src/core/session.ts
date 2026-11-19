@@ -92,7 +92,13 @@ export class MaintenanceSession<
     }
 
     if (targetCurrentState !== undefined && op.kind !== "adición") {
-      const allowed = canTransition(op.kind, targetCurrentState);
+      const supervisorAuthorized =
+        op.kind === "reactivar" &&
+        typeof op.supervisorCode === "string" &&
+        op.supervisorCode.trim().length > 0;
+      const allowed = canTransition(op.kind, targetCurrentState, {
+        supervisorAuthorized,
+      });
       if (!allowed) {
         return {
           ok: false,

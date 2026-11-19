@@ -11,9 +11,9 @@ import {
 } from "@/lib/error-catalog";
 
 describe("error-catalog", () => {
-  it("traduce exhaustivamente los 9 códigos normativos E-* y todas las columnas del dominio", () => {
+  it("traduce exhaustivamente los 10 códigos normativos E-* y todas las columnas del dominio", () => {
     const allCodes: ErrorCode[] = Object.values(ERROR_CODES);
-    expect(allCodes).toHaveLength(9);
+    expect(allCodes).toHaveLength(10);
 
     for (const code of allCodes) {
       expect(ERROR_TITLES[code].length).toBeGreaterThan(0);

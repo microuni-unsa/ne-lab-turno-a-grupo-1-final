@@ -344,6 +344,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
     p_cod?: number;
     p_nom?: string;
     p_est?: EstReg | number;
+    p_supervisor_code?: string;
   }): Promise<GuardarResult<TRow>> {
     const failures: FieldFailure[] = [];
     const isUpdate = params.op === "update";
@@ -417,6 +418,9 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
       p_cod: params.p_cod ?? null,
       p_nom: trimmedNom ?? null,
       p_est: isInsert ? EST_A : isUpdate ? null : (params.p_est ?? null),
+      ...(params.p_supervisor_code !== undefined
+        ? { p_supervisor_code: params.p_supervisor_code }
+        : {}),
     };
 
     const { data, error, status } = await this.client.rpc(
@@ -466,6 +470,9 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
           op: "set_state",
           p_cod: pendingOp.targetCode,
           p_est: EST_A,
+          ...(pendingOp.supervisorCode !== undefined
+            ? { p_supervisor_code: pendingOp.supervisorCode }
+            : {}),
         });
       case "eliminación":
         return this.guardar({
@@ -546,6 +553,7 @@ interface PersonalGuardarParams {
   readonly p_dep?: number;
   readonly p_car?: number;
   readonly p_est?: EstReg | number;
+  readonly p_supervisor_code?: string;
 }
 
 const PERSONAL_FK_SPECS = [
@@ -751,6 +759,9 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
       p_dep: params.p_dep ?? null,
       p_car: params.p_car ?? null,
       p_est: isInsert ? EST_A : isUpdate ? null : (params.p_est ?? null),
+      ...(params.p_supervisor_code !== undefined
+        ? { p_supervisor_code: params.p_supervisor_code }
+        : {}),
     };
 
     const { data, error, status } = await this.client.rpc(
@@ -810,6 +821,9 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
           op: "set_state",
           p_cod: pendingOp.targetCode,
           p_est: EST_A,
+          ...(pendingOp.supervisorCode !== undefined
+            ? { p_supervisor_code: pendingOp.supervisorCode }
+            : {}),
         });
       case "eliminación":
         return this.guardar({

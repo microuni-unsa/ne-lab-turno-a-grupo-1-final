@@ -121,7 +121,18 @@ function resolveTransitionOutcome(
  * SPEC §6.1: Checks if an operation is allowed given current record state.
  * Returns true if allowed, false otherwise.
  */
-export function canTransition(op: string, current: EstReg | number): boolean {
+export function canTransition(
+  op: string,
+  current: EstReg | number,
+  options?: { readonly supervisorAuthorized?: boolean },
+): boolean {
+  if (
+    options?.supervisorAuthorized === true &&
+    normalizeLifecycleOp(op) === "reactivar" &&
+    current === EST_X
+  ) {
+    return true;
+  }
   const outcome = resolveTransitionOutcome(op, current);
   return outcome?.allowed ?? false;
 }

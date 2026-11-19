@@ -200,6 +200,7 @@ export interface ReactivarOp<TTable extends string = TableName> {
   readonly kind: "reactivar";
   readonly table: TTable;
   readonly targetCode: number;
+  readonly supervisorCode?: string;
 }
 
 export type PendingOp<

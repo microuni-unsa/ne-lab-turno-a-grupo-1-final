@@ -16,6 +16,7 @@ export const ERROR_CODES = {
   REF_STATE: "E-REF-STATE",
   REF_BLOCKED: "E-REF-BLOCKED",
   TRANSITION: "E-TRANSITION",
+  AUTH_SUPERVISOR: "E-AUTH-SUPERVISOR",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -29,6 +30,7 @@ export const E_REF: ErrorCode = ERROR_CODES.REF;
 export const E_REF_STATE: ErrorCode = ERROR_CODES.REF_STATE;
 export const E_REF_BLOCKED: ErrorCode = ERROR_CODES.REF_BLOCKED;
 export const E_TRANSITION: ErrorCode = ERROR_CODES.TRANSITION;
+export const E_AUTH_SUPERVISOR: ErrorCode = ERROR_CODES.AUTH_SUPERVISOR;
 
 /**
  * SPEC §12, R22: Every failure reports its code + offending field.

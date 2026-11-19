@@ -20,6 +20,7 @@ export const FIELD_LABELS = {
   PerEstReg: "Estado de Personal",
   EstReg: "Estado de Registro",
   Nom: "Nombre",
+  supervisorCode: "Código de autorización",
   general: "Registro",
   session: "Sesión de mantenimiento",
 } as const satisfies Record<string, string>;
@@ -34,6 +35,7 @@ export const ERROR_TITLES = {
   [ERROR_CODES.REF_STATE]: "Referencia no activa",
   [ERROR_CODES.REF_BLOCKED]: "Eliminación bloqueada",
   [ERROR_CODES.TRANSITION]: "Transición no permitida",
+  [ERROR_CODES.AUTH_SUPERVISOR]: "Autorización rechazada",
 } as const satisfies Record<ErrorCode, string>;
 
 type FailureTemplate = (fieldLabel: string) => string;
@@ -57,6 +59,8 @@ const ERROR_TEMPLATES = {
     `No se puede eliminar ${fieldLabel} porque tiene personal activo o inactivo asociado (use Inactivar).`,
   [ERROR_CODES.TRANSITION]: () =>
     "La acción solicitada no está permitida para el estado actual del registro.",
+  [ERROR_CODES.AUTH_SUPERVISOR]: () =>
+    "El código de autorización de supervisor es incorrecto.",
 } as const satisfies Record<ErrorCode, FailureTemplate>;
 
 export interface FormattedFieldFailure {
