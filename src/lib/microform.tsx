@@ -122,7 +122,7 @@ function CalendarControl({
         aria-describedby={props.ariaDescribedBy}
         onClick={() => setOpen(true)}
         className={cn(
-          "w-full min-h-11 justify-between font-normal",
+          "h-11 min-h-11 w-full justify-between px-3 font-normal",
           !selectedDate && "text-muted-foreground",
         )}
       >
@@ -282,7 +282,7 @@ function AsyncComboboxControl({
         aria-describedby={props.ariaDescribedBy}
         onClick={() => setOpen(true)}
         className={cn(
-          "w-full min-h-11 justify-between font-normal",
+          "h-11 min-h-11 w-full justify-between px-3 font-normal",
           !displayLabel && "text-muted-foreground",
         )}
       >
@@ -316,14 +316,17 @@ function AsyncComboboxControl({
             data-testid={name ? `gsel-panel-${name}` : undefined}
             className="space-y-3"
           >
-            <Command shouldFilter={false} className="border border-border">
+            <Command
+              shouldFilter={false}
+              className="rounded-lg border border-border"
+            >
               <CommandInput
                 data-testid={name ? `gsel-search-${name}` : undefined}
                 value={search}
                 onValueChange={setSearch}
                 placeholder="Buscar por nombre..."
               />
-              <CommandList className="max-h-[30dvh]">
+              <CommandList className="max-h-[42dvh]">
                 <CommandEmpty>
                   {isLoading
                     ? "Buscando..."
@@ -409,7 +412,7 @@ const textControl = defineControl({
       placeholder={props.placeholder}
       aria-invalid={props.invalid || undefined}
       aria-describedby={props.ariaDescribedBy}
-      className="min-h-10 text-sm"
+      className="h-11 min-h-11 text-sm"
     />
   ),
 });
@@ -440,7 +443,7 @@ const numberControl = defineControl({
       placeholder={props.placeholder}
       aria-invalid={props.invalid || undefined}
       aria-describedby={props.ariaDescribedBy}
-      className="min-h-10 text-sm"
+      className="h-11 min-h-11 text-sm"
     />
   ),
 });
@@ -530,10 +533,17 @@ function renderMicroformItem<
     [descId, errorId].filter(Boolean).join(" ") || undefined;
 
   return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={rhf.name} className="text-xs font-medium text-foreground">
+    <div className="flex flex-col gap-1.5">
+      <Label
+        htmlFor={rhf.name}
+        className="gap-0.5 text-xs font-medium text-foreground"
+      >
         <span>{field.label}</span>
-        {required && <span className="text-destructive">*</span>}
+        {required && (
+          <span aria-hidden="true" className="text-destructive">
+            *
+          </span>
+        )}
       </Label>
 
       <InferFieldInput

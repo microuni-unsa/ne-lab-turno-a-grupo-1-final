@@ -3,6 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { EST_A, EST_I, EST_X, type EstReg, type PendingOpKind } from "@/core";
 
+export interface RecordDetailField {
+  readonly id: string;
+  readonly label: string;
+  readonly value: string;
+  readonly placeholder?: string;
+  readonly testId?: string;
+}
+
 export interface RecordDetailCardProps {
   readonly pendingKind?: PendingOpKind;
   readonly selectedCode: string | null;
@@ -11,6 +19,7 @@ export interface RecordDetailCardProps {
   readonly selectedState: EstReg | null;
   readonly codeLabel?: string;
   readonly nameLabel?: string;
+  readonly readonlyFields?: readonly RecordDetailField[];
   readonly renderInlineForm?: () => React.ReactNode;
 }
 
@@ -59,6 +68,7 @@ export function RecordDetailCard({
   selectedState,
   codeLabel = "Código",
   nameLabel = "Nombre",
+  readonlyFields,
   renderInlineForm,
 }: RecordDetailCardProps) {
   const isFormMode =
@@ -79,28 +89,45 @@ export function RecordDetailCard({
       ? `${currentStateText} → ${nextStateText}`
       : (currentStateText ?? "Sin selección");
 
+  const fieldsToRender: readonly RecordDetailField[] = readonlyFields ?? [
+    {
+      id: "readonly-detail-code",
+      label: codeLabel,
+      value: selectedCode ?? "",
+      placeholder: "—",
+      testId: "detail-code-value",
+    },
+    {
+      id: "readonly-detail-name",
+      label: nameLabel,
+      value: selectedTitle ?? "",
+      placeholder: "Seleccione un registro de la lista",
+      testId: "detail-name-value",
+    },
+  ];
+
   return (
     <section
       aria-label="Datos del registro"
       data-testid="record-detail-card"
-      className="rounded-xl border border-border bg-card p-3 shadow-sm"
+      className="rounded-xl border border-border bg-card p-4 shadow-sm"
     >
-      <div className="mb-2.5 flex items-center justify-between gap-2">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="m-0 text-sm font-semibold text-foreground">
           Datos del registro
         </h2>
         <Badge
           variant="secondary"
           data-testid="record-mode-badge"
-          className="border border-border bg-muted px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-foreground"
+          className="border border-border bg-muted px-2.5 py-0.5 text-xs font-bold tracking-wide text-foreground"
         >
           {modeLabel}
         </Badge>
       </div>
 
       {isFormMode && renderInlineForm ? (
-        <div className="flex flex-col gap-2.5">
-          <div className="flex items-center justify-between border-b border-border/60 pb-2 text-xs">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-border/60 pb-2.5 text-xs">
             <span className="font-medium text-muted-foreground">
               Estado de registro
             </span>
@@ -115,7 +142,7 @@ export function RecordDetailCard({
         </div>
       ) : (
         <div className="flex flex-col gap-2.5">
-          <div className="flex items-center justify-between border-b border-border/60 pb-2 text-xs">
+          <div className="flex items-center justify-between border-b border-border/60 pb-2.5 text-xs">
             <span className="font-medium text-muted-foreground">
               Estado de registro
             </span>
@@ -127,48 +154,32 @@ export function RecordDetailCard({
             </span>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <Label
-              htmlFor="readonly-detail-code"
-              className="text-xs font-medium text-muted-foreground"
-            >
-              {codeLabel}
-            </Label>
-            <input
-              id="readonly-detail-code"
-              type="text"
-              readOnly
-              tabIndex={-1}
-              data-testid="detail-code-value"
-              value={selectedCode ?? ""}
-              placeholder="—"
-              className="flex h-10 w-full rounded-md border border-input bg-muted/30 px-3 py-2 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
-            />
-          </div>
+          {fieldsToRender.map((field) => (
+            <div key={field.id} className="flex flex-col gap-1.5">
+              <Label
+                htmlFor={field.id}
+                className="text-xs font-medium text-foreground"
+              >
+                {field.label}
+              </Label>
+              <input
+                id={field.id}
+                type="text"
+                readOnly
+                tabIndex={-1}
+                data-testid={field.testId}
+                value={field.value}
+                placeholder={field.placeholder ?? "—"}
+                className="flex h-11 w-full rounded-md border border-input bg-muted/30 px-3 py-2 text-sm font-normal text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+          ))}
 
-          <div className="flex flex-col gap-1">
-            <Label
-              htmlFor="readonly-detail-name"
-              className="text-xs font-medium text-muted-foreground"
-            >
-              {nameLabel}
-            </Label>
-            <input
-              id="readonly-detail-name"
-              type="text"
-              readOnly
-              tabIndex={-1}
-              data-testid="detail-name-value"
-              value={selectedTitle ?? ""}
-              placeholder="Seleccione un registro de la lista"
-              className="flex h-10 w-full rounded-md border border-input bg-muted/30 px-3 py-2 text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
-            />
-            {selectedSubtitle && (
-              <p className="m-0 pt-0.5 text-xs text-muted-foreground break-words">
-                {selectedSubtitle}
-              </p>
-            )}
-          </div>
+          {!readonlyFields && selectedSubtitle && (
+            <p className="m-0 pt-0.5 text-xs break-words text-muted-foreground">
+              {selectedSubtitle}
+            </p>
+          )}
         </div>
       )}
     </section>

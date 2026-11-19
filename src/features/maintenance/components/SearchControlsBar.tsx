@@ -107,7 +107,7 @@ export function SearchControlsBar({
           size="sm"
           data-testid="btn-toggle-ordering"
           onClick={onToggleOrdering}
-          className="min-h-11 max-w-full flex-1 justify-start gap-1.5 px-2.5 text-xs"
+          className="h-11 min-h-11 max-w-full flex-1 justify-start gap-1.5 px-2.5 text-xs"
         >
           <ArrowUpDownIcon className="size-3.5 shrink-0 text-primary" />
           <span className="truncate">Orden: {orderingLabel}</span>
@@ -119,15 +119,12 @@ export function SearchControlsBar({
           size="sm"
           data-testid="btn-open-advanced"
           onClick={onOpenAdvanced}
-          className="min-h-11 shrink-0 gap-1.5 px-3 text-xs font-medium"
+          className="h-11 min-h-11 shrink-0 gap-1.5 px-3 text-xs font-medium"
         >
           <SlidersHorizontalIcon className="size-3.5 shrink-0" />
           <span>Avanzada</span>
           {searchMode === "advanced" && (
-            <Badge
-              variant="secondary"
-              className="ml-0.5 px-1.5 py-0 text-[10px]"
-            >
+            <Badge variant="secondary" className="ml-0.5 px-1.5 py-0 text-xs">
               Activa
             </Badge>
           )}
@@ -144,7 +141,7 @@ export function SearchControlsBar({
               onSimpleInputChange("");
               onClearSearch();
             }}
-            className="min-h-11 shrink-0 gap-1 px-2.5 text-xs text-muted-foreground"
+            className="h-11 min-h-11 shrink-0 gap-1 px-2.5 text-xs text-muted-foreground"
           >
             <EraserIcon className="size-3.5" />
             <span>Limpiar</span>

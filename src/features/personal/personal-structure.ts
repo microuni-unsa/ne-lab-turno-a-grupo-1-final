@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type QueryClient, useQuery } from "@tanstack/react-query";
+import { format, isValid, parseISO } from "date-fns";
 import * as React from "react";
 import {
   type CargoRow,
@@ -18,6 +19,7 @@ import {
   TABLE_PAIS,
 } from "@/core";
 import { CargoRepo, DependenciaRepo, PaisRepo } from "@/data";
+import type { RecordDetailField } from "@/features/maintenance/components/RecordDetailCard";
 import { maintenanceKeys } from "@/features/maintenance/query-keys";
 import {
   createGselBinding,
@@ -210,6 +212,11 @@ function formatCatalogRef(
   return `${entry.nom} (Eliminado)`;
 }
 
+function formatDisplayDate(isoDate: string): string {
+  const parsed = parseISO(isoDate);
+  return isValid(parsed) ? format(parsed, "dd/MM/yyyy") : isoDate;
+}
+
 export function formatPersonalSubtitle(
   row: PersonalRow,
   labels: PersonalCatalogLabelMaps,
@@ -217,7 +224,64 @@ export function formatPersonalSubtitle(
   const paiLabel = formatCatalogRef(row.PerPaiCod, labels.pai, "País");
   const depLabel = formatCatalogRef(row.PerDepCod, labels.dep, "Dep");
   const carLabel = formatCatalogRef(row.PerCarCod, labels.car, "Cargo");
-  return `DNI ${row.PerDNI} · Nac ${row.PerFecNac} · ${paiLabel} · ${depLabel} · ${carLabel}`;
+  return `DNI ${row.PerDNI} · Nac ${formatDisplayDate(row.PerFecNac)} · ${paiLabel} · ${depLabel} · ${carLabel}`;
+}
+
+export function formatPersonalDetailFields(
+  row: PersonalRow | null,
+  labels: PersonalCatalogLabelMaps,
+): readonly RecordDetailField[] {
+  return [
+    {
+      id: "readonly-detail-code",
+      label: "Código de Personal",
+      value: row ? row.PerCod : "",
+      placeholder: "—",
+      testId: "detail-code-value",
+    },
+    {
+      id: "readonly-detail-name",
+      label: "Nombre de Personal",
+      value: row ? row.PerNom : "",
+      placeholder: "Seleccione un registro de la lista",
+      testId: "detail-name-value",
+    },
+    {
+      id: "readonly-detail-dni",
+      label: "DNI",
+      value: row ? row.PerDNI : "",
+      placeholder: "—",
+      testId: "detail-dni-value",
+    },
+    {
+      id: "readonly-detail-fecnac",
+      label: "Fecha de Nacimiento",
+      value: row ? formatDisplayDate(row.PerFecNac) : "",
+      placeholder: "—",
+      testId: "detail-fecnac-value",
+    },
+    {
+      id: "readonly-detail-pais",
+      label: "País",
+      value: row ? formatCatalogRef(row.PerPaiCod, labels.pai, "País") : "",
+      placeholder: "—",
+      testId: "detail-pais-value",
+    },
+    {
+      id: "readonly-detail-dep",
+      label: "Dependencia",
+      value: row ? formatCatalogRef(row.PerDepCod, labels.dep, "Dep") : "",
+      placeholder: "—",
+      testId: "detail-dep-value",
+    },
+    {
+      id: "readonly-detail-cargo",
+      label: "Cargo",
+      value: row ? formatCatalogRef(row.PerCarCod, labels.car, "Cargo") : "",
+      placeholder: "—",
+      testId: "detail-car-value",
+    },
+  ];
 }
 
 export function personalRowToPayload(
@@ -250,7 +314,7 @@ export function createPersonalStructure({
           type: "text",
           name: "PerCod",
           label: "Código de Personal",
-          placeholder: isUpdate ? "Código inmutable" : "Ej. EMP01",
+          placeholder: isUpdate ? "Código inmutable" : "Ej. 1",
           readonly: isUpdate,
           maxLength: MAX_CODE_LEN,
           colspan: 12,

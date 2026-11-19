@@ -86,18 +86,18 @@ export function MaintenanceLayout({
                 <Badge
                   variant="destructive"
                   data-testid="network-status-badge"
-                  className="gap-1 text-[11px]"
+                  className="gap-1 text-xs"
                 >
-                  <AlertTriangleIcon className="size-3" />
+                  <AlertTriangleIcon className="size-3.5" />
                   <span>Sin config.</span>
                 </Badge>
               ) : (
                 <Badge
                   variant="destructive"
                   data-testid="network-status-badge"
-                  className="gap-1 text-[11px]"
+                  className="gap-1 text-xs"
                 >
-                  <WifiOffIcon className="size-3" />
+                  <WifiOffIcon className="size-3.5" />
                   <span>Sin red</span>
                 </Badge>
               )}
@@ -107,7 +107,7 @@ export function MaintenanceLayout({
       </IonHeader>
 
       <IonContent ref={contentRef}>
-        <main className="mx-auto flex w-full max-w-md flex-col gap-2.5 px-2.5 pt-2.5 pb-4 sm:px-3">
+        <main className="mx-auto flex w-full max-w-md flex-col gap-3 px-3 pt-3 pb-5">
           {!isOnline && (
             <div
               role="alert"

@@ -149,33 +149,45 @@ export function OperationsBar(props: OperationsBarProps) {
       aria-label="Operaciones de mantenimiento"
       data-testid="operations-bar"
       className={cn(
-        "rounded-xl border border-border bg-card p-1.5 shadow-sm",
+        "rounded-xl border border-border bg-card p-2 shadow-sm",
         props.className,
       )}
     >
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-4 gap-2">
         {OPERATIONS_GRID.map((op) => {
           const Icon = op.icon;
           const disabled = op.isDisabled ? op.isDisabled(props) : false;
+          const isCommit = op.id === "guardar";
+          const isDanger = op.id === "eliminar";
 
           return (
             <Button
               key={op.id}
               type="button"
-              variant={disabled ? "secondary" : op.variant}
+              variant={
+                disabled ? "secondary" : isCommit ? "default" : op.variant
+              }
               disabled={disabled}
               data-testid={`op-${op.id}`}
               onClick={op.getHandler(props)}
               className={cn(
-                "min-h-10 w-full justify-center gap-1 px-1.5 text-[11px] font-semibold transition-colors sm:text-xs",
+                "h-12 min-h-12 w-full flex-col items-center justify-center gap-1 px-1 py-1.5 text-xs leading-none font-semibold transition-colors",
                 !disabled &&
-                  "border-sky-200 bg-sky-50/90 text-sky-950 hover:bg-sky-100",
+                  isCommit &&
+                  "border-primary bg-primary text-primary-foreground hover:bg-primary/90",
+                !disabled &&
+                  isDanger &&
+                  "border-destructive/35 bg-destructive/5 text-destructive hover:bg-destructive/10",
+                !disabled &&
+                  !isCommit &&
+                  !isDanger &&
+                  "border-border bg-card text-foreground hover:bg-accent",
                 disabled &&
-                  "border-transparent bg-muted text-muted-foreground opacity-55",
+                  "border-transparent bg-muted/60 text-muted-foreground opacity-50",
               )}
             >
-              <Icon className="size-3.5 shrink-0" />
-              <span className="truncate">{op.label}</span>
+              <Icon className="size-4 shrink-0" />
+              <span>{op.label}</span>
             </Button>
           );
         })}

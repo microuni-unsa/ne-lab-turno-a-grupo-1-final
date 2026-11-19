@@ -12,7 +12,10 @@ import type { EstReg, TableName } from "@/core";
 import { AdvancedSearchDrawer } from "@/features/maintenance/components/AdvancedSearchDrawer";
 import { MaintenanceLayout } from "@/features/maintenance/components/MaintenanceLayout";
 import { OperationsBar } from "@/features/maintenance/components/OperationsBar";
-import { RecordDetailCard } from "@/features/maintenance/components/RecordDetailCard";
+import {
+  RecordDetailCard,
+  type RecordDetailField,
+} from "@/features/maintenance/components/RecordDetailCard";
 import { RecordListView } from "@/features/maintenance/components/RecordListView";
 import { SupervisorAuthDialog } from "@/features/maintenance/components/SupervisorAuthDialog";
 import type { AdvancedFilterDraft } from "@/features/maintenance/use-maintenance-list";
@@ -31,6 +34,7 @@ export interface MaintenancePageScaffoldProps<TTable extends TableName, TRow> {
   readonly getRowTitle: (row: TRow) => string;
   readonly getRowSubtitle?: (row: TRow) => string | undefined;
   readonly getRowState: (row: TRow) => EstReg;
+  readonly getDetailFields?: (row: TRow | null) => readonly RecordDetailField[];
   readonly renderFormDrawer: () => React.ReactNode;
   readonly renderExtraFilters?: (
     draft: AdvancedFilterDraft,
@@ -56,6 +60,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
   getRowTitle,
   getRowSubtitle,
   getRowState,
+  getDetailFields,
   renderFormDrawer,
   renderExtraFilters,
 }: MaintenancePageScaffoldProps<TTable, TRow>) {
@@ -92,10 +97,10 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
         />
       }
     >
-      <div data-testid="top-search-bar" className="flex items-center gap-1.5">
+      <div data-testid="top-search-bar" className="flex items-center gap-2">
         <form
           onSubmit={handleSimpleSubmit}
-          className="relative flex min-w-0 flex-1 items-center gap-1.5"
+          className="relative flex min-w-0 flex-1 items-center gap-2"
         >
           <div className="relative min-w-0 flex-1">
             <Input
@@ -117,7 +122,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
                   screen.list.clearSearch();
                 }
               }}
-              className="min-h-10 text-sm"
+              className="h-11 min-h-11 text-sm"
             />
           </div>
 
@@ -134,7 +139,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
                   screen.list.clearSearch();
                 }
               }}
-              className="min-h-10 min-w-10 shrink-0"
+              className="h-11 w-11 min-h-11 min-w-11 shrink-0"
             >
               <XIcon className="size-4" />
             </Button>
@@ -147,7 +152,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
             data-testid="btn-simple-search"
             aria-label="Buscar"
             disabled={screen.controller.hasPending}
-            className="min-h-10 min-w-10 shrink-0"
+            className="h-11 w-11 min-h-11 min-w-11 shrink-0"
           >
             <SearchIcon className="size-4" />
           </Button>
@@ -163,7 +168,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
           aria-label="Búsqueda avanzada"
           disabled={screen.controller.hasPending}
           onClick={() => screen.setAdvancedOpen(true)}
-          className="min-h-10 min-w-10 shrink-0"
+          className="h-11 w-11 min-h-11 min-w-11 shrink-0"
         >
           <SlidersHorizontalIcon className="size-4" />
         </Button>
@@ -179,6 +184,9 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
             : undefined
         }
         selectedState={selectedRow ? getRowState(selectedRow) : null}
+        readonlyFields={
+          getDetailFields ? getDetailFields(selectedRow) : undefined
+        }
         renderInlineForm={renderFormDrawer}
       />
 
@@ -198,7 +206,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
               screen.setSimpleInput("");
               screen.list.clearSearch();
             }}
-            className="min-h-8 gap-1 px-2 text-xs text-muted-foreground"
+            className="h-8 min-h-8 gap-1 px-2 text-xs text-muted-foreground"
           >
             <EraserIcon className="size-3.5" />
             <span>Limpiar</span>

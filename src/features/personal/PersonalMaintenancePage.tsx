@@ -16,6 +16,7 @@ import { PersonalAdvancedFilters } from "@/features/personal/components/Personal
 import { PersonalInlineForm } from "@/features/personal/components/PersonalFormDrawer";
 import {
   createPersonalGselBindings,
+  formatPersonalDetailFields,
   formatPersonalSubtitle,
   type PersonalCatalogRepos,
   personalRowToPayload,
@@ -90,6 +91,7 @@ export function PersonalMaintenancePage({
       getRowTitle={(row) => row.PerNom}
       getRowSubtitle={(row) => formatPersonalSubtitle(row, catalogLabels)}
       getRowState={(row) => row.PerEstReg}
+      getDetailFields={(row) => formatPersonalDetailFields(row, catalogLabels)}
       renderFormDrawer={() =>
         screen.isFormPending ? (
           <PersonalInlineForm

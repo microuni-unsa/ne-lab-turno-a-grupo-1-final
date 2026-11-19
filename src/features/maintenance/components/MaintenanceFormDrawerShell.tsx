@@ -30,7 +30,7 @@ export function MaintenanceFormFooter({
   onSalir,
 }: MaintenanceFormFooterProps) {
   return (
-    <DrawerFooter className="px-0 pb-1 pt-4">
+    <DrawerFooter className="px-0 pt-3 pb-1">
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -38,7 +38,7 @@ export function MaintenanceFormFooter({
           disabled={busy}
           onClick={onTriggerSubmit}
           data-testid="form-guardar"
-          className="min-h-11 flex-1 gap-1.5"
+          className="h-11 min-h-11 flex-1 gap-1.5"
         >
           <CheckIcon className="size-4 shrink-0" />
           <span>{busy ? "Guardando..." : "Guardar"}</span>
@@ -50,7 +50,7 @@ export function MaintenanceFormFooter({
           disabled={busy}
           onClick={onCancelPending}
           data-testid="drawer-cancelar"
-          className="min-h-11 gap-1.5"
+          className="h-11 min-h-11 gap-1.5"
         >
           <XIcon className="size-4 shrink-0" />
           <span>Cancelar</span>
@@ -62,7 +62,7 @@ export function MaintenanceFormFooter({
           disabled={busy}
           onClick={onSalir}
           data-testid="drawer-salir"
-          className="min-h-11 gap-1.5"
+          className="h-11 min-h-11 gap-1.5"
         >
           <LogOutIcon className="size-4 shrink-0" />
           <span>Salir</span>
@@ -104,7 +104,7 @@ export function MaintenanceFormDrawerShell({
   isUpdate,
   initialBreakpoint = 0.85,
   breakpoints = [0, 0.65, 0.85, 0.95],
-  bodyClassName = "space-y-4 overflow-y-auto overscroll-contain px-1 pb-2 max-h-[62dvh]",
+  bodyClassName = "flex max-h-[62dvh] flex-col gap-2.5 overflow-y-auto overscroll-contain px-1 pb-2",
   children,
 }: MaintenanceFormDrawerShellProps) {
   const handleOpenChange = React.useCallback(
@@ -126,9 +126,9 @@ export function MaintenanceFormDrawerShell({
         initialBreakpoint={initialBreakpoint}
         breakpoints={breakpoints}
       >
-        <DrawerHeader className="px-0">
+        <DrawerHeader className="px-0 pb-2">
           <div className="flex items-start justify-between gap-2">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <DrawerTitle data-testid={titleTestId}>{title}</DrawerTitle>
               <DrawerDescription>{description}</DrawerDescription>
             </div>
@@ -139,7 +139,7 @@ export function MaintenanceFormDrawerShell({
               size="sm"
               onClick={onHideDrawer}
               data-testid="drawer-hide"
-              className="min-h-11 shrink-0 gap-1"
+              className="h-11 min-h-11 shrink-0 gap-1"
             >
               <EyeOffIcon className="size-4 shrink-0" />
               <span>Ocultar</span>
@@ -150,7 +150,7 @@ export function MaintenanceFormDrawerShell({
         <div className={bodyClassName}>
           <div
             data-testid="form-estreg-readonly"
-            className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs"
           >
             <span className="font-medium text-muted-foreground">
               Estado de Registro ({estFieldLabel})

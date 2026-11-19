@@ -69,8 +69,8 @@ export function PersonalAdvancedFilters({
   ];
 
   return (
-    <div className="flex flex-col gap-3 border-t border-border pt-3">
-      <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2.5 border-t border-border pt-3">
+      <div className="flex flex-col gap-1.5">
         <Label
           htmlFor="adv-filter-dni"
           className="text-xs font-medium text-foreground"
@@ -87,12 +87,12 @@ export function PersonalAdvancedFilters({
           placeholder="Ej. 7000"
           data-testid="adv-filter-dni"
           onChange={(event) => patchDraft({ dniText: event.target.value })}
-          className="min-h-10 text-sm"
+          className="h-11 min-h-11 text-sm"
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-        <div className="flex flex-col gap-1">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="flex flex-col gap-1.5">
           <Label
             htmlFor="adv-filter-fec-from"
             className="text-xs font-medium text-foreground"
@@ -106,11 +106,11 @@ export function PersonalAdvancedFilters({
             value={draft.fecNacFrom}
             data-testid="adv-filter-fec-from"
             onChange={(event) => patchDraft({ fecNacFrom: event.target.value })}
-            className="min-h-10 text-sm"
+            className="h-11 min-h-11 text-sm"
           />
         </div>
 
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           <Label
             htmlFor="adv-filter-fec-to"
             className="text-xs font-medium text-foreground"
@@ -124,13 +124,13 @@ export function PersonalAdvancedFilters({
             value={draft.fecNacTo}
             data-testid="adv-filter-fec-to"
             onChange={(event) => patchDraft({ fecNacTo: event.target.value })}
-            className="min-h-10 text-sm"
+            className="h-11 min-h-11 text-sm"
           />
         </div>
       </div>
 
       {fkFilters.map((fk) => (
-        <div key={fk.fieldName} className="flex flex-col gap-1">
+        <div key={fk.fieldName} className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between gap-2">
             <Label
               htmlFor={fk.fieldName}
@@ -145,7 +145,7 @@ export function PersonalAdvancedFilters({
                 size="sm"
                 data-testid={fk.clearTestId}
                 onClick={() => fk.onChange(undefined)}
-                className="min-h-8 gap-1 px-2 text-xs text-muted-foreground"
+                className="h-8 min-h-8 gap-1 px-2 text-xs text-muted-foreground"
               >
                 <XIcon className="size-3.5" />
                 <span>Limpiar</span>

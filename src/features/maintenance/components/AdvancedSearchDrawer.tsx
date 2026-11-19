@@ -116,8 +116,8 @@ export function AdvancedSearchDrawer({
           </DrawerTitle>
         </DrawerHeader>
 
-        <div className="flex max-h-[52dvh] flex-col gap-3 overflow-y-auto overscroll-contain pb-2">
-          <div className="flex flex-col gap-1">
+        <div className="flex max-h-[52dvh] flex-col gap-2.5 overflow-y-auto overscroll-contain pb-2">
+          <div className="flex flex-col gap-1.5">
             <Label
               htmlFor="adv-filter-cod"
               className="text-xs font-medium text-foreground"
@@ -129,14 +129,14 @@ export function AdvancedSearchDrawer({
               name="advCod"
               type="text"
               value={draft.codText}
-              placeholder="Ej. PER"
+              placeholder="Ej. 1"
               data-testid="adv-filter-cod"
               onChange={(event) => patchDraft({ codText: event.target.value })}
-              className="min-h-10 text-sm"
+              className="h-11 min-h-11 text-sm"
             />
           </div>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             <Label
               htmlFor="adv-filter-nom"
               className="text-xs font-medium text-foreground"
@@ -148,10 +148,10 @@ export function AdvancedSearchDrawer({
               name="advNom"
               type="text"
               value={draft.nomText}
-              placeholder="Ej. Perú"
+              placeholder="Ej. Ana"
               data-testid="adv-filter-nom"
               onChange={(event) => patchDraft({ nomText: event.target.value })}
-              className="min-h-10 text-sm"
+              className="h-11 min-h-11 text-sm"
             />
           </div>
 
@@ -162,7 +162,7 @@ export function AdvancedSearchDrawer({
               </legend>
               <div
                 className={cn(
-                  "grid gap-1.5",
+                  "grid gap-2",
                   visibleEstOptions.length === 1
                     ? "grid-cols-1"
                     : visibleEstOptions.length === 2
@@ -181,7 +181,7 @@ export function AdvancedSearchDrawer({
                       data-testid={`adv-est-${opt.value}`}
                       aria-pressed={isSelected}
                       onClick={() => toggleEstado(opt.value)}
-                      className="min-h-10 w-full justify-center text-xs font-medium"
+                      className="h-11 min-h-11 w-full justify-center text-xs font-medium"
                     >
                       {opt.label}
                     </Button>
@@ -200,7 +200,7 @@ export function AdvancedSearchDrawer({
             variant="outline"
             data-testid="adv-btn-reset"
             onClick={handleReset}
-            className="min-h-10 w-full text-xs font-semibold"
+            className="h-11 min-h-11 w-full text-xs font-semibold"
           >
             Limpiar filtros
           </Button>
@@ -209,7 +209,7 @@ export function AdvancedSearchDrawer({
             variant="default"
             data-testid="adv-btn-apply"
             onClick={handleApply}
-            className="min-h-10 w-full text-xs font-semibold"
+            className="h-11 min-h-11 w-full text-xs font-semibold"
           >
             Aplicar filtros
           </Button>

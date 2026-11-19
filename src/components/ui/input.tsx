@@ -141,7 +141,6 @@ function Input({
     <IonInput
       ref={forwardedIonicRef}
       data-slot="input"
-      fill="outline"
       type={toIonicInputType(type)}
       name={name}
       value={controlledValue}
@@ -165,7 +164,7 @@ function Input({
         onChange(toSyntheticChangeEvent(nextValue, name));
       }}
       className={cn(
-        "min-h-11 w-full min-w-0 rounded-md bg-transparent text-base text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30",
+        "maestro-input h-11 min-h-11 w-full min-w-0 rounded-md bg-transparent text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30",
         isInvalid && "ion-invalid ion-touched",
         className,
       )}

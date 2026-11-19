@@ -100,96 +100,99 @@ export function RecordListView<TRow>({
       data-testid="record-list-view"
       className="flex flex-col gap-2"
     >
-      <div className="flex flex-col gap-2 px-0.5 text-xs text-muted-foreground">
-        <div className="flex items-end justify-between gap-2">
+      <div className="flex flex-col gap-1.5 px-0.5 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-2">
           {sortableColumns.length > 0 && onSortColumnChange ? (
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="text-xs font-medium text-foreground">
-                Ordenar por
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Select
-                  value={sortColumn ?? sortableColumns[0]?.column}
-                  onValueChange={onSortColumnChange}
-                >
-                  <SelectTrigger
-                    aria-label="Ordenar por columna"
-                    data-testid="select-sort-column"
-                    className="h-9 min-h-9 w-full max-w-44 bg-card text-xs font-medium text-foreground"
-                  >
-                    <SelectValue placeholder="Columna" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sortableColumns.map((col) => (
-                      <SelectItem
-                        key={col.column}
-                        value={col.column}
-                        data-testid={`sort-option-${col.column}`}
-                      >
-                        {col.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {onToggleSortDirection && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    data-testid="btn-toggle-sort-dir"
-                    aria-label={
-                      sortDirection === "asc"
-                        ? "Orden ascendente"
-                        : "Orden descendente"
-                    }
-                    onClick={onToggleSortDirection}
-                    className="h-9 min-h-9 shrink-0 gap-1 px-2.5 text-xs font-medium text-foreground"
-                  >
-                    {sortDirection === "asc" ? (
-                      <ArrowUpIcon className="size-3.5" />
-                    ) : (
-                      <ArrowDownIcon className="size-3.5" />
-                    )}
-                    <span>{sortDirection === "asc" ? "ASC" : "DESC"}</span>
-                  </Button>
-                )}
-              </div>
-              <span data-testid="active-ordering-label" className="sr-only">
-                Orden activo: {orderingLabel}
-              </span>
-            </div>
+            <span className="text-xs font-medium text-foreground">
+              Ordenar por
+            </span>
           ) : (
             <span data-testid="active-ordering-label" className="font-medium">
               Orden activo: {orderingLabel}
             </span>
           )}
+          <span data-testid="list-total-summary" className="tabular-nums">
+            {totalCount !== null
+              ? `${totalCount} registro(s)`
+              : `${rows.length} visibles`}
+            {isFetching && !isLoading ? " · actualizando..." : ""}
+          </span>
+        </div>
 
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            {onToggleViewScope && (
-              <Button
-                type="button"
-                variant={isDeletedScope ? "default" : "outline"}
-                size="sm"
-                disabled={hasPending}
-                data-testid="btn-toggle-deleted-scope"
-                aria-pressed={isDeletedScope}
-                onClick={onToggleViewScope}
-                className="h-9 min-h-9 gap-1.5 px-2.5 text-xs font-medium"
+        <div className="flex items-center justify-between gap-2">
+          {sortableColumns.length > 0 && onSortColumnChange ? (
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <Select
+                value={sortColumn ?? sortableColumns[0]?.column}
+                onValueChange={onSortColumnChange}
               >
-                <ArchiveIcon className="size-3.5 shrink-0" />
-                <span>
-                  {isDeletedScope ? "Ver principales" : "Ver eliminados"}
-                </span>
-              </Button>
-            )}
-            <span data-testid="list-total-summary" className="tabular-nums">
-              {totalCount !== null
-                ? `${totalCount} registro(s)`
-                : `${rows.length} visibles`}
-              {isFetching && !isLoading ? " · actualizando..." : ""}
-            </span>
-          </div>
+                <SelectTrigger
+                  aria-label="Ordenar por columna"
+                  data-testid="select-sort-column"
+                  className="h-11 min-h-11 w-full max-w-40 bg-card text-xs font-medium text-foreground"
+                >
+                  <SelectValue placeholder="Columna" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sortableColumns.map((col) => (
+                    <SelectItem
+                      key={col.column}
+                      value={col.column}
+                      data-testid={`sort-option-${col.column}`}
+                    >
+                      {col.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {onToggleSortDirection && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  data-testid="btn-toggle-sort-dir"
+                  aria-label={
+                    sortDirection === "asc"
+                      ? "Orden ascendente"
+                      : "Orden descendente"
+                  }
+                  onClick={onToggleSortDirection}
+                  className="h-11 min-h-11 shrink-0 gap-1 px-2.5 text-xs font-medium text-foreground"
+                >
+                  {sortDirection === "asc" ? (
+                    <ArrowUpIcon className="size-3.5" />
+                  ) : (
+                    <ArrowDownIcon className="size-3.5" />
+                  )}
+                  <span>{sortDirection === "asc" ? "ASC" : "DESC"}</span>
+                </Button>
+              )}
+              <span data-testid="active-ordering-label" className="sr-only">
+                Orden activo: {orderingLabel}
+              </span>
+            </div>
+          ) : (
+            <div />
+          )}
+
+          {onToggleViewScope && (
+            <Button
+              type="button"
+              variant={isDeletedScope ? "default" : "outline"}
+              size="sm"
+              disabled={hasPending}
+              data-testid="btn-toggle-deleted-scope"
+              aria-pressed={isDeletedScope}
+              onClick={onToggleViewScope}
+              className="h-11 min-h-11 shrink-0 gap-1.5 px-2.5 text-xs font-medium"
+            >
+              <ArchiveIcon className="size-3.5 shrink-0" />
+              <span>
+                {isDeletedScope ? "Ver principales" : "Ver eliminados"}
+              </span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -206,7 +209,7 @@ export function RecordListView<TRow>({
                 variant="outline"
                 size="sm"
                 onClick={onRetry}
-                className="min-h-10 gap-1.5"
+                className="h-11 min-h-11 gap-1.5"
               >
                 <RefreshCwIcon className="size-3.5" />
                 <span>Reintentar</span>
@@ -237,7 +240,7 @@ export function RecordListView<TRow>({
                 variant="outline"
                 size="sm"
                 onClick={onClearFilters}
-                className="min-h-10"
+                className="h-11 min-h-11"
               >
                 Limpiar búsqueda
               </Button>
@@ -250,7 +253,7 @@ export function RecordListView<TRow>({
           data-testid="record-list-rows"
         >
           <div className="min-w-[20rem]">
-            <div className="grid grid-cols-[4.5rem_minmax(10rem,1fr)_5rem] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+            <div className="grid grid-cols-[4.5rem_minmax(10rem,1fr)_5rem] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
               <span>Código</span>
               <span>Nombre</span>
               <span className="text-right">Estado</span>
@@ -277,7 +280,7 @@ export function RecordListView<TRow>({
                       isInactive &&
                         "bg-muted/25 text-muted-foreground opacity-65",
                       isSelected
-                        ? "bg-amber-50/90 ring-1 ring-inset ring-amber-300 opacity-100"
+                        ? "bg-accent ring-1 ring-inset ring-primary/40 opacity-100"
                         : "hover:bg-muted/40",
                     )}
                   >
@@ -317,7 +320,7 @@ export function RecordListView<TRow>({
             disabled={!hasPrevPage}
             data-testid="btn-page-prev"
             onClick={onPrevPage}
-            className="min-h-10 gap-1 px-3"
+            className="h-11 min-h-11 gap-1 px-3"
           >
             <ChevronLeftIcon className="size-4" />
             <span>Anterior</span>
@@ -336,7 +339,7 @@ export function RecordListView<TRow>({
             disabled={!hasNextPage}
             data-testid="btn-page-next"
             onClick={onNextPage}
-            className="min-h-10 gap-1 px-3"
+            className="h-11 min-h-11 gap-1 px-3"
           >
             <span>Siguiente</span>
             <ChevronRightIcon className="size-4" />

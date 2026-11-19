@@ -70,7 +70,7 @@ export function StateTransitionCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-sm">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1.5">
           <span className="text-xs text-muted-foreground">
             Registro de {singularLabel}
           </span>
@@ -104,7 +104,7 @@ export function StateTransitionCard({
             disabled={isSaving}
             onClick={onConfirmGuardar}
             data-testid="state-confirm-guardar"
-            className="min-h-11 gap-1.5"
+            className="h-11 min-h-11 gap-1.5"
           >
             <CheckIcon className="size-4 shrink-0" />
             <span>{isSaving ? "Guardando..." : "Guardar cambio"}</span>
@@ -115,7 +115,7 @@ export function StateTransitionCard({
             disabled={isSaving}
             onClick={onCancelar}
             data-testid="state-confirm-cancelar"
-            className="min-h-11 gap-1.5"
+            className="h-11 min-h-11 gap-1.5"
           >
             <XIcon className="size-4 shrink-0" />
             <span>Cancelar</span>

@@ -97,7 +97,7 @@ export function HomePage() {
       </IonHeader>
 
       <IonContent className="ion-padding">
-        <main className="mx-auto flex w-full max-w-md flex-col gap-4 py-3 pb-8">
+        <main className="mx-auto flex w-full max-w-md flex-col gap-3 py-3 pb-8">
           <header className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-4 shadow-sm">
             <h1 className="m-0 text-xl font-bold tracking-tight text-foreground">
               Maestro de Personal
@@ -105,7 +105,6 @@ export function HomePage() {
             <p className="m-0 text-sm font-medium text-muted-foreground">
               Soluciones Móviles S.A.C.
             </p>
-
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {!envStatus.configured ? (
                 <Badge
@@ -131,7 +130,7 @@ export function HomePage() {
                   data-testid="home-connectivity-status"
                   className="gap-1.5 py-1 text-xs"
                 >
-                  <WifiIcon className="size-3.5 shrink-0 text-emerald-700" />
+                  <WifiIcon className="size-3.5 shrink-0 text-primary" />
                   <span>En línea · Supabase configurado</span>
                 </Badge>
               )}
@@ -178,7 +177,7 @@ export function HomePage() {
                           <span className="text-base font-semibold text-foreground">
                             {mod.title}
                           </span>
-                          <Badge variant="outline" className="text-[11px]">
+                          <Badge variant="outline" className="text-xs">
                             {mod.tableTag}
                           </Badge>
                         </div>

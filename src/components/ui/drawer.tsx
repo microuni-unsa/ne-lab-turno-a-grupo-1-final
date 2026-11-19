@@ -190,7 +190,7 @@ function DrawerTitle({ className, ...props }: React.ComponentProps<"h2">) {
   return (
     <h2
       data-slot="drawer-title"
-      className={cn("m-0 text-base font-semibold text-foreground", className)}
+      className={cn("m-0 text-sm font-semibold text-foreground", className)}
       {...props}
     />
   );

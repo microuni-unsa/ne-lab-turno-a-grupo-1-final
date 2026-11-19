@@ -107,6 +107,17 @@ function IonicButton({
     props,
   );
   const resolvedVariant = variant ?? "default";
+  const isVertical = className?.includes("flex-col") ?? false;
+  const isBetween = className?.includes("justify-between") ?? false;
+  const gapClass = className?.includes("gap-1.5")
+    ? "gap-1.5"
+    : className?.includes("gap-1")
+      ? "gap-1"
+      : className?.includes("gap-2")
+        ? "gap-2"
+        : size?.startsWith("icon")
+          ? "gap-0"
+          : "gap-1.5";
 
   return (
     <IonButton
@@ -123,7 +134,14 @@ function IonicButton({
       )}
       {...extractCommonDomProps(props)}
     >
-      <span className="inline-flex w-full items-center justify-[inherit] gap-1.5">
+      <span
+        className={cn(
+          "flex h-full w-full items-center",
+          isVertical ? "flex-col" : "flex-row",
+          isBetween ? "justify-between" : "justify-center",
+          gapClass,
+        )}
+      >
         {children}
       </span>
     </IonButton>

@@ -77,7 +77,7 @@ function ReferenceFormSessionBody<TRow>({
             type: "text",
             name: config.codeField,
             label: config.codeLabel,
-            placeholder: isUpdate ? "Código inmutable" : "Ej. PER",
+            placeholder: isUpdate ? "Código inmutable" : "Ej. 1",
             readonly: isUpdate,
             maxLength: MAX_CODE_LEN,
             colspan: 12,
@@ -96,7 +96,6 @@ function ReferenceFormSessionBody<TRow>({
     [
       config.codeField,
       config.codeLabel,
-      config.maxCode,
       config.nomField,
       config.nomLabel,
       isUpdate,

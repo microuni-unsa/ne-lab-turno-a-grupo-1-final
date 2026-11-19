@@ -81,10 +81,10 @@ export function SupervisorAuthDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-testid="supervisor-auth-dialog"
-        className="max-w-sm rounded-2xl"
+        className="max-w-sm rounded-xl"
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
+          <DialogTitle className="flex items-center gap-2 text-sm">
             <ShieldCheckIcon className="size-4 text-primary" />
             <span>Autorización de supervisor</span>
           </DialogTitle>
@@ -122,7 +122,7 @@ export function SupervisorAuthDialog({
                   setErrorMessage(null);
                 }
               }}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+              className="flex h-11 min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-xs placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
             />
             {errorMessage && (
               <p
@@ -141,7 +141,7 @@ export function SupervisorAuthDialog({
               variant="outline"
               disabled={isVerifying}
               onClick={() => onOpenChange(false)}
-              className="min-h-10"
+              className="h-11 min-h-11"
             >
               Cancelar
             </Button>
@@ -149,7 +149,7 @@ export function SupervisorAuthDialog({
               type="submit"
               disabled={trimmed.length === 0 || isVerifying}
               data-testid="btn-confirm-supervisor-auth"
-              className="min-h-10"
+              className="h-11 min-h-11"
             >
               {isVerifying ? "Verificando..." : "Autorizar"}
             </Button>

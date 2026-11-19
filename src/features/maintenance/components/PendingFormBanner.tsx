@@ -18,10 +18,10 @@ export function PendingFormBanner({
   return (
     <Card
       data-testid="pending-form-banner"
-      className="border-amber-500/60 bg-amber-50/70"
+      className="border-primary/30 bg-primary/5"
     >
       <CardContent className="flex flex-col gap-2.5 pt-3 text-xs sm:flex-row sm:items-center sm:justify-between">
-        <span className="font-medium text-amber-950">
+        <span className="font-medium text-foreground">
           Operación pendiente ({pendingKind}) — borrador conservado.
         </span>
         <Button
@@ -30,7 +30,7 @@ export function PendingFormBanner({
           variant="outline"
           onClick={onReopen}
           data-testid="btn-reopen-form-drawer"
-          className="min-h-11 w-full gap-1.5 bg-background sm:w-auto"
+          className="h-11 min-h-11 w-full gap-1.5 bg-background sm:w-auto"
         >
           <PencilLineIcon className="size-3.5" />
           <span>Abrir formulario</span>

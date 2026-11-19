@@ -52,6 +52,22 @@ export function ReferenceMaintenancePage<TRow>({
       getRowCode={config.getRowCode}
       getRowTitle={config.getRowNom}
       getRowState={config.getRowState}
+      getDetailFields={(row) => [
+        {
+          id: "readonly-detail-code",
+          label: config.codeLabel,
+          value: row ? config.getRowCode(row) : "",
+          placeholder: "—",
+          testId: "detail-code-value",
+        },
+        {
+          id: "readonly-detail-name",
+          label: config.nomLabel,
+          value: row ? config.getRowNom(row) : "",
+          placeholder: "Seleccione un registro de la lista",
+          testId: "detail-name-value",
+        },
+      ]}
       renderFormDrawer={() =>
         screen.isFormPending ? (
           <ReferenceInlineForm
