@@ -89,9 +89,8 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
 
     await setupSupabaseMock(page);
     await page.goto("/");
-    await expect(page.getByTestId("home-connectivity-status")).toContainText(
-      "En línea",
-    );
+    await expect(page.getByTestId("nav-pais")).toBeVisible();
+    await expect(page.getByTestId("home-offline-notice")).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
 
     // 1. Verificar manifest.webmanifest HTTP 200 e íconos reales (192x192 y 512x512)
@@ -167,21 +166,16 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
     });
 
     await paisPage.getByTestId("op-adicionar").click();
-    const codInput = page.locator('input[name="PaiCod"]');
     const nomInput = page.locator('input[name="PaiNom"]');
-    await codInput.fill("15");
     await nomInput.fill("Uruguay");
     await page.getByTestId("form-guardar").click();
 
     await dismissAlertWithSnippets(page, ["E-NETWORK"]);
-    await expect(codInput).toHaveValue("15");
     await expect(nomInput).toHaveValue("Uruguay");
 
     await page.getByTestId("form-guardar").click();
     await dismissToastIfVisible(page);
-    await expect(paisPage.getByTestId("record-row-15")).toContainText(
-      "Uruguay",
-    );
+    await expect(paisPage.getByTestId("record-row-6")).toContainText("Uruguay");
     await paisPage.getByTestId("toolbar-salir").click();
 
     expect(pageErrors).toEqual([]);
@@ -220,19 +214,18 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
     await expectNoHorizontalOverflow(page);
 
     await paisPage.getByTestId("op-adicionar").click();
-    await page.locator('input[name="PaiCod"]').fill("1");
-    await page.locator('input[name="PaiNom"]').fill("Paraguay");
+    await page.locator('input[name="PaiNom"]').fill("Perú");
     await page.getByTestId("form-guardar").click();
     await dismissAlertWithSnippets(page, ["[E-DUP]"]);
 
-    await page.locator('input[name="PaiCod"]').fill("10");
+    await page.locator('input[name="PaiNom"]').fill("Paraguay");
     await page.getByTestId("form-guardar").click();
     await dismissToastIfVisible(page);
-    await expect(paisPage.getByTestId("record-row-10")).toContainText(
+    await expect(paisPage.getByTestId("record-row-6")).toContainText(
       "Paraguay",
     );
 
-    await paisPage.getByTestId("record-row-10").click();
+    await paisPage.getByTestId("record-row-6").click();
     await paisPage.getByTestId("op-modificar").click();
     await expect(page.locator('input[name="PaiCod"]')).toHaveAttribute(
       "readonly",
@@ -241,23 +234,23 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
     await page.locator('input[name="PaiNom"]').fill("Paraguay Sur");
     await page.getByTestId("form-guardar").click();
     await dismissToastIfVisible(page);
-    await expect(paisPage.getByTestId("record-row-10")).toContainText(
+    await expect(paisPage.getByTestId("record-row-6")).toContainText(
       "Paraguay Sur",
     );
 
-    await paisPage.getByTestId("record-row-10").click();
+    await paisPage.getByTestId("record-row-6").click();
     await runStateOp(paisPage, page, "op-inactivar");
-    await expect(paisPage.getByTestId("record-row-10")).toContainText(
+    await expect(paisPage.getByTestId("record-row-6")).toContainText(
       "I · Inactivo",
     );
 
     await runStateOp(paisPage, page, "op-reactivar");
-    await expect(paisPage.getByTestId("record-row-10")).toContainText(
+    await expect(paisPage.getByTestId("record-row-6")).toContainText(
       "A · Activo",
     );
 
     await runStateOp(paisPage, page, "op-eliminar");
-    await expect(paisPage.getByTestId("record-row-10")).toContainText(
+    await expect(paisPage.getByTestId("record-row-6")).toContainText(
       "* · Eliminado",
     );
 
@@ -312,15 +305,14 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
     await expect(cargoPage.getByTestId("record-row-1")).toBeVisible();
 
     await cargoPage.getByTestId("op-adicionar").click();
-    await page.locator('input[name="CarCod"]').fill("20");
     await page.locator('input[name="CarNom"]').fill("Auditor Móvil");
     await page.getByTestId("form-guardar").click();
     await dismissToastIfVisible(page);
-    await expect(cargoPage.getByTestId("record-row-20")).toContainText(
+    await expect(cargoPage.getByTestId("record-row-5")).toContainText(
       "Auditor Móvil",
     );
 
-    await cargoPage.getByTestId("record-row-20").click();
+    await cargoPage.getByTestId("record-row-5").click();
     await cargoPage.getByTestId("op-modificar").click();
     await expect(page.locator('input[name="CarCod"]')).toHaveAttribute(
       "readonly",
@@ -330,10 +322,10 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
     await page.getByTestId("form-guardar").click();
     await dismissToastIfVisible(page);
 
-    await cargoPage.getByTestId("record-row-20").click();
+    await cargoPage.getByTestId("record-row-5").click();
     await runStateOp(cargoPage, page, "op-inactivar");
     await runStateOp(cargoPage, page, "op-reactivar");
-    await expect(cargoPage.getByTestId("record-row-20")).toContainText(
+    await expect(cargoPage.getByTestId("record-row-5")).toContainText(
       "A · Activo",
     );
 
@@ -349,7 +341,6 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
     await expectNoHorizontalOverflow(page);
 
     await perPage.getByTestId("op-adicionar").click();
-    await page.locator('input[name="PerCod"]').fill("50");
     await page.locator('input[name="PerNom"]').fill("X");
     await page.locator('input[name="PerDNI"]').fill("12A");
     await page.getByTestId("form-guardar").click();
@@ -358,8 +349,6 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
       "[E-FORMAT]",
       "[E-REQUIRED]",
     ]);
-    await expect(page.locator('input[name="PerCod"]')).toHaveValue("50");
-
     await pickCalendarDate(page, "PerFecNac", "1996", "4", "15");
     await page.getByTestId("gsel-trigger-PerPaiCod").click();
     await expect(page.getByTestId("gsel-panel-PerPaiCod")).toBeVisible();
@@ -368,13 +357,13 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
 
     await pickGselOption(page, "PerPaiCod", 1, "Per");
     await pickGselOption(page, "PerDepCod", 1);
-    await pickGselOption(page, "PerCarCod", 20);
+    await pickGselOption(page, "PerCarCod", 5);
 
     await page.locator('input[name="PerNom"]').fill("Elena Quispe");
     await page.locator('input[name="PerDNI"]').fill("47890123");
     await page.getByTestId("form-guardar").click();
     await dismissToastIfVisible(page);
-    await expect(perPage.getByTestId("record-row-50")).toContainText(
+    await expect(perPage.getByTestId("record-row-4")).toContainText(
       "Elena Quispe",
     );
 
@@ -389,19 +378,19 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
       .locator("input")
       .fill("47890123");
     await perPage.getByTestId("btn-simple-search").click();
-    await expect(perPage.getByTestId("record-row-50")).toBeVisible();
+    await expect(perPage.getByTestId("record-row-4")).toBeVisible();
     await expect(perPage.getByTestId("record-row-1")).toHaveCount(0);
     await perPage.getByTestId("btn-clear-search").click();
 
     await perPage.getByTestId("btn-open-advanced").click();
-    await page.getByTestId("adv-filter-cod").locator("input").fill("50");
+    await page.getByTestId("adv-filter-cod").locator("input").fill("4");
     await page.getByTestId("adv-btn-apply").click();
-    await expect(perPage.getByTestId("record-row-50")).toBeVisible();
+    await expect(perPage.getByTestId("record-row-4")).toBeVisible();
     await expect(perPage.getByTestId("record-row-1")).toHaveCount(0);
     await perPage.getByTestId("btn-clear-search").click();
 
-    // Modificación (#50) con PerCod readonly + ciclo Inactivar/Reactivar
-    await perPage.getByTestId("record-row-50").click();
+    // Modificación (#4) con PerCod readonly + ciclo Inactivar/Reactivar
+    await perPage.getByTestId("record-row-4").click();
     await perPage.getByTestId("op-modificar").click();
     await expect(page.locator('input[name="PerCod"]')).toHaveAttribute(
       "readonly",
@@ -410,27 +399,27 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
     await page.locator('input[name="PerNom"]').fill("Elena Quispe Vega");
     await page.getByTestId("form-guardar").click();
     await dismissToastIfVisible(page);
-    await expect(perPage.getByTestId("record-row-50")).toContainText(
+    await expect(perPage.getByTestId("record-row-4")).toContainText(
       "Elena Quispe Vega",
     );
 
-    await perPage.getByTestId("record-row-50").click();
+    await perPage.getByTestId("record-row-4").click();
     await runStateOp(perPage, page, "op-inactivar");
     await runStateOp(perPage, page, "op-reactivar");
 
-    // Verificar bloqueo R11 en Cargo #20 mientras Personal #50 está vivo
+    // Verificar bloqueo R11 en Cargo #5 mientras Personal #4 está vivo
     await perPage.getByTestId("toolbar-salir").click();
     await page.getByTestId("nav-cargo").click();
-    await cargoPage.getByTestId("record-row-20").click();
+    await cargoPage.getByTestId("record-row-5").click();
     await cargoPage.getByTestId("op-eliminar").click();
     await cargoPage.getByTestId("state-confirm-guardar").click();
     await dismissAlertWithSnippets(page, ["[E-REF-BLOCKED]"]);
     await cargoPage.getByTestId("state-confirm-cancelar").click();
     await cargoPage.getByTestId("toolbar-salir").click();
 
-    // Volver a Personal, probar E-PENDING al Salir con pendiente, Cancelar y Eliminar #50
+    // Volver a Personal, probar E-PENDING al Salir con pendiente, Cancelar y Eliminar #4
     await page.getByTestId("nav-personal").click();
-    await perPage.getByTestId("record-row-50").click();
+    await perPage.getByTestId("record-row-4").click();
     await perPage.getByTestId("op-modificar").click();
     await page.getByTestId("drawer-hide").click();
     await perPage.getByTestId("toolbar-salir").click();
@@ -438,20 +427,20 @@ test.describe("Fase 10: Replay final e integridad PWA/Red (SPEC §14–§15)", (
     await perPage.getByTestId("btn-reopen-form-drawer").click();
     await page.getByTestId("drawer-cancelar").click();
 
-    await perPage.getByTestId("record-row-50").click();
+    await perPage.getByTestId("record-row-4").click();
     await runStateOp(perPage, page, "op-eliminar");
-    await expect(perPage.getByTestId("record-row-50")).toContainText(
+    await expect(perPage.getByTestId("record-row-4")).toContainText(
       "* · Eliminado",
     );
     await perPage.getByTestId("toolbar-salir").click();
 
     // ------------------------------------------------------------------
-    // 5. Home -> Cargos: verificar liberación de R11 tras eliminar Personal #50
+    // 5. Home -> Cargos: verificar liberación de R11 tras eliminar Personal #4
     // ------------------------------------------------------------------
     await page.getByTestId("nav-cargo").click();
-    await cargoPage.getByTestId("record-row-20").click();
+    await cargoPage.getByTestId("record-row-5").click();
     await runStateOp(cargoPage, page, "op-eliminar");
-    await expect(cargoPage.getByTestId("record-row-20")).toContainText(
+    await expect(cargoPage.getByTestId("record-row-5")).toContainText(
       "* · Eliminado",
     );
 

@@ -35,10 +35,9 @@ test("Overlays de feedback móvil (IonToast, IonAlert R22/E-PENDING, Drawers ani
   await expect(page.getByTestId("adv-filter-cod")).toBeHidden();
   await page.getByTestId("btn-clear-search").click();
 
-  // 2. IonAlert batch R22 desde formulario de Adición en /personal
+  // 2. IonAlert batch R22 desde formulario de Adición en /personal (Nom/DNI inválidos + Fecha requerida + FKs)
   await page.getByTestId("op-adicionar").click();
   await expect(page.getByTestId("personal-form-title")).toBeVisible();
-  await page.locator('input[name="PerCod"]').fill("0");
   await page.locator('input[name="PerNom"]').fill("X");
   await page.locator('input[name="PerDNI"]').fill("12A");
   await page.getByTestId("form-guardar").click();

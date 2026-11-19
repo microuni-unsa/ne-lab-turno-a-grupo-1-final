@@ -76,7 +76,7 @@ test.describe("Fase 6: Mantenimiento completo PAIS (/pais)", () => {
       await expect(page.getByTestId("state-op-confirm-card")).toHaveCount(0);
     }
 
-    // 3. Adición inválida -> batch R22 con código vacío + nombre corto preserva borrador
+    // 3. Adición inválida -> batch R22 con nombre corto preserva borrador (código generado por identidad)
     await page.getByTestId("op-adicionar").click();
     await expect(page.getByTestId("reference-form-title")).toContainText(
       "Adicionar País",
@@ -84,23 +84,19 @@ test.describe("Fase 6: Mantenimiento completo PAIS (/pais)", () => {
     await expect(page.getByTestId("form-estreg-readonly")).toContainText(
       "A · Activo",
     );
-    const codInput = page.locator('input[name="PaiCod"]');
     const nomInput = page.locator('input[name="PaiNom"]');
     await nomInput.fill("X");
     await page.getByTestId("form-guardar").click();
-    await dismissAlertWithCode(page, "[E-REQUIRED]");
+    await dismissAlertWithCode(page, "[E-RANGE]");
     await expect(nomInput).toHaveValue("X");
 
     // 4. Duplicidad case/whitespace E-DUP preserva borrador y mantiene pending activo
-    await codInput.fill("1");
     await nomInput.fill("  perú  ");
     await page.getByTestId("form-guardar").click();
     await dismissAlertWithCode(page, "[E-DUP]");
-    await expect(codInput).toHaveValue("1");
     await expect(nomInput).toHaveValue("  perú  ");
 
     // 5. Ocultar Drawer mantiene borrador y E-PENDING bloquea segunda operación / Salir
-    await codInput.fill("77");
     await nomInput.fill("Paraguay");
     await page.getByTestId("drawer-hide").click();
     await expect(page.getByTestId("pending-form-banner")).toBeVisible();
@@ -111,14 +107,13 @@ test.describe("Fase 6: Mantenimiento completo PAIS (/pais)", () => {
     await dismissAlertWithCode(page, "[E-PENDING]");
 
     await page.getByTestId("btn-reopen-form-drawer").click();
-    await expect(codInput).toHaveValue("77");
     await expect(nomInput).toHaveValue("Paraguay");
 
-    // 6. Guardar Adición válida inserta Paraguay en orden alfabético
+    // 6. Guardar Adición válida inserta Paraguay (código generado max+1 = 6) en orden alfabético
     await page.getByTestId("form-guardar").click();
     await expect(page.locator("ion-toast")).toBeVisible();
-    await expect(page.getByTestId("record-row-77")).toContainText("Paraguay");
-    await expect(page.getByTestId("record-row-77")).toContainText("A · Activo");
+    await expect(page.getByTestId("record-row-6")).toContainText("Paraguay");
+    await expect(page.getByTestId("record-row-6")).toContainText("A · Activo");
 
     // 7. Modificación de fila Activa e Inactiva (R8: código readonly y EstReg conservado)
     await page.getByTestId("record-row-3").click();
@@ -126,7 +121,10 @@ test.describe("Fase 6: Mantenimiento completo PAIS (/pais)", () => {
     await expect(page.getByTestId("reference-form-title")).toContainText(
       "Modificar País",
     );
-    await expect(codInput).toHaveAttribute("readonly", "");
+    await expect(page.locator('input[name="PaiCod"]')).toHaveAttribute(
+      "readonly",
+      "",
+    );
     await expect(page.getByTestId("form-estreg-readonly")).toContainText(
       "I · Inactivo",
     );
@@ -140,14 +138,14 @@ test.describe("Fase 6: Mantenimiento completo PAIS (/pais)", () => {
     );
 
     // 8. Ciclo de estados: Inactivar -> doble Inactivar [E-TRANSITION] -> Reactivar -> doble Reactivar [E-TRANSITION]
-    await page.getByTestId("record-row-77").click();
+    await page.getByTestId("record-row-6").click();
     await page.getByTestId("op-inactivar").click();
     await expect(page.getByTestId("state-op-confirm-card")).toBeVisible();
     await expect(
       page.getByTestId("state-op-confirm-card").locator("input"),
     ).toHaveCount(0);
     await page.getByTestId("op-guardar").click();
-    await expect(page.getByTestId("record-row-77")).toContainText(
+    await expect(page.getByTestId("record-row-6")).toContainText(
       "I · Inactivo",
     );
 
@@ -156,7 +154,7 @@ test.describe("Fase 6: Mantenimiento completo PAIS (/pais)", () => {
 
     await page.getByTestId("op-reactivar").click();
     await page.getByTestId("state-confirm-guardar").click();
-    await expect(page.getByTestId("record-row-77")).toContainText("A · Activo");
+    await expect(page.getByTestId("record-row-6")).toContainText("A · Activo");
 
     await page.getByTestId("op-reactivar").click();
     await dismissAlertWithCode(page, "[E-TRANSITION]");
@@ -169,10 +167,10 @@ test.describe("Fase 6: Mantenimiento completo PAIS (/pais)", () => {
     await page.getByTestId("state-confirm-cancelar").click();
     await expect(page.getByTestId("record-row-1")).toContainText("A · Activo");
 
-    await page.getByTestId("record-row-77").click();
+    await page.getByTestId("record-row-6").click();
     await page.getByTestId("op-eliminar").click();
     await page.getByTestId("state-confirm-guardar").click();
-    await expect(page.getByTestId("record-row-77")).toContainText(
+    await expect(page.getByTestId("record-row-6")).toContainText(
       "* · Eliminado",
     );
 

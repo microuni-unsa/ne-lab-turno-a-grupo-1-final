@@ -98,7 +98,7 @@ test.describe("Fase 9: Mantenimiento completo PERSONAL (§5.3–§11.3)", () => 
     await perPage.getByTestId("btn-toggle-ordering").click();
     await expect(rows.nth(1)).toContainText("María Gómez");
 
-    // Simple search by DNI y Nombre (§11.2; código exacto se verifica tras Adición #40 sin colisión con DNIs seed)
+    // Simple search by DNI y Nombre (§11.2; código exacto se verifica tras Adición #4 sin colisión con DNIs seed)
     const simpleInput = perPage
       .getByTestId("input-simple-search")
       .locator("input");
@@ -123,11 +123,9 @@ test.describe("Fase 9: Mantenimiento completo PERSONAL (§5.3–§11.3)", () => 
       "Adicionar Personal",
     );
 
-    const codInput = page.locator('input[name="PerCod"]');
     const nomInput = page.locator('input[name="PerNom"]');
     const dniInput = page.locator('input[name="PerDNI"]');
 
-    await codInput.fill("40");
     await nomInput.fill("A");
     await dniInput.fill("12a");
     await pickCalendarDate(page, "PerFecNac", "2012", "0", "15");
@@ -140,7 +138,6 @@ test.describe("Fase 9: Mantenimiento completo PERSONAL (§5.3–§11.3)", () => 
     ]);
 
     // Draft retained cleanly
-    await expect(codInput).toHaveValue("40");
     await expect(nomInput).toHaveValue("A");
     await expect(dniInput).toHaveValue("12a");
 
@@ -163,7 +160,7 @@ test.describe("Fase 9: Mantenimiento completo PERSONAL (§5.3–§11.3)", () => 
     await page.getByTestId("form-guardar").click();
     await dismissAlertWithTexts(page, ["[E-DUP]", "DNI"]);
 
-    // Unique DNI with Homonym PerNom -> Ocultar/Salir E-PENDING -> Reopen -> Guardar
+    // Unique DNI with Homonym PerNom -> Ocultar/Salir E-PENDING -> Reopen -> Guardar (código generado max+1 = 4)
     await dniInput.fill("49876543");
     await page.getByTestId("drawer-hide").click();
     await expect(perPage.getByTestId("pending-form-banner")).toBeVisible();
@@ -172,17 +169,15 @@ test.describe("Fase 9: Mantenimiento completo PERSONAL (§5.3–§11.3)", () => 
     await perPage.getByTestId("btn-reopen-form-drawer").click();
     await page.getByTestId("form-guardar").click();
 
-    await expect(perPage.getByTestId("record-row-40")).toContainText(
+    await expect(perPage.getByTestId("record-row-4")).toContainText(
       "Juan Pérez",
     );
-    await expect(perPage.getByTestId("record-row-40")).toContainText(
-      "49876543",
-    );
+    await expect(perPage.getByTestId("record-row-4")).toContainText("49876543");
 
-    // Simple search by exact PerCod (#40) (§11.2)
-    await simpleInput.fill("40");
+    // Simple search by exact PerCod (#4) (§11.2)
+    await simpleInput.fill("4");
     await perPage.getByTestId("btn-simple-search").click();
-    await expect(perPage.getByTestId("record-row-40")).toBeVisible();
+    await expect(perPage.getByTestId("record-row-4")).toBeVisible();
     await expect(perPage.getByTestId("record-row-1")).toHaveCount(0);
     await perPage.getByTestId("btn-clear-search").click();
     await expectNoHorizontalOverflow(page);

@@ -522,20 +522,12 @@ function handleRefRpc<T>(
   const nowIso = new Date().toISOString();
 
   if (op === "insert") {
-    if (cod === null || nom === null || nom.length === 0) {
+    if (nom === null || nom.length === 0) {
       return rpcError(
         route,
         400,
         "23502",
-        `null value in column "${cod === null ? config.codeCol : config.nomCol}" violates not-null constraint`,
-      );
-    }
-    if (!Number.isInteger(cod) || cod <= 0 || cod > 32767) {
-      return rpcError(
-        route,
-        400,
-        "23514",
-        `violates check constraint "${config.codeCol}_check" (${config.codeCol} > 0)`,
+        `null value in column "${config.nomCol}" violates not-null constraint`,
       );
     }
     if (nom.length < 2 || nom.length > 100) {
@@ -546,29 +538,18 @@ function handleRefRpc<T>(
         `violates check constraint "${config.nomCol}_check" (char_length(btrim("${config.nomCol}")) >= 2)`,
       );
     }
-    if (config.rows.some((r) => config.getCod(r) === cod)) {
+    // GENERATED ALWAYS AS IDENTITY: ignore client p_cod, assign max+1.
+    const assigned =
+      config.rows.reduce((max, r) => Math.max(max, config.getCod(r)), 0) + 1;
+    if (!Number.isInteger(assigned) || assigned <= 0 || assigned > 32767) {
       return rpcError(
         route,
-        409,
-        "23505",
-        `duplicate key value violates unique constraint "${config.codeCol}_pkey"`,
-        `Key ("${config.codeCol}")=(${cod}) already exists.`,
+        400,
+        "23514",
+        `violates check constraint "${config.codeCol}_check" (${config.codeCol} > 0)`,
       );
     }
-    if (
-      config.rows.some(
-        (r) => config.getNom(r).toLowerCase() === nom.toLowerCase(),
-      )
-    ) {
-      return rpcError(
-        route,
-        409,
-        "23505",
-        `duplicate key value violates unique constraint "${config.nomCiIndex}"`,
-        `Key (lower(btrim("${config.nomCol}")))=(${nom.toLowerCase()}) already exists.`,
-      );
-    }
-    const created = config.createRow(cod, nom, nowIso);
+    const created = config.createRow(assigned, nom, nowIso);
     config.rows.push(created);
     return route.fulfill({
       status: 200,
@@ -730,7 +711,6 @@ function handlePersonalRpc(
 
   if (op === "insert") {
     if (
-      cod === null ||
       !nom ||
       !dni ||
       !fecnac ||
@@ -745,7 +725,14 @@ function handlePersonalRpc(
         "null value in personal column violates not-null constraint",
       );
     }
-    if (!Number.isInteger(cod) || cod <= 0 || cod > 2147483647) {
+    // GENERATED ALWAYS AS IDENTITY: ignore client p_cod, assign max+1.
+    const assignedPerCod =
+      state.personal.reduce((max, r) => Math.max(max, r.PerCod), 0) + 1;
+    if (
+      !Number.isInteger(assignedPerCod) ||
+      assignedPerCod <= 0 ||
+      assignedPerCod > 2147483647
+    ) {
       return rpcError(
         route,
         400,
@@ -769,13 +756,13 @@ function handlePersonalRpc(
         'violates check constraint "personal_PerDNI_check" ("PerDNI" ~ \'^[0-9]{8}$\')',
       );
     }
-    if (state.personal.some((r) => r.PerCod === cod)) {
+    if (state.personal.some((r) => r.PerCod === assignedPerCod)) {
       return rpcError(
         route,
         409,
         "23505",
         'duplicate key value violates unique constraint "personal_pkey"',
-        `Key ("PerCod")=(${cod}) already exists.`,
+        `Key ("PerCod")=(${assignedPerCod}) already exists.`,
       );
     }
     if (state.personal.some((r) => r.PerDNI === dni)) {
@@ -792,7 +779,7 @@ function handlePersonalRpc(
       return rpcError(route, 400, "P0001", fkErr);
     }
     const created: MockPersonalRow = {
-      PerCod: cod,
+      PerCod: assignedPerCod,
       PerNom: nom,
       PerDNI: dni,
       PerFecNac: fecnac,

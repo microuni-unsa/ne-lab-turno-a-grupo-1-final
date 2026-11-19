@@ -62,26 +62,20 @@ test.describe("Fase 7: Mantenimiento DEPENDENCIA y CARGO", () => {
     await depPage.getByTestId("btn-toggle-ordering").click();
     await expect(rows.first()).toContainText("Almacen");
 
-    // Adición inválida R22 -> E-DUP case/whitespace -> Ocultar/E-PENDING -> Adición válida
+    // Adición inválida R22 -> E-DUP case/whitespace -> Ocultar/E-PENDING -> Adición válida (código generado)
     await depPage.getByTestId("op-adicionar").click();
     await expect(page.getByTestId("reference-form-title")).toContainText(
       "Adicionar Dependencia",
     );
-    const codInput = page.locator('input[name="DepCod"]');
     const nomInput = page.locator('input[name="DepNom"]');
     await nomInput.fill("A");
     await page.getByTestId("form-guardar").click();
-    await dismissAlertWithTexts(page, [
-      "[E-REQUIRED]",
-      "Código de Dependencia",
-    ]);
+    await dismissAlertWithTexts(page, ["[E-RANGE]", "Nombre de Dependencia"]);
 
-    await codInput.fill("1");
     await nomInput.fill("  sistemas ");
     await page.getByTestId("form-guardar").click();
     await dismissAlertWithTexts(page, ["[E-DUP]", "Nombre de Dependencia"]);
 
-    await codInput.fill("55");
     await nomInput.fill("Tesorería");
     await page.getByTestId("drawer-hide").click();
     await expect(depPage.getByTestId("pending-form-banner")).toBeVisible();
@@ -90,14 +84,17 @@ test.describe("Fase 7: Mantenimiento DEPENDENCIA y CARGO", () => {
     await depPage.getByTestId("btn-reopen-form-drawer").click();
     await page.getByTestId("form-guardar").click();
 
-    await expect(depPage.getByTestId("record-row-55")).toContainText(
+    await expect(depPage.getByTestId("record-row-5")).toContainText(
       "Tesorería",
     );
 
     // Modificación en I preserva DepCod readonly y EstReg=I
     await depPage.getByTestId("record-row-3").click();
     await depPage.getByTestId("op-modificar").click();
-    await expect(codInput).toHaveAttribute("readonly", "");
+    await expect(page.locator('input[name="DepCod"]')).toHaveAttribute(
+      "readonly",
+      "",
+    );
     await expect(page.getByTestId("form-estreg-readonly")).toContainText(
       "I · Inactivo",
     );
@@ -110,11 +107,11 @@ test.describe("Fase 7: Mantenimiento DEPENDENCIA y CARGO", () => {
       "I · Inactivo",
     );
 
-    // Inactivar -> segunda Inactivación [E-TRANSITION] -> Reactivar -> Eliminar R11 en #1 -> Eliminar #55
-    await depPage.getByTestId("record-row-55").click();
+    // Inactivar -> segunda Inactivación [E-TRANSITION] -> Reactivar -> Eliminar R11 en #1 -> Eliminar #5
+    await depPage.getByTestId("record-row-5").click();
     await depPage.getByTestId("op-inactivar").click();
     await page.getByTestId("state-confirm-guardar").click();
-    await expect(depPage.getByTestId("record-row-55")).toContainText(
+    await expect(depPage.getByTestId("record-row-5")).toContainText(
       "I · Inactivo",
     );
     await depPage.getByTestId("op-inactivar").click();
@@ -122,7 +119,7 @@ test.describe("Fase 7: Mantenimiento DEPENDENCIA y CARGO", () => {
 
     await depPage.getByTestId("op-reactivar").click();
     await page.getByTestId("state-confirm-guardar").click();
-    await expect(depPage.getByTestId("record-row-55")).toContainText(
+    await expect(depPage.getByTestId("record-row-5")).toContainText(
       "A · Activo",
     );
 
@@ -152,10 +149,10 @@ test.describe("Fase 7: Mantenimiento DEPENDENCIA y CARGO", () => {
       "A · Activo",
     );
 
-    await depPage.getByTestId("record-row-55").click();
+    await depPage.getByTestId("record-row-5").click();
     await depPage.getByTestId("op-eliminar").click();
     await page.getByTestId("state-confirm-guardar").click();
-    await expect(depPage.getByTestId("record-row-55")).toContainText(
+    await expect(depPage.getByTestId("record-row-5")).toContainText(
       "* · Eliminado",
     );
 
@@ -194,28 +191,29 @@ test.describe("Fase 7: Mantenimiento DEPENDENCIA y CARGO", () => {
     ).toContainText("Analista de Sistemas");
     await expectNoHorizontalOverflow(page);
 
-    // Adición válida #66 Arquitecto Cloud
+    // Adición válida (código generado max+1 = 5) con E-DUP previo en nombre
     await carPage.getByTestId("op-adicionar").click();
     await expect(page.getByTestId("reference-form-title")).toContainText(
       "Adicionar Cargo",
     );
-    const codInput = page.locator('input[name="CarCod"]');
     const nomInput = page.locator('input[name="CarNom"]');
-    await codInput.fill("66");
     await nomInput.fill("contador general");
     await page.getByTestId("form-guardar").click();
     await dismissAlertWithTexts(page, ["[E-DUP]", "Nombre de Cargo"]);
 
     await nomInput.fill("Arquitecto Cloud");
     await page.getByTestId("form-guardar").click();
-    await expect(carPage.getByTestId("record-row-66")).toContainText(
+    await expect(carPage.getByTestId("record-row-5")).toContainText(
       "Arquitecto Cloud",
     );
 
     // Modificación preservando CarCod readonly y estado I en #3
     await carPage.getByTestId("record-row-3").click();
     await carPage.getByTestId("op-modificar").click();
-    await expect(codInput).toHaveAttribute("readonly", "");
+    await expect(page.locator('input[name="CarCod"]')).toHaveAttribute(
+      "readonly",
+      "",
+    );
     await expect(page.getByTestId("form-estreg-readonly")).toContainText(
       "I · Inactivo",
     );
@@ -251,11 +249,11 @@ test.describe("Fase 7: Mantenimiento DEPENDENCIA y CARGO", () => {
       "A · Activo",
     );
 
-    // Eliminar #66 y filtrar avanzada/simple conservando orden
-    await carPage.getByTestId("record-row-66").click();
+    // Eliminar #5 y filtrar avanzada/simple conservando orden
+    await carPage.getByTestId("record-row-5").click();
     await carPage.getByTestId("op-eliminar").click();
     await page.getByTestId("state-confirm-guardar").click();
-    await expect(carPage.getByTestId("record-row-66")).toContainText(
+    await expect(carPage.getByTestId("record-row-5")).toContainText(
       "* · Eliminado",
     );
 
@@ -263,7 +261,7 @@ test.describe("Fase 7: Mantenimiento DEPENDENCIA y CARGO", () => {
     await page.getByTestId("adv-est-1").click();
     await page.getByTestId("adv-est-2").click();
     await page.getByTestId("adv-btn-apply").click();
-    await expect(carPage.getByTestId("record-row-66")).toBeVisible();
+    await expect(carPage.getByTestId("record-row-5")).toBeVisible();
     await expect(carPage.getByTestId("record-row-1")).toHaveCount(0);
 
     await carPage.getByTestId("btn-clear-search").click();

@@ -31,7 +31,7 @@ test("Fase 4: hub Maestro de Personal, rutas estáticas y guard Salir en viewpor
     page.getByRole("heading", { name: "Maestro de Personal" }),
   ).toBeVisible();
   await expect(page.getByText("Soluciones Móviles S.A.C.")).toBeVisible();
-  await expect(page.getByTestId("home-connectivity-status")).toBeVisible();
+  await expect(page.getByTestId("nav-pais")).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   const routes = [
