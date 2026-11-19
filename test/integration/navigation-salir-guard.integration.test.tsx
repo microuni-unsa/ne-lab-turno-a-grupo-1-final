@@ -12,16 +12,14 @@ describe("Navigation shell & Salir guard integration (SPEC §8.7)", () => {
     render(<App initialEntries={["/", "/pais"]} client={queryClient} />);
 
     expect(await screen.findByText("Países")).toBeTruthy();
-    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
-      "MODO CONSULTA",
-    );
+    // Detail card starts hidden in Consulta; pending creation shows it.
+    expect(screen.queryByTestId("record-detail-card")).toBeNull();
 
     // 1. Armar operación Adición -> bloquea Salir desde toolbar con [E-PENDING]
     fireEvent.click(screen.getByTestId("op-adicionar"));
     expect(screen.getByTestId("record-mode-badge").textContent).toBe(
       "MODO ADICIÓN",
     );
-
     fireEvent.click(screen.getByTestId("toolbar-salir"));
 
     await waitFor(() => {
@@ -38,11 +36,9 @@ describe("Navigation shell & Salir guard integration (SPEC §8.7)", () => {
       "MODO ADICIÓN",
     );
 
-    // 2. Cancelar limpia el pendiente y luego Salir vuelve al hub /
+    // 2. Cancelar limpia el pendiente, oculta la tarjeta, y luego Salir vuelve al hub /
     fireEvent.click(screen.getByTestId("op-cancelar"));
-    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
-      "MODO CONSULTA",
-    );
+    expect(screen.queryByTestId("record-detail-card")).toBeNull();
 
     fireEvent.click(screen.getByTestId("toolbar-salir"));
 

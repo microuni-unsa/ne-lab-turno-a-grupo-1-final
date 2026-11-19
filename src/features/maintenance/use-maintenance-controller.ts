@@ -49,6 +49,7 @@ export interface MaintenanceController<
   readonly hasPending: boolean;
   readonly selectedRow: TRow | null;
   readonly getSelectedRow: () => TRow | null;
+  readonly isDetailVisible: boolean;
   readonly isSaving: boolean;
   readonly selectRow: (row: TRow | null) => boolean;
   readonly startAdicion: (initialPayload?: TPayload) => SessionOpResult;
@@ -118,6 +119,7 @@ export function useMaintenanceController<
 
   const [, setRevision] = React.useState(0);
   const [selectedRow, setSelectedRow] = React.useState<TRow | null>(null);
+  const [detailVisible, setDetailVisible] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
 
   const selectedRowRef = React.useRef<TRow | null>(null);
@@ -174,8 +176,21 @@ export function useMaintenanceController<
         optionsRef.current.feedback.alertPending();
         return false;
       }
+      if (row === null) {
+        setSelectedRow(null);
+        selectedRowRef.current = null;
+        setDetailVisible(false);
+        return true;
+      }
+      const current = selectedRowRef.current;
+      const sameRow =
+        current !== null &&
+        optionsRef.current.getRowCode(current) ===
+          optionsRef.current.getRowCode(row);
       setSelectedRow(row);
       selectedRowRef.current = row;
+      // Re-tapping the selected row toggles the detail card; a new row shows it.
+      setDetailVisible((wasVisible) => (sameRow ? !wasVisible : true));
       return true;
     },
     [getSession],
@@ -307,6 +322,8 @@ export function useMaintenanceController<
     }
     const session = getSession();
     const res = session.cancelar();
+    // Cancelar hides the detail card again (selection stays for re-tap).
+    setDetailVisible(false);
     bumpRevision();
     return res;
   }, [bumpRevision, getSession]);
@@ -354,6 +371,8 @@ export function useMaintenanceController<
           setSelectedRow(result.row);
           selectedRowRef.current = result.row;
         }
+        // Commit ends the pending edit: detail card hides until next toggle.
+        setDetailVisible(false);
 
         bumpRevision();
         optionsRef.current.feedback.notifySuccess(
@@ -394,12 +413,14 @@ export function useMaintenanceController<
   const getSelectedRow = React.useCallback(() => selectedRowRef.current, []);
 
   const currentSession = getSession();
+  const hasPending = currentSession.hasPending;
 
   return {
     pending: currentSession.pending,
-    hasPending: currentSession.hasPending,
+    hasPending,
     selectedRow,
     getSelectedRow,
+    isDetailVisible: hasPending || detailVisible,
     isSaving,
     selectRow,
     startAdicion,

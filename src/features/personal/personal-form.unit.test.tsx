@@ -532,6 +532,40 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
         "Colombia (Inactivo)",
       );
     });
+    expect(screen.getByTestId("record-header-PerCod").textContent).toBe(
+      "Código",
+    );
+    expect(screen.getByTestId("record-header-PerNom").textContent).toBe(
+      "Nombre",
+    );
+    expect(screen.getByTestId("record-header-PerDNI").textContent).toBe("DNI");
+    expect(screen.getByTestId("record-header-PerFecNac").textContent).toBe(
+      "Fec. Nac.",
+    );
+    expect(screen.getByTestId("record-header-PerPaiCod").textContent).toBe(
+      "País",
+    );
+    expect(screen.getByTestId("record-header-PerDepCod").textContent).toBe(
+      "Dependencia",
+    );
+    expect(screen.getByTestId("record-header-PerCarCod").textContent).toBe(
+      "Cargo",
+    );
+    expect(screen.getByTestId("record-header-PerEstReg").textContent).toBe(
+      "Estado",
+    );
+    expect(screen.getByTestId("record-cell-2-PerNom").textContent).toBe(
+      "María Gómez",
+    );
+    expect(screen.getByTestId("record-cell-2-PerDNI").textContent).toBe(
+      "42345678",
+    );
+    expect(screen.getByTestId("record-cell-2-PerFecNac").textContent).toBe(
+      "22/07/1992",
+    );
+    expect(screen.getByTestId("record-cell-2-PerPaiCod").textContent).toBe(
+      "Colombia (Inactivo)",
+    );
 
     fireEvent.click(screen.getByTestId("record-row-2"));
 

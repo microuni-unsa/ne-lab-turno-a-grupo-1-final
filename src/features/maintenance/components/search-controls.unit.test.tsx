@@ -18,6 +18,8 @@ import {
   type RepoReader,
   useMaintenanceList,
 } from "@/features/maintenance/use-maintenance-list";
+import { createReferenceListColumns } from "@/features/reference/ReferenceMaintenancePage";
+import { paisConfig } from "@/features/reference/reference-config";
 
 const ROWS: readonly PaisRow[] = [
   {
@@ -114,8 +116,8 @@ function SearchHarness({
         isError={list.isError}
         orderingLabel={list.orderingLabel}
         selectedCode={selectedCode}
+        columns={createReferenceListColumns(paisConfig)}
         getRowCode={(row) => row.PaiCod}
-        getRowTitle={(row) => row.PaiNom}
         getRowState={(row) => row.PaiEstReg}
         onSelectRow={(row) => {
           setSelectedCode(row.PaiCod);
@@ -262,5 +264,41 @@ describe("Fase 5: SearchControlsBar, RecordListView y AdvancedSearchDrawer", () 
       expect(screen.getByTestId("record-row-2")).toBeTruthy();
       expect(screen.getByTestId("record-row-3")).toBeTruthy();
     });
+  });
+
+  it("usa max-content por defecto y permite redimensionar columnas", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const onSelect = vi.fn<(row: PaisRow) => void>();
+    const repo = createMockRepo();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SearchHarness repo={repo} onSelect={onSelect} />
+      </QueryClientProvider>,
+    );
+
+    await screen.findByTestId("record-row-1");
+    const grid = screen.getByTestId("record-list-grid");
+    expect(grid.style.gridTemplateColumns).toBe(
+      "max-content minmax(max-content, 1fr) max-content",
+    );
+
+    const resizeHandle = screen.getByTestId("record-resize-PaiCod");
+    fireEvent.keyDown(resizeHandle, { key: "ArrowRight" });
+    expect(grid.style.gridTemplateColumns).toBe(
+      "64px minmax(max-content, 1fr) max-content",
+    );
+
+    fireEvent.keyDown(resizeHandle, { key: "ArrowLeft" });
+    expect(grid.style.gridTemplateColumns).toBe(
+      "48px minmax(max-content, 1fr) max-content",
+    );
+
+    fireEvent.doubleClick(resizeHandle);
+    expect(grid.style.gridTemplateColumns).toBe(
+      "max-content minmax(max-content, 1fr) max-content",
+    );
   });
 });

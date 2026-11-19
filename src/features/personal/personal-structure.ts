@@ -194,7 +194,7 @@ export function usePersonalCatalogLabels(
   return { pai, dep, car };
 }
 
-function formatCatalogRef(
+export function formatCatalogRef(
   code: string,
   map: ReadonlyMap<string, CatalogLabelEntry>,
   fallbackPrefix: string,
@@ -212,19 +212,9 @@ function formatCatalogRef(
   return `${entry.nom} (Eliminado)`;
 }
 
-function formatDisplayDate(isoDate: string): string {
+export function formatDisplayDate(isoDate: string): string {
   const parsed = parseISO(isoDate);
   return isValid(parsed) ? format(parsed, "dd/MM/yyyy") : isoDate;
-}
-
-export function formatPersonalSubtitle(
-  row: PersonalRow,
-  labels: PersonalCatalogLabelMaps,
-): string {
-  const paiLabel = formatCatalogRef(row.PerPaiCod, labels.pai, "País");
-  const depLabel = formatCatalogRef(row.PerDepCod, labels.dep, "Dep");
-  const carLabel = formatCatalogRef(row.PerCarCod, labels.car, "Cargo");
-  return `DNI ${row.PerDNI} · Nac ${formatDisplayDate(row.PerFecNac)} · ${paiLabel} · ${depLabel} · ${carLabel}`;
 }
 
 export function formatPersonalDetailFields(

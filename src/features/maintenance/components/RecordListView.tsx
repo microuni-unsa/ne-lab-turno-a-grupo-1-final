@@ -7,6 +7,7 @@ import {
   ChevronRightIcon,
   RefreshCwIcon,
 } from "lucide-react";
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -18,7 +19,17 @@ import {
 } from "@/components/ui/select";
 import { EST_I, type EstReg } from "@/core";
 import type { SortableColumnOption, SortDirection, ViewScope } from "@/data";
-import { EstadoBadge } from "@/features/maintenance/components/EstadoBadge";
+
+const MIN_COLUMN_WIDTH_PX = 48;
+const KEYBOARD_RESIZE_STEP_PX = 16;
+
+export interface RecordListColumn<TRow> {
+  readonly id: string;
+  readonly header: string;
+  readonly width?: string;
+  readonly align?: "left" | "right";
+  readonly renderCell: (row: TRow) => React.ReactNode;
+}
 
 export interface RecordListViewProps<TRow> {
   readonly rows: readonly TRow[];
@@ -36,9 +47,8 @@ export interface RecordListViewProps<TRow> {
   readonly onToggleViewScope?: () => void;
   readonly hasPending?: boolean;
   readonly selectedCode: string | null;
+  readonly columns: readonly RecordListColumn<TRow>[];
   readonly getRowCode: (row: TRow) => string;
-  readonly getRowTitle: (row: TRow) => string;
-  readonly getRowSubtitle?: (row: TRow) => string | undefined;
   readonly getRowState: (row: TRow) => EstReg;
   readonly onSelectRow: (row: TRow) => void;
   readonly offset: number;
@@ -74,9 +84,8 @@ export function RecordListView<TRow>({
   onToggleViewScope,
   hasPending = false,
   selectedCode,
+  columns,
   getRowCode,
-  getRowTitle,
-  getRowSubtitle,
   getRowState,
   onSelectRow,
   offset,
@@ -93,6 +102,111 @@ export function RecordListView<TRow>({
 }: RecordListViewProps<TRow>) {
   const showPaging = hasPrevPage || hasNextPage || (totalCount ?? 0) > limit;
   const isDeletedScope = viewScope === "deleted";
+  const [columnWidths, setColumnWidths] = React.useState<
+    Readonly<Record<string, number>>
+  >({});
+  const headerRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const cleanupResizeRef = React.useRef<(() => void) | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      cleanupResizeRef.current?.();
+    };
+  }, []);
+
+  const gridTemplateColumns = columns
+    .map((col) => {
+      const customWidth = columnWidths[col.id];
+      if (customWidth !== undefined) {
+        return `${customWidth}px`;
+      }
+      return col.width ?? "max-content";
+    })
+    .join(" ");
+
+  const measureColumnWidth = (colId: string): number => {
+    const existing = columnWidths[colId];
+    if (existing !== undefined) {
+      return existing;
+    }
+    const headerEl = headerRefs.current[colId];
+    if (!headerEl) {
+      return MIN_COLUMN_WIDTH_PX;
+    }
+    return Math.max(
+      MIN_COLUMN_WIDTH_PX,
+      Math.ceil(headerEl.getBoundingClientRect().width),
+    );
+  };
+
+  const resetColumnWidth = (colId: string) => {
+    setColumnWidths((prev) => {
+      if (prev[colId] === undefined) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[colId];
+      return next;
+    });
+  };
+
+  const handleResizePointerDown = (
+    colId: string,
+    event: React.PointerEvent<HTMLDivElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    cleanupResizeRef.current?.();
+
+    const startWidth = measureColumnWidth(colId);
+    const startX = event.clientX;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const nextWidth = Math.max(
+        MIN_COLUMN_WIDTH_PX,
+        Math.round(startWidth + deltaX),
+      );
+      setColumnWidths((prev) => ({ ...prev, [colId]: nextWidth }));
+    };
+
+    const stopResize = () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopResize);
+      window.removeEventListener("pointercancel", stopResize);
+      cleanupResizeRef.current = null;
+    };
+
+    cleanupResizeRef.current = stopResize;
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopResize);
+    window.addEventListener("pointercancel", stopResize);
+  };
+
+  const handleResizeKeyDown = (
+    colId: string,
+    event: React.KeyboardEvent<HTMLDivElement>,
+  ) => {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      const nextWidth = Math.max(
+        MIN_COLUMN_WIDTH_PX,
+        measureColumnWidth(colId) - KEYBOARD_RESIZE_STEP_PX,
+      );
+      setColumnWidths((prev) => ({ ...prev, [colId]: nextWidth }));
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      const nextWidth = measureColumnWidth(colId) + KEYBOARD_RESIZE_STEP_PX;
+      setColumnWidths((prev) => ({ ...prev, [colId]: nextWidth }));
+      return;
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      resetColumnWidth(colId);
+    }
+  };
 
   return (
     <section
@@ -252,17 +366,52 @@ export function RecordListView<TRow>({
           className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm"
           data-testid="record-list-rows"
         >
-          <div className="min-w-[20rem]">
-            <div className="grid grid-cols-[4.5rem_minmax(10rem,1fr)_5rem] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
-              <span>Código</span>
-              <span>Nombre</span>
-              <span className="text-right">Estado</span>
+          <div
+            data-testid="record-list-grid"
+            style={{ gridTemplateColumns }}
+            className="grid w-max min-w-full"
+          >
+            <div className="col-span-full grid grid-cols-subgrid items-center border-b border-border bg-muted/40 py-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+              {columns.map((col) => (
+                <div
+                  key={col.id}
+                  ref={(el) => {
+                    headerRefs.current[col.id] = el;
+                  }}
+                  data-testid={`record-header-${col.id}`}
+                  className={cn(
+                    "relative flex min-w-0 items-center px-3",
+                    col.align === "right" && "justify-end",
+                  )}
+                >
+                  <span className="truncate whitespace-nowrap">
+                    {col.header}
+                  </span>
+                  <div
+                    role="slider"
+                    tabIndex={0}
+                    aria-label={`Redimensionar columna ${col.header}`}
+                    aria-valuemin={MIN_COLUMN_WIDTH_PX}
+                    aria-valuenow={columnWidths[col.id] ?? MIN_COLUMN_WIDTH_PX}
+                    data-testid={`record-resize-${col.id}`}
+                    onPointerDown={(event) =>
+                      handleResizePointerDown(col.id, event)
+                    }
+                    onDoubleClick={() => resetColumnWidth(col.id)}
+                    onKeyDown={(event) => handleResizeKeyDown(col.id, event)}
+                    className="group/resize absolute top-0 right-0 bottom-0 flex w-2.5 translate-x-1/2 cursor-col-resize touch-none items-center justify-center focus-visible:outline-none"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="h-3.5 w-px bg-muted-foreground/40 transition-colors group-hover/resize:w-0.5 group-hover/resize:bg-primary group-focus-visible/resize:w-0.5 group-focus-visible/resize:bg-primary"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="divide-y divide-border">
+            <div className="col-span-full grid grid-cols-subgrid divide-y divide-border">
               {rows.map((row) => {
                 const code = getRowCode(row);
-                const title = getRowTitle(row);
-                const subtitle = getRowSubtitle?.(row);
                 const state = getRowState(row);
                 const isInactive = state === EST_I;
                 const isSelected =
@@ -276,7 +425,7 @@ export function RecordListView<TRow>({
                     aria-pressed={isSelected}
                     onClick={() => onSelectRow(row)}
                     className={cn(
-                      "grid min-h-11 w-full grid-cols-[4.5rem_minmax(10rem,1fr)_5rem] items-center gap-2 px-3 py-2 text-left transition-colors",
+                      "col-span-full grid min-h-11 w-full grid-cols-subgrid items-center py-2 text-left text-xs transition-colors",
                       isInactive &&
                         "bg-muted/25 text-muted-foreground opacity-65",
                       isSelected
@@ -284,22 +433,18 @@ export function RecordListView<TRow>({
                         : "hover:bg-muted/40",
                     )}
                   >
-                    <span className="truncate font-mono text-xs font-semibold text-foreground">
-                      {code}
-                    </span>
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <span className="break-words text-sm font-medium leading-snug text-foreground">
-                        {title}
-                      </span>
-                      {subtitle && (
-                        <span className="line-clamp-2 break-words text-xs leading-snug text-muted-foreground">
-                          {subtitle}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex justify-end">
-                      <EstadoBadge state={state} compact />
-                    </div>
+                    {columns.map((col) => (
+                      <div
+                        key={col.id}
+                        data-testid={`record-cell-${code}-${col.id}`}
+                        className={cn(
+                          "min-w-0 overflow-hidden px-3",
+                          col.align === "right" && "flex justify-end",
+                        )}
+                      >
+                        {col.renderCell(row)}
+                      </div>
+                    ))}
                   </button>
                 );
               })}

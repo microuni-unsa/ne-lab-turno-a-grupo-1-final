@@ -16,7 +16,10 @@ import {
   RecordDetailCard,
   type RecordDetailField,
 } from "@/features/maintenance/components/RecordDetailCard";
-import { RecordListView } from "@/features/maintenance/components/RecordListView";
+import {
+  type RecordListColumn,
+  RecordListView,
+} from "@/features/maintenance/components/RecordListView";
 import { SupervisorAuthDialog } from "@/features/maintenance/components/SupervisorAuthDialog";
 import type { AdvancedFilterDraft } from "@/features/maintenance/use-maintenance-list";
 import type { useMaintenanceScreen } from "@/features/maintenance/use-maintenance-screen";
@@ -30,9 +33,9 @@ export interface MaintenancePageScaffoldProps<TTable extends TableName, TRow> {
   readonly searchPlaceholder: string;
   readonly emptyMessage: string;
   readonly screen: ReturnType<typeof useMaintenanceScreen<TTable, TRow>>;
+  readonly columns: readonly RecordListColumn<TRow>[];
   readonly getRowCode: (row: TRow) => string;
   readonly getRowTitle: (row: TRow) => string;
-  readonly getRowSubtitle?: (row: TRow) => string | undefined;
   readonly getRowState: (row: TRow) => EstReg;
   readonly getDetailFields?: (row: TRow | null) => readonly RecordDetailField[];
   readonly renderFormDrawer: () => React.ReactNode;
@@ -56,9 +59,9 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
   searchPlaceholder,
   emptyMessage,
   screen,
+  columns,
   getRowCode,
   getRowTitle,
-  getRowSubtitle,
   getRowState,
   getDetailFields,
   renderFormDrawer,
@@ -174,21 +177,18 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
         </Button>
       </div>
 
-      <RecordDetailCard
-        pendingKind={screen.pendingKind}
-        selectedCode={selectedRow ? getRowCode(selectedRow) : null}
-        selectedTitle={selectedRow ? getRowTitle(selectedRow) : null}
-        selectedSubtitle={
-          selectedRow && getRowSubtitle
-            ? getRowSubtitle(selectedRow)
-            : undefined
-        }
-        selectedState={selectedRow ? getRowState(selectedRow) : null}
-        readonlyFields={
-          getDetailFields ? getDetailFields(selectedRow) : undefined
-        }
-        renderInlineForm={renderFormDrawer}
-      />
+      {screen.controller.isDetailVisible && (
+        <RecordDetailCard
+          pendingKind={screen.pendingKind}
+          selectedCode={selectedRow ? getRowCode(selectedRow) : null}
+          selectedTitle={selectedRow ? getRowTitle(selectedRow) : null}
+          selectedState={selectedRow ? getRowState(selectedRow) : null}
+          readonlyFields={
+            getDetailFields ? getDetailFields(selectedRow) : undefined
+          }
+          renderInlineForm={renderFormDrawer}
+        />
+      )}
 
       {screen.list.searchMode !== "none" && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-1.5 text-xs">
@@ -230,9 +230,8 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
         onToggleViewScope={screen.handleToggleViewScope}
         hasPending={screen.controller.hasPending}
         selectedCode={screen.selectedCode}
+        columns={columns}
         getRowCode={getRowCode}
-        getRowTitle={getRowTitle}
-        getRowSubtitle={getRowSubtitle}
         getRowState={getRowState}
         onSelectRow={(row) => screen.controller.selectRow(row)}
         offset={screen.list.offset}

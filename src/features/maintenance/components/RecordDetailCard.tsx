@@ -57,8 +57,8 @@ function getTargetStateForOp(
 }
 
 /**
- * Always-visible inline "Datos del registro" card rendered as a consistent form
- * across Consulta, Adición, Modificación, Inactivar, Reactivar, and Eliminación.
+ * Inline "Datos del registro" card rendered only during a pending
+ * create/edit (or state op) or while a tapped row keeps it visible.
  */
 export function RecordDetailCard({
   pendingKind,
