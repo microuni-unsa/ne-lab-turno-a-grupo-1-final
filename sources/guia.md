@@ -78,7 +78,7 @@ las organizaciones. (C.r)
 b) Selecciona herramientas, habilidades, técnicas, métodos y/o metodologías propias
 de los negocios electrónicos entendiendo sus limitaciones. (C.p)
 
-UNIVERSIDAD NACIONAL DE SAN AGUSTIN
+UNIVERSIDAD NACIONAL DE SAN AGUSTIN
 FACULTAD DE INGENIERÍA DE PRODUCCIÓN Y SERVICIOS
 ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMA
 Formato: Guía de Práctica de Laboratorio / Talleres / Centros de Simulación
@@ -94,21 +94,22 @@ Una aplicación móvil es un software desarrollado para dispositivos móviles qu
 específica, como ser un juego, un calendario, un reproductor de música u otro.
 Etapas del M-Business
 Según se considera las siguientes:
+
 1. Establecer un proceso racionalizado o unas prácticas específicas de Tecnologías de la información al
-adquirir un equipo móvil.
+   adquirir un equipo móvil.
 2. Extender todas las aplicaciones corporativas y los servicios clave a los equipos móviles e
-inalámbricos, para que los usuarios ganen en experiencia y productividad lo más rápidamente posible.
-Nokia sugiere como la primera etapa para la estrategia de movilidad de la empresa la adopción de
-tecnologías para el correo electrónico.
+   inalámbricos, para que los usuarios ganen en experiencia y productividad lo más rápidamente posible.
+   Nokia sugiere como la primera etapa para la estrategia de movilidad de la empresa la adopción de
+   tecnologías para el correo electrónico.
 3. Utilizar redes privadas de acceso seguro: Los trabajadores móviles deben acostumbrase a utilizar estas
-tecnologías dentro de un marco de máxima confidencialidad y seguridad, para proteger los datos e
-información de la empresa en sus conexiones remotas.
-Hay distintos tipos de redes privadas (VPNs) móviles, como las que se basan en tecnologías muy
-conocidas en comercio electrónico como Secure Sockets Layer (SSL) o las VPN IPSec que conectan
-dinámicamente distintas dependencias locales o remotas de la empresa creando una plataforma segura
-para los empleados “movilizados”.
-Ventajas
-•
+   tecnologías dentro de un marco de máxima confidencialidad y seguridad, para proteger los datos e
+   información de la empresa en sus conexiones remotas.
+   Hay distintos tipos de redes privadas (VPNs) móviles, como las que se basan en tecnologías muy
+   conocidas en comercio electrónico como Secure Sockets Layer (SSL) o las VPN IPSec que conectan
+   dinámicamente distintas dependencias locales o remotas de la empresa creando una plataforma segura
+   para los empleados “movilizados”.
+   Ventajas
+   •
 
 Coste total de propiedad menor: las aplicaciones desarrolladas con estándares Web son fáciles de
 mantener y actualizar, lo que da como resultado un menor coste total de la propiedad para las
@@ -132,7 +133,7 @@ Servicio al cliente mejorado: si disponen de acceso a la información actualizad
 cliente y a otra información interna basada en Web de la empresa y las aplicaciones, los trabajadores
 de servicio pueden ofrecer una excelente atención al cliente justo en el punto de acción.
 
-UNIVERSIDAD NACIONAL DE SAN AGUSTIN
+UNIVERSIDAD NACIONAL DE SAN AGUSTIN
 FACULTAD DE INGENIERÍA DE PRODUCCIÓN Y SERVICIOS
 ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMA
 Formato: Guía de Práctica de Laboratorio / Talleres / Centros de Simulación
@@ -186,7 +187,7 @@ dentro de las organizaciones. Alcanzando su auge al brindar soluciones de movili
 desarrollar su trabajo independientemente de su presencia en la oficina. Su personal cuenta con acceso
 seguro a la información y puede realizar sus procesos diarios desde cualquier dispositivo y en cualquier
 
-UNIVERSIDAD NACIONAL DE SAN AGUSTIN
+UNIVERSIDAD NACIONAL DE SAN AGUSTIN
 FACULTAD DE INGENIERÍA DE PRODUCCIÓN Y SERVICIOS
 ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMA
 Formato: Guía de Práctica de Laboratorio / Talleres / Centros de Simulación
@@ -235,7 +236,7 @@ macro) en un entorno móvil que ayuden a la solución del problema
 • Realizar la búsqueda, recopilación, organización, compartir información nueva entre los miembros
 del grupo de trabajo con el fin de tener nuevo y mejor conocimiento relacionado al problema
 
-UNIVERSIDAD NACIONAL DE SAN AGUSTIN
+UNIVERSIDAD NACIONAL DE SAN AGUSTIN
 FACULTAD DE INGENIERÍA DE PRODUCCIÓN Y SERVICIOS
 ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMA
 Formato: Guía de Práctica de Laboratorio / Talleres / Centros de Simulación
@@ -268,7 +269,7 @@ solución sugerida por el grupo de trabajo es la que se está trabajando en la p
 empresa, y que de ella se evidencie el resultado del trabajo.
 
 1. Ver el siguiente video accediendo a la siguiente dirección URL y replicar lo indicado en el video:
-https://www.youtube.com/watch?v=sILYPMvXDvY
+   https://www.youtube.com/watch?v=sILYPMvXDvY
 
 Tiene videos #2 #3 …. Buena referencia
 2. Revisar las siguientes rutas URL’s en Internet para analizar el desarrollo de una APP
@@ -280,7 +281,7 @@ https://www.youtube.com/watch?v=ebQphhLpJG0
 Cómo crear un LOGIN SCREEN en Android Studio
 https://www.youtube.com/watch?v=x66x9tltEX0
 
-UNIVERSIDAD NACIONAL DE SAN AGUSTIN
+UNIVERSIDAD NACIONAL DE SAN AGUSTIN
 FACULTAD DE INGENIERÍA DE PRODUCCIÓN Y SERVICIOS
 ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMA
 Formato: Guía de Práctica de Laboratorio / Talleres / Centros de Simulación
@@ -312,7 +313,7 @@ Algunas otras sugerencias de sites para ser analizados:
 Firebase de Google
 https://firebase.google.com/?hl=es-419
 
-UNIVERSIDAD NACIONAL DE SAN AGUSTIN
+UNIVERSIDAD NACIONAL DE SAN AGUSTIN
 FACULTAD DE INGENIERÍA DE PRODUCCIÓN Y SERVICIOS
 ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMA
 Formato: Guía de Práctica de Laboratorio / Talleres / Centros de Simulación
@@ -368,7 +369,7 @@ diferente al default; seleccionando otro orden, por ejemplo, 1) Por código 2) p
 modificación, inactivar, reactivar o eliminar.
 Cada subgrupo de Laboratorio tiene definido qué módulo va a trabajar para tratar el problema.
 
-UNIVERSIDAD NACIONAL DE SAN AGUSTIN
+UNIVERSIDAD NACIONAL DE SAN AGUSTIN
 FACULTAD DE INGENIERÍA DE PRODUCCIÓN Y SERVICIOS
 ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMA
 Formato: Guía de Práctica de Laboratorio / Talleres / Centros de Simulación
@@ -399,21 +400,22 @@ II. EJERCICIOS/PROBLEMAS PROPUESTOS
 nueva funcionalidad.
 • https://www.youtube.com/watch?v=ebQphhLpJG0
 III. CUESTIONARIO
+
 1. ¿Defina que es una aplicación móvil y de una aplicación nativa?
 2. ¿Cuáles son los tipos de aplicaciones móviles?
 3. ¿Cuáles son los tipos de aplicaciones móviles existentes?
 4. ¿Cómo es el proceso de desarrollo de una aplicación nativa?
 5. Mencione las ventajas y desventajas de una aplicación nativa.
 6. ¿Cuál es la diferencia entre un sitio web y una aplicación móvil?
-IV. REFERENCIAS Y BIBLIOGRÁFIA RECOMENDADAS:
-(01) https://www.youtube.com/watch?v=jtr3aMfIheg
-(02) https://blog.interdominios.com/10-herramientas-para-crear-apps-moviles-sin-saber-programar/
-(03) https://www.youtube.com/
-(04) Baluarte Araya, César Basilio; Negocios Electrónicos, Apuntes de clase, UNSA, Arequipa, Perú,
-2019.
+   IV. REFERENCIAS Y BIBLIOGRÁFIA RECOMENDADAS:
+   (01) https://www.youtube.com/watch?v=jtr3aMfIheg
+   (02) https://blog.interdominios.com/10-herramientas-para-crear-apps-moviles-sin-saber-programar/
+   (03) https://www.youtube.com/
+   (04) Baluarte Araya, César Basilio; Negocios Electrónicos, Apuntes de clase, UNSA, Arequipa, Perú,
+7.
 (05) Internet
 
-UNIVERSIDAD NACIONAL DE SAN AGUSTIN
+UNIVERSIDAD NACIONAL DE SAN AGUSTIN
 FACULTAD DE INGENIERÍA DE PRODUCCIÓN Y SERVICIOS
 ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMA
 Formato: Guía de Práctica de Laboratorio / Talleres / Centros de Simulación
@@ -642,7 +644,7 @@ pobre lista de
 actividades
 realizadas
 
-UNIVERSIDAD NACIONAL DE SAN AGUSTIN
+UNIVERSIDAD NACIONAL DE SAN AGUSTIN
 FACULTAD DE INGENIERÍA DE PRODUCCIÓN Y SERVICIOS
 ESCUELA PROFESIONAL DE INGENIERÍA DE SISTEMA
 Formato: Guía de Práctica de Laboratorio / Talleres / Centros de Simulación
@@ -865,5 +867,3 @@ La autoevaluación
 difiere en el rango
 de desviación del
 20% ó más
-
-

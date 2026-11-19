@@ -1,0 +1,699 @@
+Loading 'turbo' model on cpu...
+Transcribing 'nelab1.mp3'...
+Detected language: 'es' (probability: 1.00)
+
+[2.54s -> 10.78s]  fondo oscuro, hay letras que definitivamente la vista del usuario fuerza para poder leer,
+[12.01s -> 15.09s]  salvo que las letras sean más grandes, cosas que no lo son.
+[16.81s -> 18.89s]  Sin embargo, la disposición puede ayudar.
+[21.34s -> 30.94s]  A ver, ¿está en ejecución? ¿Cuál la han seleccionado y cuál la han ejecutado?
+[30.94s -> 54.15s]  ¿Cuál tabla? Ya, muéstrenme, ejecuten el mantenimiento de esta tabla.
+[56.67s -> 63.76s]  Porque hasta ahí es lo que han seleccionado, cuál es la opción que, cuál es su propuesta.
+[65.00s -> 76.66s]  Ok, vamos a ver, ahoritita hay que ampliar porque a ver la disposición que en la presentación no permite leer.
+[76.66s -> 82.28s]  A ver, aquí, salir del modo de pantalla completa
+[82.28s -> 90.11s]  A ver, ajustar la vista, automático, mosaico o foco
+[90.11s -> 97.80s]  A ver, ¿agrandarlo o no?
+[101.32s -> 103.46s]  Un ratito, vamos a ver, otra vez
+[103.46s -> 108.20s]  No funciona, no funciona, no funciona, no funciona
+[108.20s -> 110.92s]  Vista lateral tampoco
+[110.92s -> 116.46s]  Automático, dinámico, mosaico
+[116.46s -> 122.51s]  Mosaico, sí, más o menos
+[122.51s -> 126.72s]  y automático
+[126.72s -> 129.88s]  no hay mucha diferencia
+[129.88s -> 131.04s]  uno contra el otro
+[131.04s -> 139.52s]  ya, a ver ahí, pero
+[139.52s -> 142.42s]  no se puede leer
+[142.42s -> 149.15s]  ahí está la pantalla completa
+[149.15s -> 150.33s]  listo, ahí nomás
+[150.33s -> 152.35s]  comiencen a ejecutar
+[152.35s -> 154.03s]  bueno, ahí que dice
+[154.03s -> 156.20s]  arriba está el salir
+[156.20s -> 159.88s]  y la flecha en vez de estar a la izquierda
+[159.88s -> 160.88s]  sale a la derecha
+[160.88s -> 163.46s]  en vez de catálogo del país
+[163.46s -> 166.26s]  entonces
+[166.26s -> 191.74s]  entonces estados ahí, buscar por nombre o avanzada, bueno en este caso cuando estamos en tablas de manera avanzada no creo porque si ponemos buscar por nombre solamente es una parte del nombre como comienza,
+[191.74s -> 194.54s]  y de la A a la Z
+[194.54s -> 197.28s]  y la otra es por código
+[197.28s -> 199.08s]  por default
+[199.08s -> 200.96s]  por default es por
+[200.96s -> 203.44s]  por nombre
+[203.44s -> 206.08s]  ok
+[206.08s -> 208.66s]  entonces cuando está en avanzada
+[208.66s -> 210.00s]  ¿cómo funciona la avanzada?
+[212.47s -> 214.17s]  la avanzada además de nombre
+[214.17s -> 215.83s]  nos permite filtrar por estado
+[215.83s -> 218.61s]  en este caso vamos a utilizar por código
+[218.61s -> 220.69s]  nombre o estado, activo, inactivo
+[220.69s -> 221.39s]  o eliminado
+[221.39s -> 223.50s]  a ver, a ver
+[223.50s -> 227.02s]  ok, vamos a ver
+[227.02s -> 232.51s]  Lo primero que tenemos que hacer, cuando se hace un diseño, perfecto, está el layout.
+[233.29s -> 236.85s]  Y segundo es ponernos en los zapatos del usuario.
+[237.51s -> 239.11s]  Yo soy su usuario en este momento.
+[239.27s -> 243.15s]  Yo soy su jefe de proyectos en primer rol y después soy su usuario.
+[243.81s -> 245.51s]  Como usuario ya lo veo complejo.
+[246.66s -> 248.74s]  Que se asumen muchas cosas que no.
+[250.36s -> 250.74s]  ¿De acuerdo?
+[251.62s -> 256.95s]  Entonces tiene que hacerse para todos los niveles de usuario que hay.
+[258.61s -> 259.13s]  ¿Ok?
+[259.93s -> 260.95s]  Regresemos a la anterior.
+[263.93s -> 265.59s]  Entonces, cuando yo digo avanzada,
+[266.39s -> 270.53s]  significa que yo voy a buscar y voy a tener algunos filtros, ¿no?
+[271.09s -> 272.17s]  Para la búsqueda.
+[272.59s -> 275.05s]  Bueno, acá en una tabla referencial solamente tengo dos.
+[276.76s -> 277.10s]  ¿De acuerdo?
+[277.62s -> 280.40s]  Y si voy a ver el tercero, vamos a ver de qué se trata.
+[282.40s -> 284.44s]  Espero que todos los demás estén escuchando,
+[284.56s -> 286.22s]  porque solamente lo repito una vez.
+[288.28s -> 288.54s]  Bien.
+[290.40s -> 290.70s]  Ok.
+[291.89s -> 292.93s]  ¿Qué dice ahí?
+[294.71s -> 295.71s]  Paicots, ¿no es cierto?
+[295.71s -> 299.69s]  el nombre está arriba
+[299.69s -> 302.48s]  6, 7
+[302.48s -> 304.27s]  y no pues
+[304.27s -> 306.33s]  o hago uno o hago lo otro
+[306.33s -> 309.20s]  o digo pay code 7
+[309.20s -> 311.32s]  y me olvido del número que está arriba
+[311.32s -> 312.32s]  y solamente pongo
+[312.32s -> 314.90s]  la descripción, esto es solamente
+[314.90s -> 317.12s]  cuando está en una sola caja de texto y puedo hacer
+[317.12s -> 317.84s]  todo eso
+[317.84s -> 321.15s]  y después le digo activo
+[321.15s -> 322.87s]  verdecito, rojo, eliminado
+[322.87s -> 326.00s]  bueno, en este caso
+[326.00s -> 327.66s]  estamos en la
+[327.66s -> 329.38s]  capacitación de usuario y el estado. ¿Qué
+[329.38s -> 331.98s]  cosa significa estado? Ah, es el estado de
+[331.98s -> 333.48s]  registro que si está activo, está
+[333.48s -> 337.07s]  eliminado o está inactivo. Bueno, como
+[337.07s -> 338.97s]  capacitación en la primera vez el
+[338.97s -> 341.05s]  usuario dice, ah, ya. Ah, es de activo, ¿no?
+[341.13s -> 345.41s]  Sí, y asterisco eliminado y inactivo. Ah, ya,
+[345.49s -> 347.99s]  perfecto, sí. No se le va a borrar de su
+[347.99s -> 349.93s]  mente, por lo tanto ya está superado.
+[350.76s -> 353.18s]  ¿Ok? Vamos a ver. Hay algunas
+[353.18s -> 355.32s]  descripciones de algunas tablas según sea
+[355.32s -> 357.43s]  la tabla referencial
+[357.43s -> 359.89s]  que puede ser tan corta como los países
+[359.89s -> 361.01s]  o tan larga como
+[361.01s -> 363.87s]  el nombre de un artículo
+[363.87s -> 365.96s]  bueno, de un producto
+[365.96s -> 368.14s]  que puede ser un poquitito más largo
+[368.14s -> 371.10s]  u otra situación también
+[371.10s -> 372.22s]  ¿de acuerdo?
+[372.80s -> 374.30s]  como la descripción de algo
+[374.30s -> 375.48s]  de un
+[375.48s -> 378.92s]  de un material publicitario
+[378.92s -> 379.54s]  por ejemplo
+[379.54s -> 383.20s]  entonces, primera observación
+[383.20s -> 384.46s]  hay dos 7
+[384.46s -> 386.24s]  tengo que tener un 7
+[386.24s -> 388.87s]  o digo código tal cosa
+[388.87s -> 390.57s]  o simple y llanamente le pongo
+[390.57s -> 394.82s]  el código y arriba
+[394.82s -> 395.90s]  donde dice
+[395.90s -> 398.18s]  orden, activo, nombre
+[398.18s -> 400.54s]  le da la Z, código
+[400.54s -> 402.76s]  hay 11 registros
+[402.76s -> 404.50s]  ok
+[404.50s -> 406.83s]  yo que puedo tener arriba
+[406.83s -> 409.49s]  cual vendría a ser la cabecera
+[409.49s -> 421.75s]  lo que me indica la data
+[421.75s -> 423.07s]  que tengo abajo de la cabecera
+[423.07s -> 425.42s]  o del detalle
+[425.42s -> 430.82s]  ese orden
+[430.82s -> 434.60s]  está por activo
+[434.64s -> 437.21s]  Nombre A en la Z, pero ¿qué hace el código?
+[438.18s -> 439.44s]  Ok, la cuesta elérgica.
+[440.20s -> 442.06s]  Por default aquí es por el nombre.
+[443.26s -> 448.88s]  Yo puedo decir, bueno, orden, nombre.
+[449.60s -> 452.50s]  Cuando cambio código, orden, código.
+[454.19s -> 456.81s]  Bueno, ¿necesito colocarlo o lo veo?
+[460.70s -> 460.96s]  ¿Cierto?
+[462.54s -> 463.46s]  Hay que definir.
+[464.41s -> 467.31s]  Entonces, yo tendría que colocar en la cabecera.
+[467.31s -> 469.85s]  al lado izquierdo le voy a poner código
+[469.85s -> 472.20s]  mucho más a la derecha
+[472.20s -> 473.20s]  nombre
+[473.20s -> 475.56s]  y más a la derecha estado
+[475.56s -> 477.12s]  o estado de registro
+[477.12s -> 481.30s]  y después todo lo que venga para abajo
+[481.30s -> 483.61s]  pueden haber 11 como están acá
+[483.61s -> 485.41s]  o pueden haber 50
+[485.41s -> 488.11s]  o como es el caso de productos
+[488.11s -> 489.39s]  puedo tener yo
+[489.39s -> 491.21s]  987
+[491.21s -> 492.83s]  por citar un número
+[492.83s -> 495.05s]  bueno, ahí
+[495.05s -> 497.39s]  definitivamente cuando dicen ustedes
+[497.39s -> 499.31s]  buscar país por nombre
+[499.31s -> 501.63s]  entonces ustedes pueden decir
+[501.63s -> 503.74s]  buscar, pueden seleccionar
+[503.74s -> 505.50s]  por país, perdón
+[505.50s -> 506.92s]  por nombre o por código
+[506.92s -> 511.63s]  por tener unas alternativas ahora
+[511.63s -> 513.25s]  porque después pueden buscar por
+[513.25s -> 514.97s]  código, por nombre o por RUC
+[514.97s -> 518.14s]  por código, por nombre o por DNI
+[518.14s -> 520.92s]  código o nombre, seguro social
+[520.92s -> 523.04s]  RUC, DNI, etc.
+[524.29s -> 525.55s]  van a haber muchas alternativas
+[525.55s -> 527.45s]  y el formato se va adecuado
+[527.45s -> 528.57s]  entonces
+[528.57s -> 531.13s]  recuerden que al usuario
+[531.13s -> 535.30s]  no le van a presentar más allá de las variantes
+[535.30s -> 537.18s]  de lo que ya tienen como parte inicial,
+[537.30s -> 538.38s]  que esta es la parte inicial.
+[539.46s -> 540.56s]  Bien, ok.
+[541.12s -> 543.60s]  Entonces colocamos, diríamos así,
+[545.03s -> 547.61s]  cuál vendría a ser el nombre de los datos
+[547.61s -> 549.29s]  que van a aparecer abajo en la lista.
+[550.03s -> 552.65s]  Entonces el default, siempre por ingreso,
+[553.19s -> 555.19s]  hacer algo a un maestro, una tabla,
+[555.73s -> 558.09s]  o un movimiento, es la lista.
+[559.27s -> 560.33s]  Hay una lista de promedio.
+[560.45s -> 562.05s]  Siempre comenzamos por una lista.
+[562.05s -> 563.71s]  por eso ya lo han visto
+[563.71s -> 566.03s]  y si es que eso es lo que se está aplicando
+[566.03s -> 567.55s]  acá, bien
+[567.55s -> 570.21s]  su diseño abajo dice perfecto
+[570.21s -> 572.00s]  yo voy a adicionar
+[572.00s -> 573.98s]  voy a modificar, voy a eliminar
+[573.98s -> 575.98s]  inactivar, reactivar
+[575.98s -> 577.52s]  y le han colocado un
+[577.52s -> 579.60s]  iconito ahí para poder
+[579.60s -> 581.44s]  de alguna otra manera
+[581.44s -> 584.30s]  hacerlo más llamativo o algo así por el estilo
+[584.30s -> 585.46s]  ¿de acuerdo?
+[585.98s -> 588.14s]  hay algunos otros que simplemente se dedican
+[588.14s -> 589.14s]  y le colocan la palabra
+[589.14s -> 592.66s]  bueno, es parte de los diseños que ustedes saben
+[592.66s -> 594.70s]  hecho. Sí está en la parte
+[594.70s -> 596.59s]  inferior. ¿Ok?
+[597.39s -> 598.99s]  Entonces, el estado de registro
+[598.99s -> 601.03s]  también podemos colocarle solamente la A
+[601.03s -> 602.05s]  y la I y el estarisco.
+[603.19s -> 605.13s]  Y si quieren, ahí sí pueden
+[605.13s -> 607.41s]  colocarle verde y rojo, pero ¿para qué colocar
+[607.41s -> 609.27s]  la palabra activo e inactivo si ya lo
+[609.27s -> 610.25s]  vamos a saber? Porque
+[610.25s -> 613.11s]  todas las tablas van a tener lo mismo
+[613.11s -> 614.65s]  de cualquier sistema.
+[617.85s -> 619.43s]  ¿No? Y en vez de ocupar
+[619.43s -> 621.21s]  un espacio con esas
+[621.21s -> 623.05s]  palabras que dice eliminado,
+[623.47s -> 625.49s]  que son 5, 7, 8, 9, 10
+[625.49s -> 627.39s]  espacios, 10 letras
+[627.39s -> 629.55s]  si voy a tener en la misma línea
+[629.55s -> 630.75s]  en la misma caja
+[630.75s -> 632.59s]  el código, el nombre y el estado
+[632.59s -> 634.47s]  bueno pues, aún
+[634.47s -> 637.68s]  ok, entonces
+[637.68s -> 640.40s]  nos hacemos la pregunta
+[640.40s -> 641.64s]  si la descripción es más
+[641.64s -> 644.70s]  amplia, voy a tener una segunda
+[644.70s -> 646.91s]  línea, si lo hago así
+[646.91s -> 648.65s]  es bastante probable
+[648.65s -> 649.80s]  cierto
+[649.80s -> 653.00s]  entonces el ancho de lo que tienen ustedes
+[653.00s -> 654.96s]  esa caja, para poder
+[654.96s -> 657.04s]  mostrar el código, la descripción
+[657.04s -> 658.38s]  y el estado de registro
+[658.38s -> 660.92s]  es un tamaño adecuado, porque si tengo una
+[660.92s -> 663.10s]  segunda línea, definitivamente va a aparecer.
+[664.97s -> 665.93s]  Entonces va a ser esto, ¿no?
+[666.63s -> 667.77s]  Así, y sigue
+[667.77s -> 668.79s]  para la segunda línea.
+[669.59s -> 671.69s]  ¿Es viable? Sí. ¿Es factible?
+[671.85s -> 673.67s]  Por supuesto que sí. ¿Estamos?
+[674.69s -> 675.01s]  Ok.
+[675.85s -> 677.61s]  Bien, bien. Hasta ahí
+[677.61s -> 678.65s]  están anotando.
+[680.29s -> 682.03s]  Entonces, cuando decimos nosotros
+[682.03s -> 684.56s]  la búsqueda avanzada, ya sabemos
+[684.56s -> 687.20s]  que no va. Bien, para este
+[687.20s -> 689.24s]  caso. Van a ir para otros casos
+[689.24s -> 695.97s]  probablemente. Entonces la parte de las funcionalidades están abajo, se cumple y solamente ustedes
+[695.97s -> 702.20s]  cuando están en la opción, en este caso, que yo puedo guardar o eliminar aquello que estoy
+[702.20s -> 714.72s]  seleccionando. Está en Brasil, ¿no es cierto? Entonces vamos a ver, clic en Chile, eliminar
+[714.72s -> 723.90s]  y guardar. ¿Pero qué voy a guardar si no estoy haciendo nada? Wait, wait, wait. Van a hacer
+[723.90s -> 734.06s]  lo que yo les diga ok vamos a colombia clic listo hasta ahí lo que tengo con
+[734.06s -> 740.94s]  opciones abajo es eliminar o guardar no lo que yo puedo hacer eliminar salir o
+[740.94s -> 746.48s]  cancelar esas son las tres opciones que puedo hacer porque estoy seleccionando
+[746.48s -> 752.24s]  registro pero son esas seguro cuando seleccione el registro yo puedo hacer
+[752.24s -> 754.34s]  puedo eliminar, puedo modificar
+[754.34s -> 755.98s]  puedo inactivar
+[755.98s -> 758.22s]  puedo cancelar o puedo salir
+[758.22s -> 761.00s]  son cinco
+[761.00s -> 763.36s]  porque estoy haciendo clic
+[763.36s -> 765.54s]  con este registro quiero hacer algo
+[765.54s -> 767.74s]  ¿cuáles? esas cinco opciones
+[767.74s -> 769.68s]  por lo tanto esas cinco opciones
+[769.68s -> 770.84s]  tendrían que estar como
+[770.84s -> 773.30s]  del color como está guardar
+[773.30s -> 774.74s]  porque también es otra opción
+[774.74s -> 778.08s]  pero todavía no porque no estoy haciendo nada
+[778.08s -> 780.04s]  entonces la opción guardar no está
+[780.04s -> 781.35s]  ¿cuerto?
+[781.87s -> 783.37s]  a ver, denle modificar
+[783.37s -> 785.18s]  para eso tendría que
+[785.18s -> 786.38s]  ok, ven
+[786.38s -> 789.20s]  ok, se lo llevan ustedes a otra pantalla
+[789.20s -> 790.44s]  muy bien
+[790.44s -> 792.72s]  es factible que se haga
+[792.72s -> 794.94s]  es factible que se haga porque lo estamos llevando
+[794.94s -> 798.04s]  otros casos que también
+[798.04s -> 799.98s]  hemos visto ayer con sus compañeros
+[799.98s -> 802.24s]  ¿no? y como también
+[802.24s -> 803.30s]  lo han hecho en base a datos
+[803.30s -> 807.50s]  a ver, denle ustedes ahí
+[807.50s -> 809.92s]  si le dan salir, se sale del programa
+[809.92s -> 812.68s]  ¿no es cierto? cancelar
+[812.68s -> 814.48s]  ok, cancelar
+[814.48s -> 816.54s]  cancelar
+[816.54s -> 828.67s]  Ok, otros, ustedes arriba, por ejemplo, han seleccionado una área de para poder trabajar las opciones de búsqueda y decir algo más.
+[829.05s -> 844.94s]  A ver, lo que ustedes han hecho, otra vez, den modificar. Esto que está aquí, podrían determinar una área en la anterior pantalla para poder mostrar exactamente lo que está acá.
+[844.94s -> 848.27s]  ¿de acuerdo? son dos opciones
+[848.27s -> 850.37s]  o lo trabajo en la misma pantalla
+[850.37s -> 851.95s]  porque voy a elevar
+[851.95s -> 854.57s]  lo que voy a modificar ahí
+[854.57s -> 856.95s]  y no estoy de una pantalla con otra en pantalla
+[856.95s -> 858.01s]  clic clic clic clic
+[858.01s -> 859.31s]  y de vuelta
+[859.31s -> 862.41s]  o voy a hacer este y de vuelta
+[862.41s -> 864.47s]  ¿no? vengo para acá
+[864.47s -> 865.89s]  entonces
+[865.89s -> 867.21s]  el estado
+[867.21s -> 869.78s]  el estado de registro
+[869.78s -> 872.12s]  por ejemplo tendríamos que guardar
+[872.12s -> 873.48s]  lo mismo que tiene en el otro lado
+[873.48s -> 875.72s]  entonces yo puedo colocar el código país
+[875.72s -> 877.02s]  como está el nombre del país
+[877.02s -> 878.68s]  y más abajo el estado
+[878.68s -> 881.77s]  el usuario no va a poder manipular el estado
+[881.77s -> 883.07s]  lo manipulan ustedes
+[883.07s -> 885.07s]  él no selecciona el estado
+[885.07s -> 887.75s]  él por lo que hace es que cambie el estado
+[887.75s -> 889.63s]  y recién más abajo
+[889.63s -> 891.99s]  si puede mostrarse
+[891.99s -> 893.39s]  el guardar
+[893.39s -> 895.17s]  el cancelar o el salir
+[895.17s -> 897.13s]  si yo digo salir
+[897.13s -> 899.63s]  significa que me voy del programa
+[899.63s -> 902.04s]  desactivo todo lo que estaba
+[902.04s -> 904.10s]  haciendo la modificación o eliminación
+[904.10s -> 905.42s]  etcétera y salgo del programa
+[905.42s -> 907.08s]  eso significa salir, ¿no es cierto?
+[908.15s -> 910.07s]  y en este caso solamente tendríamos que
+[910.07s -> 911.55s]  o guardamos o cancelamos
+[911.55s -> 913.58s]  a ver, asumamos
+[913.58s -> 916.32s]  lo siguiente
+[916.32s -> 918.10s]  era modificar, ¿no es cierto?
+[919.00s -> 919.24s]  ok
+[919.24s -> 922.74s]  y código del país inmutable
+[922.74s -> 923.86s]  en modificación
+[923.86s -> 925.52s]  son cosas que
+[925.52s -> 929.48s]  para el usuario no pueden ir, desde el punto de vista técnico
+[929.48s -> 931.34s]  nosotros estamos haciendo las cosas
+[931.34s -> 932.47s]  ¿no?
+[932.93s -> 934.73s]  cuando ustedes le dan
+[934.73s -> 936.61s]  ¿y esto para qué? cuando están en la capacidad
+[936.61s -> 969.15s]  ¿Ustedes tienen que explicar algo que después él no lo va a entender en primera instancia o si lo entiende? Son dos alternativas. Si no lo entiende va a repreguntar y van a avanzar en la capacitación para el primer grupo. Para el segundo grupo va a suceder lo mismo. Para un empleado nuevo va a suceder lo mismo. Todo eso hay que ver. ¿Y por qué dice ocultar? A ver, respóndame. ¿Ocultar qué?
+[974.33s -> 978.71s]  En el que usted se refiere al modal que se despliega cuando se da modificado.
+[981.08s -> 981.74s]  Está de más.
+[982.74s -> 984.02s]  Está de más.
+[984.72s -> 985.64s]  Pasos de más.
+[987.25s -> 987.85s]  Simplicidad.
+[989.68s -> 991.10s]  Lo simple lo están haciendo ustedes.
+[991.22s -> 991.66s]  Complejo.
+[992.74s -> 994.82s]  Porque dice operación pendiente modificación.
+[995.24s -> 995.42s]  No.
+[997.48s -> 998.08s]  Vamos a ver.
+[998.28s -> 999.88s]  Ya sabemos que de salir sale.
+[1000.04s -> 1001.34s]  Entonces, él tiene dos opciones.
+[1002.02s -> 1003.34s]  O guardas o cancelas.
+[1005.37s -> 1005.49s]  ¿Ya?
+[1006.23s -> 1007.03s]  Si él guarda.
+[1007.03s -> 1008.99s]  Si le dicen guardar sin modificar.
+[1009.07s -> 1011.27s]  y bolitos ustedes van a guardar
+[1011.27s -> 1012.13s]  porque es la acción
+[1012.13s -> 1015.85s]  pero si dicen cancelar
+[1015.85s -> 1017.05s]  se van para afuera
+[1017.05s -> 1019.97s]  cancelar
+[1019.97s -> 1023.61s]  se van para afuera
+[1023.61s -> 1028.18s]  lo otro
+[1028.18s -> 1030.89s]  es más complejo
+[1030.89s -> 1032.81s]  lo simple lo están haciendo complejo
+[1032.81s -> 1033.71s]  no, no es la idea
+[1033.71s -> 1036.01s]  lo complejo hay que hacerlo simple
+[1036.01s -> 1036.73s]  es al revés
+[1036.73s -> 1042.22s]  vamos a ver
+[1042.22s -> 1044.53s]  vamos a ver
+[1044.53s -> 1060.60s]  El eliminado Brasil, vamos a reactivarlo, a ver, reactivar, ok, a ver un ratito ahí, transición no permitida, corrige el error indicado ante guardar, ¿por qué?
+[1068.61s -> 1076.11s]  El usuario, a ver, vamos a ver, estoy en el usuario, me equivoqué pues, diríamos así, ¿quién está?
+[1076.11s -> 1077.77s]  Llenaron, ¿no?
+[1078.13s -> 1080.47s]  Le dice el usuario
+[1080.47s -> 1081.97s]  Llenaron, me equivoqué, pero
+[1081.97s -> 1083.59s]  Esto es válido
+[1083.59s -> 1087.48s]  Y te está saliendo en tu programa de que no se podía hacer
+[1087.48s -> 1089.28s]  No, pues, se puede hacer
+[1089.28s -> 1092.46s]  ¿Qué responden?
+[1094.68s -> 1095.56s]  Si se equivocó
+[1095.56s -> 1104.06s]  Acá vamos a entrar a discutir otro punto
+[1104.06s -> 1107.03s]  A tratar otro punto
+[1107.03s -> 1109.24s]  Hay dos opciones
+[1109.24s -> 1111.72s]  A ustedes les restringen muchas las cosas
+[1111.72s -> 1113.54s]  De lo que debe hacer el usuario
+[1113.54s -> 1114.44s]  De manera sencilla
+[1114.44s -> 1115.54s]  para obtener los resultados
+[1115.54s -> 1117.28s]  con seguridad
+[1117.28s -> 1119.90s]  ¿de acuerdo? y siguiendo un procedimiento
+[1119.90s -> 1121.16s]  o le dan
+[1121.16s -> 1124.11s]  todas las prorrogativas, lo que él
+[1124.11s -> 1126.13s]  pueda hacer, todo, todo
+[1126.13s -> 1127.93s]  si le dan todo, tienen que
+[1127.93s -> 1130.07s]  incrementar el control para
+[1130.07s -> 1132.09s]  los riesgos, lo hacen más complejo
+[1132.09s -> 1133.50s]  ¿qué deciden?
+[1137.94s -> 1139.36s]  las balanzas se inclinan, ¿no?
+[1141.47s -> 1143.21s]  ¿bien? entonces
+[1143.21s -> 1144.51s]  entonces
+[1144.51s -> 1146.42s]  ¿qué está llorando, mister?
+[1146.42s -> 1150.42s]  para eso estamos acá
+[1150.42s -> 1152.32s]  para poder exactamente
+[1152.32s -> 1154.38s]  hacer esto
+[1154.38s -> 1156.96s]  ¿de acuerdo? tienen una primera
+[1156.96s -> 1157.80s]  versión
+[1157.80s -> 1161.21s]  asuman de que están trabajando con su jefe
+[1161.21s -> 1163.59s]  de proyectos y le está haciendo él las observaciones
+[1163.59s -> 1164.94s]  ¿de acuerdo?
+[1165.98s -> 1166.66s]  un poquitito
+[1166.66s -> 1168.98s]  vamos a ver ahora
+[1168.98s -> 1170.32s]  ¿qué pasa si
+[1170.32s -> 1172.62s]  ahora vamos a ver
+[1172.62s -> 1182.40s]  el inactivo lo vamos a reactivar
+[1182.40s -> 1183.10s]  ahí nomás
+[1183.10s -> 1186.38s]  Dice confirmar reactivación
+[1186.38s -> 1187.72s]  A ver
+[1187.72s -> 1190.70s]  En el anterior cuando hicieron una modificación
+[1190.70s -> 1192.32s]  Presentaron de una forma
+[1192.32s -> 1194.42s]  Y acá presentan otra
+[1194.42s -> 1195.34s]  No pueden
+[1195.34s -> 1198.25s]  En la reactivación ustedes presentan
+[1198.25s -> 1201.15s]  Tan igual como la modificación código, descripción y estado de registro
+[1201.15s -> 1203.11s]  Lo único que tienen que hacer es
+[1203.11s -> 1205.75s]  El ratificar la reactivación
+[1205.75s -> 1206.97s]  En otras palabras
+[1206.97s -> 1208.73s]  O guarda o cancela
+[1208.73s -> 1213.48s]  Porque en la reactivación no hay cambio
+[1213.48s -> 1214.54s]  De él
+[1214.54s -> 1218.26s]  ¿de acuerdo? es cambio del estado
+[1218.26s -> 1221.25s]  del registro, entonces ¿por qué?
+[1221.97s -> 1223.13s]  se equivocó pues también
+[1223.13s -> 1225.27s]  me equivoqué
+[1225.27s -> 1227.01s]  pues en vez de darle
+[1227.01s -> 1229.11s]  en modificar, estuvo más
+[1229.11s -> 1230.87s]  se me fue para el lado izquierdo al ratón
+[1230.87s -> 1232.77s]  y le puse inactivar y como estaba por acá
+[1232.77s -> 1234.39s]  le dio y listo, ya pues ya
+[1234.39s -> 1241.21s]  se equivocó, entonces
+[1241.21s -> 1242.75s]  ¿qué cosa es?
+[1243.33s -> 1244.87s]  estando inactivo, entonces
+[1244.87s -> 1247.39s]  ¿qué dice ahí? pulsa guardar
+[1247.39s -> 1249.71s]  aquí o en la barra inferior para confirmar
+[1249.71s -> 1251.51s]  el cambio del estado o cancelar
+[1251.51s -> 1253.03s]  para mantener el estado actual
+[1253.03s -> 1256.23s]  si yo hago este comentario
+[1256.23s -> 1258.75s]  en todos los tendría que incluir
+[1258.75s -> 1260.67s]  para poder decirle al usuario
+[1260.67s -> 1262.42s]  simplemente
+[1262.42s -> 1265.00s]  él lo va a leer la primera vez
+[1265.00s -> 1267.42s]  después no, después va a actuar
+[1267.42s -> 1269.40s]  va a ver
+[1269.40s -> 1271.50s]  actuar o guardar o cancelar
+[1271.50s -> 1272.82s]  y perfecto, guarda
+[1272.82s -> 1274.66s]  no me interesa
+[1274.66s -> 1279.52s]  lo que yo observo acá es
+[1279.52s -> 1282.00s]  a ver, vamos a ver
+[1282.00s -> 1283.70s]  cuando estábamos en modificar
+[1283.70s -> 1285.06s]  era, cancelar, cancelar
+[1285.06s -> 1287.92s]  en modificar
+[1287.92s -> 1289.02s]  en Bolivia por ejemplo
+[1289.02s -> 1296.22s]  esto, estamos
+[1296.22s -> 1299.23s]  entonces código del país, nombre del país
+[1299.23s -> 1300.23s]  y estado de registro
+[1300.23s -> 1303.42s]  lo de arriba
+[1303.42s -> 1305.36s]  ya no está, el ocultar tampoco
+[1305.36s -> 1307.08s]  el estado de registro
+[1307.08s -> 1308.76s]  eso si va a ir abajo
+[1308.76s -> 1311.29s]  ¿de acuerdo? entonces todo ese
+[1311.29s -> 1313.37s]  comentario que está ahí, estado de registro
+[1313.37s -> 1313.95s]  bla bla bla bla
+[1313.95s -> 1318.50s]  entonces esto, cuando está en
+[1318.50s -> 1321.40s]  para poder reactivar
+[1321.40s -> 1323.48s]  un inactivo también debe mostrarse igualito
+[1323.48s -> 1324.64s]  ¿para qué le cambian las cosas?
+[1327.83s -> 1329.11s]  se hace más complejo también
+[1329.11s -> 1330.95s]  ¿por qué le están cambiando
+[1330.95s -> 1333.67s]  lo que tiene que tener
+[1333.67s -> 1335.86s]  como un razonamiento lógico?
+[1335.94s -> 1338.04s]  porque acá ustedes cuando tengan que documentar
+[1338.04s -> 1338.56s]  van a poner
+[1338.56s -> 1342.32s]  si es que es la función de modificar
+[1342.32s -> 1344.04s]  debe aparecer este PROM
+[1344.04s -> 1346.26s]  si es que es inactivar
+[1346.26s -> 1347.62s]  va a aparecer este otro PROM
+[1347.62s -> 1348.82s]  ¿de qué diferencia?
+[1349.88s -> 1351.26s]  la única diferencia es que
+[1351.26s -> 1352.82s]  en vez de que
+[1352.82s -> 1355.06s]  en el reactivar
+[1355.06s -> 1355.90s]  digamos así
+[1355.90s -> 1358.38s]  va a ser solamente cambiar
+[1358.38s -> 1359.60s]  la I por A
+[1359.60s -> 1364.16s]  y eso lo pueden estar mostrando ustedes
+[1364.16s -> 1366.56s]  exactamente acá, como está acá
+[1366.56s -> 1368.30s]  y ya cambiarle
+[1368.30s -> 1369.76s]  la I por A
+[1369.76s -> 1371.90s]  ustedes le van a decir guardar o cancelar
+[1371.90s -> 1376.29s]  eso sí funciona
+[1376.29s -> 1379.56s]  cancelar
+[1379.56s -> 1385.60s]  vamos a inactivar, vamos a modificar
+[1385.60s -> 1388.68s]  inactivar
+[1388.68s -> 1390.74s]  no, dice Costa Rica
+[1390.74s -> 1393.00s]  perdón, cancelar, cancelar, cancelar
+[1393.00s -> 1394.60s]  Costa Rica
+[1394.60s -> 1398.51s]  Modificar, modificar, modificar
+[1398.51s -> 1403.38s]  Un inactivo no puedo modificar nada
+[1403.38s -> 1404.89s]  Nunca
+[1404.89s -> 1411.24s]  Porque estoy haciendo dos cosas a la vez
+[1411.24s -> 1412.18s]  Y se me va el control
+[1412.18s -> 1416.34s]  ¿Qué tengo que hacer primero?
+[1416.78s -> 1419.08s]  Para poderlo modificar tengo que reactivarlo
+[1419.08s -> 1421.44s]  Porque si no acá me equivoco
+[1421.44s -> 1424.47s]  Y vamos
+[1424.47s -> 1427.23s]  Porque acá al decir modificar
+[1427.23s -> 1428.67s]  ¿Qué voy a modificar?
+[1431.42s -> 1432.36s]  Supongamos que sea
+[1432.36s -> 1433.84s]  Costa Rica
+[1433.84s -> 1435.32s]  Supongamos que así sea
+[1435.32s -> 1437.94s]  entonces van a modificar costas ricas y se va a quedar
+[1437.94s -> 1438.72s]  como inactivo
+[1438.72s -> 1442.22s]  y le dicen, Carlos, Carlos, Carlos
+[1442.22s -> 1444.30s]  te estoy llamando el gente urgente, ya, ya voy, ya voy
+[1444.30s -> 1444.92s]  se para y va
+[1444.92s -> 1448.49s]  bueno, ya lo modifique
+[1448.49s -> 1449.51s]  y se va a quedar igualito
+[1449.51s -> 1453.22s]  en otras palabras, que es lo que les trato de decir a todos
+[1453.22s -> 1455.42s]  no solamente al grupo que te estoy poniendo
+[1455.42s -> 1457.86s]  tienen que ponerse
+[1457.86s -> 1458.94s]  como dije al inicio
+[1458.94s -> 1462.06s]  en el rol de que ustedes son
+[1462.06s -> 1464.44s]  usuarios, de los cuatro
+[1464.44s -> 1466.50s]  uno es el que
+[1466.50s -> 1469.10s]  digamos, propone, el otro lo secunda
+[1469.10s -> 1470.84s]  uno tiene que hacer
+[1470.84s -> 1472.78s]  como dicen, el papel del diablo
+[1472.78s -> 1474.50s]  vale decir, buscarla sin razón
+[1474.50s -> 1477.49s]  ¿de acuerdo? y otro tiene que
+[1477.49s -> 1479.67s]  ponerse en el rol de un usuario
+[1479.67s -> 1481.43s]  de un usuario pues de que
+[1481.43s -> 1483.51s]  bueno, pues que está aprendiendo
+[1483.51s -> 1485.73s]  y está nulo, nulo, nulo
+[1485.73s -> 1487.82s]  en lo que está recibiendo
+[1487.82s -> 1488.90s]  como capacitación
+[1488.90s -> 1492.57s]  ¿por qué lo va a preguntar? y tienen que preguntar
+[1492.57s -> 1495.74s]  así pasa una prueba
+[1495.74s -> 1498.26s]  una prueba que todavía
+[1498.26s -> 1500.32s]  está en prueba de desarrollo
+[1500.32s -> 1501.60s]  no está en prueba de usuario
+[1501.60s -> 1503.81s]  porque todavía están ustedes acá
+[1503.81s -> 1506.07s]  después viene la prueba del usuario
+[1506.07s -> 1507.31s]  se la ponen al usuario
+[1507.31s -> 1509.87s]  le dan las indicaciones, esto funciona así
+[1509.87s -> 1510.93s]  ok, vamos
+[1510.93s -> 1513.93s]  te hemos dejado algunos registros para que puedas
+[1513.93s -> 1515.85s]  adicionar, modificar, vamos a hacer todo
+[1515.85s -> 1518.66s]  en vivo y en directo
+[1518.66s -> 1520.80s]  es la mejor capacitación que pueden hacer
+[1520.80s -> 1522.86s]  muy bien, acá tienes la data
+[1522.86s -> 1525.56s]  procedamos, después de
+[1525.56s -> 1527.28s]  darle a la instrucción como funciona
+[1527.28s -> 1529.77s]  actúa, y perfecto
+[1529.77s -> 1533.25s]  ustedes mismos lo van a decir
+[1533.25s -> 1534.03s]  ahora equivócate
+[1534.03s -> 1537.21s]  a la mala, equivócate, ponle otra letra
+[1537.21s -> 1538.77s]  ahora modifica
+[1538.77s -> 1541.96s]  ahora inactiva
+[1541.96s -> 1544.02s]  ok, ahora modifica otro
+[1544.02s -> 1546.16s]  pero este de acá que me he equivocado
+[1546.16s -> 1547.28s]  después lo vamos a hacer
+[1547.28s -> 1550.46s]  le dan vueltas al asunto
+[1550.46s -> 1551.18s]  toda la prueba
+[1551.18s -> 1553.92s]  para que pase la prueba del usuario
+[1553.92s -> 1556.73s]  hay una situación que siempre
+[1556.73s -> 1559.58s]  nosotros, ya en el trabajo
+[1559.58s -> 1561.40s]  y alguna vez creo que
+[1561.40s -> 1563.57s]  me han escuchado decir, lo que
+[1563.57s -> 1565.77s]  ustedes están desarrollando es un sistema
+[1565.77s -> 1569.75s]  APT, la prueba de
+[1569.75s -> 1571.43s]  tontos, y nosotros
+[1571.43s -> 1573.81s]  cometemos errores, nosotros mismos
+[1573.81s -> 1576.93s]  ya
+[1576.93s -> 1580.29s]  entonces, porque creemos
+[1580.29s -> 1582.23s]  de que, bueno, esto es
+[1582.23s -> 1584.27s]  sencillo, por primera vez lo estoy
+[1584.27s -> 1585.71s]  viendo, pero pum pum
+[1585.71s -> 1587.57s]  tenemos el error
+[1587.57s -> 1590.03s]  no, tiene que ir
+[1590.03s -> 1591.23s]  tenemos que ir por otro lado
+[1591.23s -> 1591.55s]  así
+[1591.55s -> 1595.63s]  así funciona
+[1595.63s -> 1597.17s]  ok, a ver
+[1597.17s -> 1599.13s]  salgamos de acá a cancelar
+[1599.13s -> 1604.51s]  bien, entonces
+[1604.51s -> 1606.27s]  creo que ya está
+[1606.27s -> 1610.79s]  las observaciones, aquello que puedan
+[1610.79s -> 1612.95s]  corregir, ok
+[1612.95s -> 1616.72s]  todo esto es para bien
+[1616.72s -> 1620.02s]  la idea está
+[1620.02s -> 1622.19s]  si tengo primero la lista
+[1622.19s -> 1624.37s]  de todo lo que tengo y después comienzo a adicionar
+[1624.37s -> 1625.79s]  puedo modificar, reactivar
+[1625.79s -> 1627.91s]  puedo eliminar, ok
+[1627.91s -> 1629.59s]  el eliminado
+[1629.59s -> 1632.05s]  vamos a ver, si ustedes dejan el
+[1632.05s -> 1634.29s]  eliminado, lo pueden dejar
+[1634.29s -> 1635.39s]  el usuario
+[1635.39s -> 1637.55s]  no puede reactivar
+[1637.55s -> 1639.21s]  no puede modificar
+[1639.21s -> 1642.61s]  no puede reactivar el eliminado
+[1642.61s -> 1643.35s]  no puede hacer nada
+[1643.35s -> 1644.89s]  eliminado, eliminado está
+[1644.89s -> 1647.49s]  vamos a hacer como si fuera un banco
+[1647.49s -> 1651.60s]  ¿bien? entonces tiene que venir
+[1651.60s -> 1653.88s]  el jefe para darle la autorización
+[1653.88s -> 1654.58s]  de que
+[1654.58s -> 1657.06s]  se equivocaron y puedan hacer
+[1657.06s -> 1658.50s]  lo que estoy hablando
+[1658.50s -> 1664.10s]  entonces el registro es válido
+[1664.10s -> 1666.36s]  si el código 7 es Brasil y no puedo
+[1666.36s -> 1668.12s]  crear otro 77
+[1668.12s -> 1670.00s]  que diga también Brasil, no, es 7
+[1670.00s -> 1671.44s]  7 y 7 porque así está
+[1671.44s -> 1673.26s]  el estándar internacional
+[1673.26s -> 1675.62s]  ok, bien
+[1675.62s -> 1678.14s]  entonces tiene que venir el jefe entonces
+[1678.14s -> 1680.18s]  es el perfecto jefe
+[1680.18s -> 1682.30s]  necesito modificar
+[1682.30s -> 1684.20s]  esto porque me equivoqué
+[1684.20s -> 1685.94s]  en vez de darle
+[1685.94s -> 1687.00s]  como se llama
+[1687.00s -> 1690.06s]  buscar, que no tiene que estar
+[1690.06s -> 1692.02s]  abajo ese buscar, porque ya
+[1692.02s -> 1693.10s]  por arriba lo ponen
+[1693.10s -> 1696.64s]  Y hice lo que no debía
+[1696.64s -> 1698.98s]  Estaba apurado y se me fue
+[1698.98s -> 1700.83s]  Supongamos que fue eso
+[1700.83s -> 1702.58s]  Entonces él entra y dice
+[1702.58s -> 1703.58s]  Mira para otro lado
+[1703.58s -> 1706.51s]  Pac coloca su código de acceso
+[1706.51s -> 1708.51s]  Un conjunto de letras, etc
+[1708.51s -> 1710.07s]  O si no coloca
+[1710.07s -> 1713.21s]  Un código de acceso
+[1713.21s -> 1714.57s]  Pac le pone en una pantalla
+[1714.57s -> 1716.29s]  Y para que él ingrese
+[1716.29s -> 1718.33s]  Digamos así, autorización
+[1718.33s -> 1720.59s]  Tac, tac, entonces está autorizando
+[1720.59s -> 1722.94s]  El jefe que se registró
+[1722.94s -> 1725.46s]  que lo que van a hacer es modificar
+[1725.46s -> 1726.68s]  va a ser algo
+[1726.68s -> 1728.32s]  o lo reactivan
+[1728.32s -> 1731.86s]  o el eliminado lo reactivan
+[1731.86s -> 1734.18s]  o el eliminado lo inactivan
+[1734.18s -> 1735.62s]  algo pueden hacer
+[1735.62s -> 1736.81s]  ¿estamos?
+[1737.37s -> 1739.97s]  si es eliminado, ¿qué tendría que hacer?
+[1740.87s -> 1741.55s]  activarlo
+[1741.55s -> 1745.12s]  ponerlo en A
+[1745.12s -> 1746.99s]  ese es el camino
+[1746.99s -> 1749.35s]  y después pueden hacer lo que quieran
+[1749.35s -> 1751.85s]  después modificar, etc.
+[1752.27s -> 1752.61s]  ¿de acuerdo?
+[1753.11s -> 1754.83s]  entonces el camino es eliminado
+[1754.83s -> 1756.79s]  si yo quiero activarlo
+[1756.79s -> 1759.23s]  exactamente es activarlo o reactivarlo
+[1759.23s -> 1760.30s]  bien
+[1760.30s -> 1762.98s]  entonces después de que solamente pueden
+[1762.98s -> 1764.84s]  hacer eso, solamente puedan
+[1764.84s -> 1765.94s]  hacerlo una vez
+[1765.94s -> 1768.66s]  si se equivocaron tres veces, tres veces
+[1768.66s -> 1770.72s]  tienen que entrar y tres veces tienen que salir
+[1770.72s -> 1772.05s]  control
+[1772.05s -> 1776.50s]  seguimos minimizando riesgos
+[1776.50s -> 1779.30s]  entonces, perfecto
+[1779.30s -> 1781.14s]  entran y dicen perfecto ahora
+[1781.14s -> 1783.99s]  a ver, dicen eliminado
+[1783.99s -> 1785.25s]  clic, que vas a hacer
+[1785.25s -> 1787.71s]  vamos a reactivarlo, todo lo reactiva
+[1787.71s -> 1792.31s]  y continúan haciendo
+[1792.31s -> 1795.16s]  por lo tanto
+[1795.16s -> 1796.94s]  lo que está abajo, ese buscar
+[1796.94s -> 1798.90s]  no va, ¿no? ¿cierto?
+[1800.92s -> 1801.72s]  porque está arriba
+[1801.72s -> 1805.50s]  ¿bien? ahora
+[1805.50s -> 1808.00s]  algo adicional, porque ustedes decían
+[1808.00s -> 1809.80s]  bueno, yo puedo
+[1809.80s -> 1812.14s]  tener y ver los activos
+[1812.14s -> 1813.86s]  los inactivos, los eliminados
+[1813.86s -> 1815.96s]  o puedo ver todo, si digo todo
+[1815.96s -> 1817.96s]  es como está acá, estamos viendo
+[1817.96s -> 1819.67s]  todo, ¿de acuerdo?
+[1821.67s -> 1822.15s]  entonces
+[1822.15s -> 1824.55s]  alguien dice, yo puedo tener los filtros
+[1824.55s -> 1826.67s]  ojo, que cuando trabajan
+[1826.67s -> 1827.93s]  que cuando trabajan
+[1827.93s -> 1829.95s]  solamente van a mostrar los activos
+[1829.95s -> 1832.54s]  no van a mostrar todo, acá sí
+[1832.54s -> 1835.11s]  porque es el mantenimiento de una tabla
+[1835.11s -> 1836.13s]  y alguien la hace
+[1836.13s -> 1839.66s]  puede tener todo, pero cuando está en ejecución
+[1839.66s -> 1840.90s]  esta tabla
+[1840.90s -> 1842.68s]  interviniendo con varios programas
+[1842.68s -> 1843.94s]  solamente entran los activos
+[1843.94s -> 1846.77s]  para hacer mantenimiento de archivos
+[1846.77s -> 1848.72s]  porque para reportes
+[1848.72s -> 1851.32s]  tienen que trabajar con los activos
+[1851.32s -> 1853.14s]  inactivos eliminados y todo
+[1853.66s -> 1857.76s]  Porque si no van a salir nombres en blanco, que había acá.
+[1858.40s -> 1859.42s]  No, siempre tienen que salir.
+[1859.70s -> 1862.54s]  Así lo hayan ustedes eliminado el mes pasado,
+[1862.72s -> 1867.44s]  pero hay información de meses anteriores y hay cuadros, etcétera, etcétera, que se sacan.
+[1867.86s -> 1868.10s]  ¿De acuerdo?
+[1869.95s -> 1870.19s]  Bien.
+[1870.99s -> 1872.81s]  Entonces, eso sería.
+[1873.97s -> 1874.53s]  ¿Preguntas?
+[1882.48s -> 1882.76s]  ¿Listo?
+[1884.06s -> 1884.38s]  A ver.
+[1886.59s -> 1887.15s]  ¿Preguntas?
+[1887.15s -> 1895.92s]  Entonces, seguimos con el siguiente subgrupo.
