@@ -12,9 +12,11 @@ import {
 } from "lucide-react";
 import type * as React from "react";
 import { Button } from "@/components/ui/button";
+import { EST_A, EST_I, EST_X, type EstReg } from "@/core";
 
 export interface OperationsBarProps {
   readonly hasPending: boolean;
+  readonly selectedState?: EstReg | null;
   readonly isSaving?: boolean;
   readonly searchOpen?: boolean;
   readonly onAdicionar: () => void;
@@ -63,6 +65,7 @@ const OPERATIONS_GRID: readonly OperationButtonSpec[] = [
     variant: "outline",
     icon: PlusIcon,
     getHandler: (props) => props.onAdicionar,
+    isDisabled: (props) => Boolean(props.isSaving) || props.hasPending,
   },
   {
     id: "modificar",
@@ -70,13 +73,23 @@ const OPERATIONS_GRID: readonly OperationButtonSpec[] = [
     variant: "outline",
     icon: PencilIcon,
     getHandler: (props) => props.onModificar,
+    isDisabled: (props) =>
+      Boolean(props.isSaving) ||
+      props.hasPending ||
+      props.selectedState !== EST_A,
   },
   {
     id: "eliminar",
     label: "Eliminar",
-    variant: "destructive",
+    variant: "outline",
     icon: Trash2Icon,
     getHandler: (props) => props.onEliminar,
+    isDisabled: (props) =>
+      Boolean(props.isSaving) ||
+      props.hasPending ||
+      props.selectedState === null ||
+      props.selectedState === undefined ||
+      props.selectedState === EST_X,
   },
   {
     id: "inactivar",
@@ -84,6 +97,10 @@ const OPERATIONS_GRID: readonly OperationButtonSpec[] = [
     variant: "outline",
     icon: PauseCircleIcon,
     getHandler: (props) => props.onInactivar,
+    isDisabled: (props) =>
+      Boolean(props.isSaving) ||
+      props.hasPending ||
+      props.selectedState !== EST_A,
   },
   {
     id: "reactivar",
@@ -91,6 +108,10 @@ const OPERATIONS_GRID: readonly OperationButtonSpec[] = [
     variant: "outline",
     icon: RotateCcwIcon,
     getHandler: (props) => props.onReactivar,
+    isDisabled: (props) =>
+      Boolean(props.isSaving) ||
+      props.hasPending ||
+      (props.selectedState !== EST_I && props.selectedState !== EST_X),
   },
   {
     id: "buscar",
@@ -98,6 +119,18 @@ const OPERATIONS_GRID: readonly OperationButtonSpec[] = [
     variant: "outline",
     icon: SearchIcon,
     getHandler: (props) => props.onBuscar,
+    isDisabled: (props) => Boolean(props.isSaving) || props.hasPending,
+  },
+  {
+    id: "cancelar",
+    label: "Cancelar",
+    variant: "outline",
+    icon: BanIcon,
+    getHandler: (props) => props.onCancelar,
+    isDisabled: (props) =>
+      Boolean(props.isSaving) ||
+      (!props.hasPending &&
+        (props.selectedState === null || props.selectedState === undefined)),
   },
   {
     id: "guardar",
@@ -105,15 +138,7 @@ const OPERATIONS_GRID: readonly OperationButtonSpec[] = [
     variant: "default",
     icon: CheckIcon,
     getHandler: (props) => props.onGuardar,
-    isDisabled: (props) => Boolean(props.isSaving),
-  },
-  {
-    id: "cancelar",
-    label: "Cancelar",
-    variant: "secondary",
-    icon: BanIcon,
-    getHandler: (props) => props.onCancelar,
-    isDisabled: (props) => Boolean(props.isSaving),
+    isDisabled: (props) => Boolean(props.isSaving) || !props.hasPending,
   },
   {
     id: "salir",
@@ -126,8 +151,8 @@ const OPERATIONS_GRID: readonly OperationButtonSpec[] = [
 ];
 
 /**
- * Compact 3x3 mobile operation dock preserving the 9 exact lab labels (PRODUCT.md / SPEC §8).
- * Starting a second operation while pending stays enabled so controller fires E-PENDING as specified.
+ * Fixed 3x3 bottom operation dock preserving the 9 exact lab labels (PRODUCT.md / SPEC §8).
+ * Buttons dynamically enable/disable (gray out) according to selection and pending state.
  */
 export function OperationsBar(props: OperationsBarProps) {
   return (
@@ -135,11 +160,11 @@ export function OperationsBar(props: OperationsBarProps) {
       aria-label="Operaciones de mantenimiento"
       data-testid="operations-bar"
       className={cn(
-        "rounded-xl border border-border bg-card p-2.5 shadow-sm",
+        "rounded-xl border border-border bg-card p-2 shadow-sm",
         props.className,
       )}
     >
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1.5">
         {OPERATIONS_GRID.map((op) => {
           const Icon = op.icon;
           const activeVariant =
@@ -150,13 +175,19 @@ export function OperationsBar(props: OperationsBarProps) {
             <Button
               key={op.id}
               type="button"
-              variant={activeVariant}
+              variant={disabled ? "secondary" : activeVariant}
               disabled={disabled}
               data-testid={`op-${op.id}`}
               aria-pressed={op.id === "buscar" ? props.searchOpen : undefined}
               onClick={op.getHandler(props)}
               className={cn(
-                "min-h-11 w-full justify-center gap-1.5 px-2 text-xs font-semibold sm:text-sm",
+                "min-h-11 w-full justify-center gap-1.5 px-2 text-xs font-semibold transition-colors sm:text-sm",
+                !disabled &&
+                  op.id !== "guardar" &&
+                  !(op.id === "buscar" && props.searchOpen) &&
+                  "border-sky-200 bg-sky-50/90 text-sky-950 hover:bg-sky-100",
+                disabled &&
+                  "border-transparent bg-muted text-muted-foreground opacity-55",
                 op.id === "guardar" &&
                   props.hasPending &&
                   "ring-2 ring-primary/35",

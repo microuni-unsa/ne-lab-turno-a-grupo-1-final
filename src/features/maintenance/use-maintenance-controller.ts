@@ -54,7 +54,7 @@ export interface MaintenanceController<
   readonly startAdicion: (initialPayload?: TPayload) => SessionOpResult;
   readonly startModificacion: (overridePayload?: TPayload) => SessionOpResult;
   readonly startInactivar: () => SessionOpResult;
-  readonly startReactivar: () => SessionOpResult;
+  readonly startReactivar: (supervisorCode?: string) => SessionOpResult;
   readonly startEliminar: () => SessionOpResult;
   readonly cancelar: () => { readonly ok: true };
   readonly guardar: (
@@ -218,6 +218,7 @@ export function useMaintenanceController<
     (
       kind: "modificación" | "inactivar" | "reactivar" | "eliminación",
       overridePayload?: TPayload,
+      supervisorCode?: string,
     ): SessionOpResult => {
       const session = getSession();
       if (session.hasPending) {
@@ -253,11 +254,18 @@ export function useMaintenanceController<
               targetCode,
               payload: modificationPayload,
             }
-          : {
-              kind,
-              table: optionsRef.current.table,
-              targetCode,
-            };
+          : kind === "reactivar"
+            ? {
+                kind: "reactivar",
+                table: optionsRef.current.table,
+                targetCode,
+                ...(supervisorCode !== undefined ? { supervisorCode } : {}),
+              }
+            : {
+                kind,
+                table: optionsRef.current.table,
+                targetCode,
+              };
 
       const result = session.start(op, targetState);
       if (!result.ok) {
@@ -283,7 +291,8 @@ export function useMaintenanceController<
   );
 
   const startReactivar = React.useCallback(
-    () => startTargetedOp("reactivar"),
+    (supervisorCode?: string) =>
+      startTargetedOp("reactivar", undefined, supervisorCode),
     [startTargetedOp],
   );
 

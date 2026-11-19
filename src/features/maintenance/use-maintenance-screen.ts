@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import * as React from "react";
 import {
   EST_A,
+  EST_X,
   type EstReg,
   type FieldFailure,
   type PendingOpKind,
@@ -79,6 +80,7 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
 
   const [simpleInput, setSimpleInput] = React.useState("");
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
+  const [supervisorDialogOpen, setSupervisorDialogOpen] = React.useState(false);
   const [formDrawerOpen, setFormDrawerOpen] = React.useState(false);
   const [formSessionKey, setFormSessionKey] = React.useState(0);
   const [formDraft, setFormDraft] = React.useState<Record<string, unknown>>({});
@@ -242,15 +244,41 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
     if (controller.isSaving) {
       return;
     }
-    controller.cancelar();
-    setFormDrawerOpen(false);
-    setFormDraft({});
-    setExternalFailures([]);
+    if (controller.hasPending) {
+      controller.cancelar();
+      setFormDrawerOpen(false);
+      setFormDraft({});
+      setExternalFailures([]);
+      return;
+    }
+    controller.selectRow(null);
   }, [controller]);
+
+  const handleRequestReactivar = React.useCallback(() => {
+    const selected = controller.getSelectedRow();
+    if (selected && getRowState(selected) === EST_X && !controller.hasPending) {
+      setSupervisorDialogOpen(true);
+      return;
+    }
+    controller.startReactivar();
+  }, [controller, getRowState]);
+
+  const handleConfirmSupervisorReactivar = React.useCallback(
+    (supervisorCode: string) => {
+      const trimmed = supervisorCode.trim();
+      if (trimmed.length === 0) {
+        return;
+      }
+      setSupervisorDialogOpen(false);
+      controller.startReactivar(trimmed);
+    },
+    [controller],
+  );
 
   const handleSalir = useGuardedExit(controller.salir);
 
   return {
+    table,
     feedback,
     queryClient,
     controller,
@@ -259,6 +287,8 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
     setSimpleInput,
     advancedOpen,
     setAdvancedOpen,
+    supervisorDialogOpen,
+    setSupervisorDialogOpen,
     formDrawerOpen,
     setFormDrawerOpen,
     formSessionKey,
@@ -273,8 +303,13 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
     selectedCode: controller.selectedRow
       ? getRowCode(controller.selectedRow)
       : null,
+    selectedState: controller.selectedRow
+      ? getRowState(controller.selectedRow)
+      : null,
     handleStartAdicion,
     handleStartModificacion,
+    handleRequestReactivar,
+    handleConfirmSupervisorReactivar,
     handleSubmitPayload,
     handleGuardarAction,
     handleCancelPending,

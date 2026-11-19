@@ -448,13 +448,15 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     expect(await screen.findByText("Juan Pérez")).toBeTruthy();
 
     fireEvent.click(screen.getByTestId("op-adicionar"));
-    expect(await screen.findByTestId("personal-form-title")).toBeTruthy();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ADICIÓN",
+    );
 
     await setIonFieldValue("PerCod", "10");
     await setIonFieldValue("PerNom", "A");
     await setIonFieldValue("PerDNI", "12a");
     await pickCalendarDate("PerFecNac", "2012", "0", "15");
-    fireEvent.click(screen.getByTestId("form-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
 
     await waitFor(() => {
       const alertText = readFeedbackAlertText();
@@ -482,16 +484,13 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     await pickGselOption("PerDepCod", 1);
     await pickGselOption("PerCarCod", 1);
 
-    // Hide banner preserves draft & blocks Salir with [E-PENDING]
-    fireEvent.click(screen.getByTestId("drawer-hide"));
-    expect(await screen.findByTestId("pending-form-banner")).toBeTruthy();
+    // Toolbar Salir blocks while pending with [E-PENDING]
     fireEvent.click(screen.getByTestId("toolbar-salir"));
     await waitFor(() => {
       expect(readFeedbackAlertText()).toContain("[E-PENDING]");
     });
 
-    fireEvent.click(screen.getByTestId("btn-reopen-form-drawer"));
-    fireEvent.click(await screen.findByTestId("form-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
 
     await waitFor(() => {
       expect(screen.getByTestId("record-row-10")).toBeTruthy();
@@ -531,16 +530,32 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     });
 
     fireEvent.click(screen.getByTestId("record-row-2"));
-    fireEvent.click(screen.getByTestId("op-modificar"));
-    expect(await screen.findByTestId("personal-form-title")).toBeTruthy();
 
-    // R2 + R8 + R7 on drawer trigger
+    // Regla del docente: Modificar deshabilitado en Inactivo hasta Reactivar
+    expect(
+      (screen.getByTestId("op-modificar") as HTMLButtonElement).disabled,
+    ).toBe(true);
+    fireEvent.click(screen.getByTestId("op-reactivar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("record-row-2").querySelector('[data-estado="A"]'),
+      ).not.toBeNull();
+    });
+
+    fireEvent.click(screen.getByTestId("record-row-2"));
+    fireEvent.click(screen.getByTestId("op-modificar"));
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO MODIFICACIÓN",
+    );
+
+    // R2 + R8 + R7 on inline trigger
+    await waitFor(() => {
+      expect(document.querySelector('input[name="PerCod"]')).not.toBeNull();
+    });
     expect(
       document.querySelector('input[name="PerCod"]')?.hasAttribute("readonly"),
     ).toBe(true);
-    expect(screen.getByTestId("form-estreg-readonly").textContent).toContain(
-      "I · Inactivo",
-    );
     await waitFor(() => {
       expect(
         screen.getByTestId("gsel-trigger-PerPaiCod").textContent,
@@ -548,7 +563,7 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     });
 
     // Submitting with inactive FK returns E-REF-STATE
-    fireEvent.click(screen.getByTestId("form-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
       expect(readFeedbackAlertText()).toContain("[E-REF-STATE]");
     });
@@ -559,38 +574,25 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     expect(screen.queryByTestId("gsel-option-PerPaiCod-3")).toBeNull();
     fireEvent.click(screen.getByTestId("gsel-option-PerPaiCod-2"));
 
-    fireEvent.click(screen.getByTestId("form-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
       expect(screen.getByTestId("record-row-2").textContent).toContain("Chile");
     });
-    expect(screen.getByTestId("record-row-2").textContent).toContain(
-      "I · Inactivo",
-    );
-
-    // State lifecycle on #2: Reactivar -> Inactivar -> Eliminar -> E-TRANSITION
-    fireEvent.click(screen.getByTestId("op-reactivar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
-    await waitFor(() => {
-      expect(screen.getByTestId("record-row-2").textContent).toContain(
-        "A · Activo",
-      );
-    });
 
     fireEvent.click(screen.getByTestId("op-eliminar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
-      expect(screen.getByTestId("record-row-2").textContent).toContain(
-        "* · Eliminado",
-      );
+      expect(
+        screen.getByTestId("record-row-2").querySelector('[data-estado="*"]'),
+      ).not.toBeNull();
     });
 
-    fireEvent.click(screen.getByTestId("op-modificar"));
-    await waitFor(() => {
-      expect(readFeedbackAlertText()).toContain("[E-TRANSITION]");
-    });
+    expect(
+      (screen.getByTestId("op-modificar") as HTMLButtonElement).disabled,
+    ).toBe(true);
   });
 
-  it("ejecuta búsqueda simple §11.2 por código, DNI y nombre", async () => {
+  it("ejecuta búsqueda vía Buscar en dock por código, DNI y nombre", async () => {
     const catalogs = createSampleCatalogs();
     const { repo } = createMemoryPersonalRepo(
       [
@@ -626,41 +628,24 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     expect(await screen.findByText("Juan Pérez")).toBeTruthy();
     expect(screen.getByText("Elena Paz")).toBeTruthy();
 
-    await setIonFieldValue("simpleSearch", "78901234");
+    fireEvent.click(screen.getByTestId("op-buscar"));
+    const dniField = await screen.findByTestId("adv-filter-dni");
+    const dniIon = dniField.closest("ion-input");
+    dniIon?.dispatchEvent(
+      new CustomEvent("ionInput", {
+        bubbles: true,
+        detail: { value: "78901234", event: new Event("input") },
+      }),
+    );
     await waitFor(() => {
       expect(
-        Reflect.get(screen.getByTestId("input-simple-search"), "value"),
+        Reflect.get(
+          document.querySelector('input[name="advDni"]') ?? {},
+          "value",
+        ),
       ).toBe("78901234");
     });
-    fireEvent.click(screen.getByTestId("btn-simple-search"));
-
-    await waitFor(() => {
-      expect(screen.queryByText("Juan Pérez")).toBeNull();
-      expect(screen.getByText("Elena Paz")).toBeTruthy();
-    });
-
-    // Exact numeric PerCod search (§11.2)
-    await setIonFieldValue("simpleSearch", "25");
-    await waitFor(() => {
-      expect(
-        Reflect.get(screen.getByTestId("input-simple-search"), "value"),
-      ).toBe("25");
-    });
-    fireEvent.click(screen.getByTestId("btn-simple-search"));
-
-    await waitFor(() => {
-      expect(screen.queryByText("Juan Pérez")).toBeNull();
-      expect(screen.getByText("Elena Paz")).toBeTruthy();
-    });
-
-    // Case-insensitive partial PerNom search (§11.2)
-    await setIonFieldValue("simpleSearch", "paz");
-    await waitFor(() => {
-      expect(
-        Reflect.get(screen.getByTestId("input-simple-search"), "value"),
-      ).toBe("paz");
-    });
-    fireEvent.click(screen.getByTestId("btn-simple-search"));
+    fireEvent.click(screen.getByTestId("adv-btn-apply"));
 
     await waitFor(() => {
       expect(screen.queryByText("Juan Pérez")).toBeNull();

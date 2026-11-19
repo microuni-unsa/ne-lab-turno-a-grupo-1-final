@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import * as React from "react";
 import { MaintenancePageScaffold } from "@/features/maintenance/components/MaintenancePageScaffold";
 import { useMaintenanceScreen } from "@/features/maintenance/use-maintenance-screen";
-import { ReferenceFormDrawer } from "@/features/reference/components/ReferenceFormDrawer";
+import { ReferenceInlineForm } from "@/features/reference/components/ReferenceFormDrawer";
 import type {
   ReferenceMaintenanceConfig,
   ReferenceRepoContract,
@@ -55,15 +55,12 @@ export function ReferenceMaintenancePage<TRow>({
       getRowState={config.getRowState}
       renderFormDrawer={() =>
         screen.isFormPending ? (
-          <ReferenceFormDrawer
-            open={screen.formDrawerOpen}
-            onOpenChange={screen.setFormDrawerOpen}
+          <ReferenceInlineForm
             sessionKey={screen.formSessionKey}
             mode={screen.formMode}
             config={config}
             draft={screen.formDraft}
             onDraftChange={screen.setFormDraft}
-            estReg={screen.drawerEstReg}
             externalFailures={screen.externalFailures}
             isSaving={screen.controller.isSaving}
             submitTriggerRef={screen.submitTriggerRef}
@@ -72,7 +69,6 @@ export function ReferenceMaintenancePage<TRow>({
               screen.feedback.notifyBatchErrors(failures)
             }
             onCancelPending={screen.handleCancelPending}
-            onHideDrawer={() => screen.setFormDrawerOpen(false)}
             onSalir={screen.handleSalir}
           />
         ) : null

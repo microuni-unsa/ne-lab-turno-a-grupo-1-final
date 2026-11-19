@@ -13,7 +13,7 @@ import { getLocalIsoDate } from "@/features/maintenance/use-maintenance-controll
 import type { RepoReader } from "@/features/maintenance/use-maintenance-list";
 import { useMaintenanceScreen } from "@/features/maintenance/use-maintenance-screen";
 import { PersonalAdvancedFilters } from "@/features/personal/components/PersonalAdvancedFilters";
-import { PersonalFormDrawer } from "@/features/personal/components/PersonalFormDrawer";
+import { PersonalInlineForm } from "@/features/personal/components/PersonalFormDrawer";
 import {
   createPersonalGselBindings,
   formatPersonalSubtitle,
@@ -92,16 +92,13 @@ export function PersonalMaintenancePage({
       getRowState={(row) => row.PerEstReg}
       renderFormDrawer={() =>
         screen.isFormPending ? (
-          <PersonalFormDrawer
-            open={screen.formDrawerOpen}
-            onOpenChange={screen.setFormDrawerOpen}
+          <PersonalInlineForm
             sessionKey={screen.formSessionKey}
             mode={screen.formMode}
             todayLocal={todayLocal}
             bindings={gselBindings}
             draft={screen.formDraft}
             onDraftChange={screen.setFormDraft}
-            estReg={screen.drawerEstReg}
             externalFailures={screen.externalFailures}
             isSaving={screen.controller.isSaving}
             submitTriggerRef={screen.submitTriggerRef}
@@ -110,7 +107,6 @@ export function PersonalMaintenancePage({
               screen.feedback.notifyBatchErrors(failures)
             }
             onCancelPending={screen.handleCancelPending}
-            onHideDrawer={() => screen.setFormDrawerOpen(false)}
             onSalir={screen.handleSalir}
           />
         ) : null

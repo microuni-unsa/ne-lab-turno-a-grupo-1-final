@@ -192,37 +192,56 @@ describe("PAIS maintenance page integration (QueryClient + Repo + Feedback)", ()
 
     // 1. Adición válida inserta nuevo registro y refresca lista automáticamente
     fireEvent.click(screen.getByTestId("op-adicionar"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ADICIÓN",
+    );
     await waitFor(() => {
       expect(document.querySelector('input[name="PaiCod"]')).not.toBeNull();
     });
     setIonFieldValue("PaiCod", "44");
     setIonFieldValue("PaiNom", "Paraguay");
-    fireEvent.click(screen.getByTestId("form-guardar"));
+    await waitFor(() => {
+      const nomEl = document.querySelector('input[name="PaiNom"]');
+      expect(Reflect.get(nomEl ?? {}, "value")).toBe("Paraguay");
+    });
+    fireEvent.click(screen.getByTestId("op-guardar"));
 
-    expect(await screen.findByText("Paraguay")).toBeTruthy();
+    expect((await screen.findAllByText("Paraguay")).length).toBeGreaterThan(0);
 
     // 2. Modificación actualiza nombre preservando PaiCod y EstReg en la lista
     fireEvent.click(screen.getByTestId("record-row-44"));
     fireEvent.click(screen.getByTestId("op-modificar"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO MODIFICACIÓN",
+    );
     await waitFor(() => {
       expect(document.querySelector('input[name="PaiNom"]')).not.toBeNull();
     });
     setIonFieldValue("PaiNom", "Paraguay Norte");
-    fireEvent.click(screen.getByTestId("form-guardar"));
-
-    expect(await screen.findByText("Paraguay Norte")).toBeTruthy();
-
-    // 3. Inactivar #44 y verificar badge I · Inactivo en la fila re-renderizada
-    fireEvent.click(screen.getByTestId("record-row-44"));
-    fireEvent.click(screen.getByTestId("op-inactivar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    await waitFor(() => {
+      const nomEl = document.querySelector('input[name="PaiNom"]');
+      expect(Reflect.get(nomEl ?? {}, "value")).toBe("Paraguay Norte");
+    });
+    fireEvent.click(screen.getByTestId("op-guardar"));
 
     await waitFor(() => {
       expect(screen.getByTestId("record-row-44").textContent).toContain(
-        "I · Inactivo",
+        "Paraguay Norte",
       );
+    });
+
+    // 3. Inactivar #44 y verificar badge compacto I en la fila re-renderizada
+    fireEvent.click(screen.getByTestId("record-row-44"));
+    fireEvent.click(screen.getByTestId("op-inactivar"));
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO INACTIVAR",
+    );
+    fireEvent.click(screen.getByTestId("op-guardar"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("record-row-44").querySelector('[data-estado="I"]'),
+      ).not.toBeNull();
     });
   });
 });

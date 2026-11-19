@@ -9,7 +9,7 @@ import {
 } from "@ionic/react";
 import {
   AlertTriangleIcon,
-  LogOutIcon,
+  ArrowLeftIcon,
   WifiIcon,
   WifiOffIcon,
 } from "lucide-react";
@@ -39,10 +39,8 @@ export interface MaintenanceLayoutProps {
 export function MaintenanceLayout({
   id,
   title,
-  subtitle,
   onSalir,
   onExitAllowed,
-  pendingLabel,
   footer,
   children,
 }: MaintenanceLayoutProps) {
@@ -57,14 +55,14 @@ export function MaintenanceLayout({
           <IonButtons slot="start">
             <Button
               type="button"
-              variant="outline"
-              size="sm"
+              variant="ghost"
+              size="icon"
+              aria-label="Volver"
               data-testid="toolbar-salir"
               onClick={handleExit}
-              className="min-h-11 gap-1.5 px-3 font-medium"
+              className="min-h-11 min-w-11"
             >
-              <LogOutIcon className="size-4 shrink-0" />
-              <span>Salir</span>
+              <ArrowLeftIcon className="size-4 shrink-0" />
             </Button>
           </IonButtons>
 
@@ -107,21 +105,6 @@ export function MaintenanceLayout({
 
       <IonContent className="ion-padding">
         <main className="mx-auto flex w-full max-w-md flex-col gap-3 px-4 pt-3 pb-6">
-          {(subtitle || pendingLabel) && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
-              {subtitle && (
-                <span className="font-medium text-muted-foreground">
-                  {subtitle}
-                </span>
-              )}
-              {pendingLabel && (
-                <Badge variant="default" data-testid="layout-pending-badge">
-                  Pendiente: {pendingLabel}
-                </Badge>
-              )}
-            </div>
-          )}
-
           {!isOnline && (
             <div
               role="alert"

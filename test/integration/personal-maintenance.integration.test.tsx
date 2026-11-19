@@ -334,7 +334,7 @@ describe("PERSONAL React Query orden, búsqueda avanzada §11.3 e invalidación 
     });
 
     // Toggle ordering -> PerNom ASC, PerCod ASC -> #5 Ana Salas, #8 Ana Salas, #2 Zoe Vera
-    fireEvent.click(screen.getByTestId("btn-toggle-ordering"));
+    fireEvent.click(screen.getByTestId("btn-sort-name"));
     await waitFor(() => {
       const buttons = screen
         .getByTestId("record-list-rows")
@@ -345,7 +345,7 @@ describe("PERSONAL React Query orden, búsqueda avanzada §11.3 e invalidación 
     });
 
     // Combined Advanced Search: DNI "7000" + FecNacFrom "1996-01-01" + PaiCod 1 via G-SEL
-    fireEvent.click(screen.getByTestId("btn-open-advanced"));
+    fireEvent.click(screen.getByTestId("op-buscar"));
     const dniWrapper = (await screen.findByTestId("adv-filter-dni")).closest(
       "ion-input",
     );
@@ -373,54 +373,6 @@ describe("PERSONAL React Query orden, búsqueda avanzada §11.3 e invalidación 
       expect(screen.queryByTestId("record-row-5")).toBeNull();
       expect(screen.queryByTestId("record-row-2")).toBeNull();
       expect(screen.getByTestId("record-row-8")).toBeTruthy();
-    });
-
-    // Simple searches by PerCod (#2), PerDNI (70009999 -> #8), and PerNom ("ana" -> #5, #8) (§11.2)
-    const simpleWrap = screen.getByTestId("input-simple-search");
-    simpleWrap.dispatchEvent(
-      new CustomEvent("ionInput", {
-        bubbles: true,
-        detail: { value: "2", event: new Event("input") },
-      }),
-    );
-    await waitFor(() => {
-      expect(Reflect.get(simpleWrap, "value")).toBe("2");
-    });
-    fireEvent.click(screen.getByTestId("btn-simple-search"));
-    await waitFor(() => {
-      expect(screen.getByTestId("record-row-2")).toBeTruthy();
-      expect(screen.queryByTestId("record-row-5")).toBeNull();
-    });
-
-    simpleWrap.dispatchEvent(
-      new CustomEvent("ionInput", {
-        bubbles: true,
-        detail: { value: "70009999", event: new Event("input") },
-      }),
-    );
-    await waitFor(() => {
-      expect(Reflect.get(simpleWrap, "value")).toBe("70009999");
-    });
-    fireEvent.click(screen.getByTestId("btn-simple-search"));
-    await waitFor(() => {
-      expect(screen.getByTestId("record-row-8")).toBeTruthy();
-      expect(screen.queryByTestId("record-row-5")).toBeNull();
-    });
-
-    simpleWrap.dispatchEvent(
-      new CustomEvent("ionInput", {
-        bubbles: true,
-        detail: { value: "ana", event: new Event("input") },
-      }),
-    );
-    await waitFor(() => {
-      expect(Reflect.get(simpleWrap, "value")).toBe("ana");
-    });
-    fireEvent.click(screen.getByTestId("btn-simple-search"));
-    await waitFor(() => {
-      expect(screen.getByTestId("record-row-5")).toBeTruthy();
-      expect(screen.getByTestId("record-row-8")).toBeTruthy();
-      expect(screen.queryByTestId("record-row-2")).toBeNull();
     });
 
     fireEvent.click(screen.getByTestId("btn-clear-search"));

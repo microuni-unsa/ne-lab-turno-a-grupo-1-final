@@ -1,17 +1,16 @@
+import { EraserIcon } from "lucide-react";
 import type * as React from "react";
-import type { EstReg, TableName } from "@/core";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { type EstReg, TABLE_PERSONAL, type TableName } from "@/core";
 import { AdvancedSearchDrawer } from "@/features/maintenance/components/AdvancedSearchDrawer";
 import { MaintenanceLayout } from "@/features/maintenance/components/MaintenanceLayout";
 import { OperationsBar } from "@/features/maintenance/components/OperationsBar";
-import { PendingFormBanner } from "@/features/maintenance/components/PendingFormBanner";
+import { RecordDetailCard } from "@/features/maintenance/components/RecordDetailCard";
 import { RecordListView } from "@/features/maintenance/components/RecordListView";
-import { SearchControlsBar } from "@/features/maintenance/components/SearchControlsBar";
-import { StateTransitionCard } from "@/features/maintenance/components/StateTransitionCard";
+import { SupervisorAuthDialog } from "@/features/maintenance/components/SupervisorAuthDialog";
 import type { AdvancedFilterDraft } from "@/features/maintenance/use-maintenance-list";
-import {
-  isStateTransitionOp,
-  type useMaintenanceScreen,
-} from "@/features/maintenance/use-maintenance-screen";
+import type { useMaintenanceScreen } from "@/features/maintenance/use-maintenance-screen";
 
 export interface MaintenancePageScaffoldProps<TTable extends TableName, TRow> {
   readonly id: string;
@@ -35,17 +34,15 @@ export interface MaintenancePageScaffoldProps<TTable extends TableName, TRow> {
 
 /**
  * Shared scaffold for Reference and Personal maintenance screens (DRY / OCP):
- * renders MaintenanceLayout with docked OperationsBar in IonFooter, sticky
- * PendingFormBanner / StateTransitionCard, SearchControlsBar, RecordListView,
- * AdvancedSearchDrawer, and the entity-specific FormDrawer slot.
+ * renders inline RecordDetailCard ("Datos del registro"), ordering/count + paged
+ * RecordListView with column headers, Buscar-triggered AdvancedSearchDrawer,
+ * SupervisorAuthDialog for * -> A, and fixed 3x3 OperationsBar in IonFooter.
  */
 export function MaintenancePageScaffold<TTable extends TableName, TRow>({
   id,
   title,
   subtitle,
-  singularLabel,
   tableLabel,
-  searchPlaceholder,
   emptyMessage,
   screen,
   getRowCode,
@@ -55,10 +52,9 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
   renderFormDrawer,
   renderExtraFilters,
 }: MaintenancePageScaffoldProps<TTable, TRow>) {
-  const showStickyBanner =
-    (screen.isFormPending && !screen.formDrawerOpen) ||
-    (isStateTransitionOp(screen.pendingKind) &&
-      screen.controller.selectedRow !== null);
+  const selectedRow = screen.controller.selectedRow;
+  const isCodeDefault =
+    screen.table === TABLE_PERSONAL || screen.table === "PERSONAL";
 
   return (
     <MaintenanceLayout
@@ -70,6 +66,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
       footer={
         <OperationsBar
           hasPending={screen.controller.hasPending}
+          selectedState={screen.selectedState}
           isSaving={screen.controller.isSaving}
           searchOpen={screen.advancedOpen}
           onAdicionar={screen.handleStartAdicion}
@@ -80,9 +77,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
           onInactivar={() => {
             screen.controller.startInactivar();
           }}
-          onReactivar={() => {
-            screen.controller.startReactivar();
-          }}
+          onReactivar={screen.handleRequestReactivar}
           onGuardar={() => {
             void screen.handleGuardarAction();
           }}
@@ -92,45 +87,40 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
         />
       }
     >
-      <SearchControlsBar
-        simpleInput={screen.simpleInput}
-        onSimpleInputChange={screen.setSimpleInput}
-        onSubmitSimpleSearch={(term) => screen.list.applySimpleSearch(term)}
-        onClearSearch={() => {
-          screen.setSimpleInput("");
-          screen.list.clearSearch();
-        }}
-        searchMode={screen.list.searchMode}
-        orderingLabel={screen.list.orderingLabel}
-        onToggleOrdering={() => screen.list.toggleOrdering()}
-        onOpenAdvanced={() => screen.setAdvancedOpen(true)}
-        searchPlaceholder={searchPlaceholder}
+      <RecordDetailCard
+        pendingKind={screen.pendingKind}
+        selectedCode={selectedRow ? getRowCode(selectedRow) : null}
+        selectedTitle={selectedRow ? getRowTitle(selectedRow) : null}
+        selectedSubtitle={
+          selectedRow && getRowSubtitle
+            ? getRowSubtitle(selectedRow)
+            : undefined
+        }
+        selectedState={selectedRow ? getRowState(selectedRow) : null}
+        renderInlineForm={renderFormDrawer}
       />
 
-      {showStickyBanner && (
-        <div className="sticky top-0 z-20 flex flex-col gap-2 bg-background py-1">
-          {screen.isFormPending && !screen.formDrawerOpen && (
-            <PendingFormBanner
-              pendingKind={screen.pendingKind}
-              onReopen={() => screen.setFormDrawerOpen(true)}
-            />
-          )}
-
-          {isStateTransitionOp(screen.pendingKind) &&
-            screen.controller.selectedRow && (
-              <StateTransitionCard
-                kind={screen.pendingKind}
-                singularLabel={singularLabel}
-                rowCode={getRowCode(screen.controller.selectedRow)}
-                rowNom={getRowTitle(screen.controller.selectedRow)}
-                currentState={getRowState(screen.controller.selectedRow)}
-                isSaving={screen.controller.isSaving}
-                onConfirmGuardar={() => {
-                  void screen.controller.guardar();
-                }}
-                onCancelar={screen.handleCancelPending}
-              />
-            )}
+      {screen.list.searchMode !== "none" && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-1.5 text-xs">
+          <Badge variant="secondary" data-testid="active-search-badge">
+            {screen.list.searchMode === "advanced"
+              ? "Filtro avanzado activo"
+              : `Buscando: "${screen.list.simpleTerm}"`}
+          </Badge>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            data-testid="btn-clear-search"
+            onClick={() => {
+              screen.setSimpleInput("");
+              screen.list.clearSearch();
+            }}
+            className="min-h-8 gap-1 px-2 text-xs text-muted-foreground"
+          >
+            <EraserIcon className="size-3.5" />
+            <span>Limpiar</span>
+          </Button>
         </div>
       )}
 
@@ -141,6 +131,9 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
         isFetching={screen.list.isFetching}
         isError={screen.list.isError}
         orderingLabel={screen.list.orderingLabel}
+        ordering={screen.list.ordering}
+        isCodeDefault={isCodeDefault}
+        onToggleOrdering={() => screen.list.toggleOrdering()}
         selectedCode={screen.selectedCode}
         getRowCode={getRowCode}
         getRowTitle={getRowTitle}
@@ -158,7 +151,6 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
         onRetry={() => {
           void screen.list.refetch();
         }}
-        emptyMessage={emptyMessage}
         onClearFilters={
           screen.list.searchMode !== "none"
             ? () => {
@@ -167,24 +159,30 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
               }
             : undefined
         }
+        emptyMessage={emptyMessage}
       />
-
-      {renderFormDrawer()}
 
       <AdvancedSearchDrawer
         open={screen.advancedOpen}
         onOpenChange={screen.setAdvancedOpen}
+        tableLabel={tableLabel}
         filters={screen.list.advancedFilters}
-        onApply={(next) => {
+        onApply={(filters) => {
           screen.setSimpleInput("");
-          screen.list.applyAdvancedSearch(next);
+          screen.list.applyAdvancedSearch(filters);
         }}
         onReset={() => {
           screen.setSimpleInput("");
           screen.list.clearSearch();
         }}
-        tableLabel={tableLabel}
         renderExtraFilters={renderExtraFilters}
+      />
+
+      <SupervisorAuthDialog
+        open={screen.supervisorDialogOpen}
+        onOpenChange={screen.setSupervisorDialogOpen}
+        recordLabel={selectedRow ? getRowTitle(selectedRow) : undefined}
+        onAuthorize={screen.handleConfirmSupervisorReactivar}
       />
     </MaintenanceLayout>
   );

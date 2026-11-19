@@ -95,7 +95,9 @@ function createMemoryPaisRepo(initial: readonly PaisRow[] = []): {
       }
 
       if (op.kind === "reactivar") {
-        if (current.PaiEstReg !== EST_I) {
+        const supervisorOk =
+          current.PaiEstReg === EST_X && op.supervisorCode === "SUP-2026";
+        if (current.PaiEstReg !== EST_I && !supervisorOk) {
           return {
             ok: false as const,
             failures: [createFailure(ERROR_CODES.TRANSITION, "PaiCod")],
@@ -254,30 +256,38 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
     expect(await screen.findByTestId("record-row-1")).toBeTruthy();
     expect(screen.getByTestId("record-row-2")).toBeTruthy();
 
-    // Sin selección -> Modificar muestra aviso y no abre drawer
-    fireEvent.click(screen.getByTestId("op-modificar"));
-    expect(screen.queryByTestId("reference-form-title")).toBeNull();
+    // Sin selección -> Modificar está deshabilitado
+    expect(
+      (screen.getByTestId("op-modificar") as HTMLButtonElement).disabled,
+    ).toBe(true);
 
-    // Adición abre Drawer con EstReg A · Activo fijo
+    // Adición muestra formulario inline en Datos del registro con EstReg A - Activo
     fireEvent.click(screen.getByTestId("op-adicionar"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
-    expect(screen.getByTestId("form-estreg-readonly").textContent).toContain(
-      "A · Activo",
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ADICIÓN",
     );
+    expect(screen.getByTestId("record-detail-card").textContent).toContain(
+      "A - Activo",
+    );
+    await waitFor(() => {
+      expect(document.querySelector('input[name="PaiNom"]')).not.toBeNull();
+    });
 
     // Guardar inválido con PaiCod vacío y PaiNom="A" muestra alerta R22 en lote y conserva borrador
     setIonFieldValue("PaiNom", "A");
-    fireEvent.click(screen.getByTestId("form-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
 
     await waitFor(() => {
       const alert = document.querySelector('[data-testid="feedback-alert"]');
       expect(alert).not.toBeNull();
       expect(Reflect.get(alert ?? {}, "isOpen")).toBe(true);
     });
-    expect(screen.getByTestId("reference-form-title")).toBeTruthy();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ADICIÓN",
+    );
   });
 
-  it("bloquea PaiCod en Modificación de fila Inactiva preservando EstReg=I y permite Hide/Cancel", async () => {
+  it("deshabilita Modificar en fila Inactiva hasta Reactivar y bloquea PaiCod en Modificación", async () => {
     const { repo, guardarSpy } = createMemoryPaisRepo([
       {
         PaiCod: asPaiCod(3),
@@ -291,36 +301,54 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
     renderPaisPage(repo);
     const rowBtn = await screen.findByTestId("record-row-3");
     fireEvent.click(rowBtn);
-    fireEvent.click(screen.getByTestId("op-modificar"));
 
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
-    expect(screen.getByTestId("form-estreg-readonly").textContent).toContain(
-      "I · Inactivo",
+    // Regla del docente: un registro Inactivo no se puede modificar hasta reactivarlo
+    expect(
+      (screen.getByTestId("op-modificar") as HTMLButtonElement).disabled,
+    ).toBe(true);
+
+    fireEvent.click(screen.getByTestId("op-reactivar"));
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO REACTIVAR",
     );
-
-    const codeInput = document.querySelector('input[name="PaiCod"]');
-    expect(codeInput?.hasAttribute("readonly")).toBe(true);
-
-    // Ocultar conserva operación pendiente y muestra banner de reapertura
-    fireEvent.click(screen.getByTestId("drawer-hide"));
-    expect(await screen.findByTestId("pending-form-banner")).toBeTruthy();
-
-    fireEvent.click(screen.getByTestId("btn-reopen-form-drawer"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
-
-    setIonFieldValue("PaiNom", "Colombia Editada");
-    fireEvent.click(screen.getByTestId("form-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
 
     await waitFor(() => {
       expect(guardarSpy).toHaveBeenCalledTimes(1);
     });
-    expect(await screen.findByText("Colombia Editada")).toBeTruthy();
-    expect(screen.getByTestId("record-row-3").textContent).toContain(
-      "I · Inactivo",
+
+    // Ahora Activo -> Modificar habilitado con PaiCod readonly
+    fireEvent.click(await screen.findByTestId("record-row-3"));
+    expect(
+      (screen.getByTestId("op-modificar") as HTMLButtonElement).disabled,
+    ).toBe(false);
+    fireEvent.click(screen.getByTestId("op-modificar"));
+
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO MODIFICACIÓN",
     );
+    await waitFor(() => {
+      expect(document.querySelector('input[name="PaiCod"]')).not.toBeNull();
+    });
+    const codeInput = document.querySelector('input[name="PaiCod"]');
+    expect(codeInput?.hasAttribute("readonly")).toBe(true);
+
+    setIonFieldValue("PaiNom", "Colombia Editada");
+    await waitFor(() => {
+      const nomEl = document.querySelector('input[name="PaiNom"]');
+      expect(Reflect.get(nomEl ?? {}, "value")).toBe("Colombia Editada");
+    });
+    fireEvent.click(screen.getByTestId("op-guardar"));
+
+    await waitFor(() => {
+      expect(guardarSpy).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId("record-row-3").textContent).toContain(
+        "Colombia Editada",
+      );
+    });
   });
 
-  it("muestra tarjeta de confirmación sin inputs editables para Inactivar y bloquea Eliminar referenciado", async () => {
+  it("muestra Datos del registro sin inputs editables para Eliminar y bloquea Eliminar referenciado", async () => {
     const { repo } = createMemoryPaisRepo([
       {
         PaiCod: asPaiCod(1),
@@ -335,23 +363,25 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
     fireEvent.click(await screen.findByTestId("record-row-1"));
     fireEvent.click(screen.getByTestId("op-eliminar"));
 
-    const confirmCard = await screen.findByTestId("state-op-confirm-card");
-    expect(confirmCard.querySelectorAll("input").length).toBe(0);
+    const detailCard = screen.getByTestId("record-detail-card");
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ELIMINACIÓN",
+    );
+    expect(detailCard.querySelectorAll("input").length).toBe(0);
 
-    fireEvent.click(screen.getByTestId("state-confirm-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
       const alert = document.querySelector('[data-testid="feedback-alert"]');
       expect(alert).not.toBeNull();
       const alertText = `${String(Reflect.get(alert ?? {}, "subHeader"))} ${String(Reflect.get(alert ?? {}, "message"))}`;
       expect(alertText).toContain("[E-REF-BLOCKED]");
     });
-    expect(screen.queryByTestId("reference-form-title")).toBeNull();
-    expect(screen.getByTestId("record-row-1").textContent).toContain(
-      "A · Activo",
-    );
+    expect(
+      screen.getByTestId("record-row-1").querySelector('[data-estado="A"]'),
+    ).not.toBeNull();
   });
 
-  it("preserva borrador pendiente y bloquea con E-PENDING al pulsar op-modificar o op-adicionar sobre Adición oculta", async () => {
+  it("preserva borrador pendiente y deshabilita otras operaciones mientras Adición está activa", async () => {
     const { repo } = createMemoryPaisRepo([
       {
         PaiCod: asPaiCod(1),
@@ -365,33 +395,74 @@ describe("ReferenceMaintenancePage + paisConfig (Fase 6 unit)", () => {
     renderPaisPage(repo);
     fireEvent.click(await screen.findByTestId("record-row-1"));
     fireEvent.click(screen.getByTestId("op-adicionar"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
-
-    expect(screen.getByTestId("layout-pending-badge").textContent).toBe(
-      "Pendiente: adición",
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ADICIÓN",
     );
+    await waitFor(() => {
+      expect(document.querySelector('input[name="PaiCod"]')).not.toBeNull();
+    });
 
     setIonFieldValue("PaiCod", "55");
     setIonFieldValue("PaiNom", "Brasil Draft");
-    fireEvent.click(screen.getByTestId("drawer-hide"));
-    expect(await screen.findByTestId("pending-form-banner")).toBeTruthy();
 
-    fireEvent.click(screen.getByTestId("op-modificar"));
+    expect(
+      (screen.getByTestId("op-modificar") as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      (screen.getByTestId("op-adicionar") as HTMLButtonElement).disabled,
+    ).toBe(true);
+
     await waitFor(() => {
-      const alert = document.querySelector('[data-testid="feedback-alert"]');
-      expect(alert).not.toBeNull();
-      expect(String(Reflect.get(alert ?? {}, "subHeader"))).toContain(
-        "[E-PENDING]",
-      );
+      const nomInput = document.querySelector('input[name="PaiNom"]');
+      expect(Reflect.get(nomInput ?? {}, "value")).toBe("Brasil Draft");
     });
-    expect(screen.queryByTestId("reference-form-title")).toBeNull();
+  });
 
-    fireEvent.click(screen.getByTestId("op-adicionar"));
-    expect(screen.queryByTestId("reference-form-title")).toBeNull();
+  it("solicita código de supervisor de un solo uso para Reactivar una fila Eliminada (*)", async () => {
+    const { repo, guardarSpy } = createMemoryPaisRepo([
+      {
+        PaiCod: asPaiCod(7),
+        PaiNom: "Brasil",
+        PaiEstReg: EST_X,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:00:00Z",
+      },
+    ]);
 
-    fireEvent.click(screen.getByTestId("btn-reopen-form-drawer"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
-    const nomInput = document.querySelector('input[name="PaiNom"]');
-    expect(Reflect.get(nomInput ?? {}, "value")).toBe("Brasil Draft");
+    renderPaisPage(repo);
+    fireEvent.click(await screen.findByTestId("record-row-7"));
+
+    expect(
+      (screen.getByTestId("op-reactivar") as HTMLButtonElement).disabled,
+    ).toBe(false);
+    expect(
+      (screen.getByTestId("op-modificar") as HTMLButtonElement).disabled,
+    ).toBe(true);
+
+    fireEvent.click(screen.getByTestId("op-reactivar"));
+    expect(await screen.findByTestId("supervisor-auth-dialog")).toBeTruthy();
+
+    const codeEl = await screen.findByTestId("input-supervisor-code");
+    fireEvent.change(codeEl, { target: { value: "SUP-2026" } });
+    fireEvent.click(screen.getByTestId("btn-confirm-supervisor-auth"));
+
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO REACTIVAR",
+    );
+    fireEvent.click(screen.getByTestId("op-guardar"));
+
+    await waitFor(() => {
+      expect(guardarSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(guardarSpy.mock.calls[0]?.[0]).toMatchObject({
+      kind: "reactivar",
+      targetCode: 7,
+      supervisorCode: "SUP-2026",
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("record-row-7").querySelector('[data-estado="A"]'),
+      ).not.toBeNull();
+    });
   });
 });

@@ -257,10 +257,15 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
 
     // Adición con duplicado por nombre -> [E-DUP] conserva draft
     fireEvent.click(screen.getByTestId("op-adicionar"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ADICIÓN",
+    );
+    await waitFor(() => {
+      expect(document.querySelector('input[name="DepCod"]')).not.toBeNull();
+    });
     setIonFieldValue("DepCod", "12");
     setIonFieldValue("DepNom", "sistemas");
-    fireEvent.click(screen.getByTestId("form-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
 
     await waitFor(() => {
       const alert = document.querySelector('[data-testid="feedback-alert"]');
@@ -271,40 +276,69 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     });
 
     setIonFieldValue("DepNom", "Tesorería");
-    fireEvent.click(screen.getByTestId("form-guardar"));
-    expect(await screen.findByText("Tesorería")).toBeTruthy();
+    await waitFor(() => {
+      const nomEl = document.querySelector('input[name="DepNom"]');
+      expect(Reflect.get(nomEl ?? {}, "value")).toBe("Tesorería");
+    });
+    fireEvent.click(screen.getByTestId("op-guardar"));
+    expect((await screen.findAllByText("Tesorería")).length).toBeGreaterThan(0);
 
-    // Modificación en I preserva DepCod readonly y EstReg=I
+    // Regla del docente: Modificación deshabilitada en Inactivo hasta Reactivar
+    fireEvent.click(screen.getByTestId("record-row-3"));
+    expect(
+      (screen.getByTestId("op-modificar") as HTMLButtonElement).disabled,
+    ).toBe(true);
+    fireEvent.click(screen.getByTestId("op-reactivar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("record-row-3").querySelector('[data-estado="A"]'),
+      ).not.toBeNull();
+    });
+
     fireEvent.click(screen.getByTestId("record-row-3"));
     fireEvent.click(screen.getByTestId("op-modificar"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO MODIFICACIÓN",
+    );
+    await waitFor(() => {
+      expect(document.querySelector('input[name="DepCod"]')).not.toBeNull();
+    });
     expect(
       document.querySelector('input[name="DepCod"]')?.hasAttribute("readonly"),
     ).toBe(true);
     setIonFieldValue("DepNom", "Almacén Central");
-    fireEvent.click(screen.getByTestId("form-guardar"));
-    expect(await screen.findByText("Almacén Central")).toBeTruthy();
+    await waitFor(() => {
+      const nomEl = document.querySelector('input[name="DepNom"]');
+      expect(Reflect.get(nomEl ?? {}, "value")).toBe("Almacén Central");
+    });
+    fireEvent.click(screen.getByTestId("op-guardar"));
+    await waitFor(() => {
+      expect(screen.getByTestId("record-row-3").textContent).toContain(
+        "Almacén Central",
+      );
+    });
 
     // R12: Inactivar #1 referenciado SÍ funciona; R11: Eliminar #1 dispara [E-REF-BLOCKED] con DepCod
     fireEvent.click(screen.getByTestId("record-row-1"));
     fireEvent.click(screen.getByTestId("op-inactivar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
-      expect(screen.getByTestId("record-row-1").textContent).toContain(
-        "I · Inactivo",
-      );
+      expect(
+        screen.getByTestId("record-row-1").querySelector('[data-estado="I"]'),
+      ).not.toBeNull();
     });
 
     fireEvent.click(screen.getByTestId("op-reactivar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
-      expect(screen.getByTestId("record-row-1").textContent).toContain(
-        "A · Activo",
-      );
+      expect(
+        screen.getByTestId("record-row-1").querySelector('[data-estado="A"]'),
+      ).not.toBeNull();
     });
 
     fireEvent.click(screen.getByTestId("op-eliminar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
       const alert = document.querySelector('[data-testid="feedback-alert"]');
       expect(alert).not.toBeNull();
@@ -347,10 +381,15 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     expect(await screen.findByText("Analista de Sistemas")).toBeTruthy();
 
     fireEvent.click(screen.getByTestId("op-adicionar"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ADICIÓN",
+    );
+    await waitFor(() => {
+      expect(document.querySelector('input[name="CarCod"]')).not.toBeNull();
+    });
     setIonFieldValue("CarCod", "20");
     setIonFieldValue("CarNom", "analista de sistemas");
-    fireEvent.click(screen.getByTestId("form-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
       const alert = document.querySelector('[data-testid="feedback-alert"]');
       expect(alert).not.toBeNull();
@@ -360,57 +399,76 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     });
 
     setIonFieldValue("CarNom", "Arquitecto Cloud");
-    fireEvent.click(screen.getByTestId("form-guardar"));
-    expect(await screen.findByText("Arquitecto Cloud")).toBeTruthy();
+    await waitFor(() => {
+      const nomEl = document.querySelector('input[name="CarNom"]');
+      expect(Reflect.get(nomEl ?? {}, "value")).toBe("Arquitecto Cloud");
+    });
+    fireEvent.click(screen.getByTestId("op-guardar"));
+    expect(
+      (await screen.findAllByText("Arquitecto Cloud")).length,
+    ).toBeGreaterThan(0);
 
     // CarCod readonly en Modificación
     fireEvent.click(screen.getByTestId("record-row-20"));
     fireEvent.click(screen.getByTestId("op-modificar"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO MODIFICACIÓN",
+    );
+    await waitFor(() => {
+      expect(document.querySelector('input[name="CarCod"]')).not.toBeNull();
+    });
     expect(
       document.querySelector('input[name="CarCod"]')?.hasAttribute("readonly"),
     ).toBe(true);
     setIonFieldValue("CarNom", "Arquitecto Enterprise");
-    fireEvent.click(screen.getByTestId("form-guardar"));
-    expect(await screen.findByText("Arquitecto Enterprise")).toBeTruthy();
-
-    fireEvent.click(screen.getByTestId("record-row-20"));
-    fireEvent.click(screen.getByTestId("op-inactivar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    await waitFor(() => {
+      const nomEl = document.querySelector('input[name="CarNom"]');
+      expect(Reflect.get(nomEl ?? {}, "value")).toBe("Arquitecto Enterprise");
+    });
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
       expect(screen.getByTestId("record-row-20").textContent).toContain(
-        "I · Inactivo",
+        "Arquitecto Enterprise",
       );
     });
 
-    fireEvent.click(screen.getByTestId("op-eliminar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    fireEvent.click(screen.getByTestId("record-row-20"));
+    fireEvent.click(screen.getByTestId("op-inactivar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
-      expect(screen.getByTestId("record-row-20").textContent).toContain(
-        "* · Eliminado",
-      );
+      expect(
+        screen.getByTestId("record-row-20").querySelector('[data-estado="I"]'),
+      ).not.toBeNull();
+    });
+
+    fireEvent.click(screen.getByTestId("op-eliminar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("record-row-20").querySelector('[data-estado="*"]'),
+      ).not.toBeNull();
     });
 
     // R12: Inactivar #1 referenciado SÍ funciona; R11: Eliminar #1 dispara [E-REF-BLOCKED] con CarCod
     fireEvent.click(screen.getByTestId("record-row-1"));
     fireEvent.click(screen.getByTestId("op-inactivar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
-      expect(screen.getByTestId("record-row-1").textContent).toContain(
-        "I · Inactivo",
-      );
+      expect(
+        screen.getByTestId("record-row-1").querySelector('[data-estado="I"]'),
+      ).not.toBeNull();
     });
 
     fireEvent.click(screen.getByTestId("op-reactivar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
-      expect(screen.getByTestId("record-row-1").textContent).toContain(
-        "A · Activo",
-      );
+      expect(
+        screen.getByTestId("record-row-1").querySelector('[data-estado="A"]'),
+      ).not.toBeNull();
     });
 
     fireEvent.click(screen.getByTestId("op-eliminar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
       const alert = document.querySelector('[data-testid="feedback-alert"]');
       expect(alert).not.toBeNull();

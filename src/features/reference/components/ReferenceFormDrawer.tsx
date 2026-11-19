@@ -45,10 +45,11 @@ function ReferenceFormSessionBody<TRow>({
   onNotifyBatchErrors,
   onCancelPending,
   onSalir,
+  inline = false,
 }: Omit<
   ReferenceFormDrawerProps<TRow>,
   "open" | "onOpenChange" | "sessionKey" | "estReg" | "onHideDrawer"
->) {
+> & { readonly inline?: boolean }) {
   const isUpdate = mode === "modificación";
 
   const schema = React.useMemo(
@@ -134,14 +135,52 @@ function ReferenceFormSessionBody<TRow>({
       schema={schema}
       structure={structure}
       onSubmit={handleValid}
-      renderSubmit={({ isSubmitting, disabled }) => (
-        <MaintenanceFormFooter
-          busy={isSaving || isSubmitting || disabled}
-          onTriggerSubmit={triggerSubmit}
-          onCancelPending={onCancelPending}
-          onSalir={onSalir}
-        />
-      )}
+      renderSubmit={({ isSubmitting, disabled }) =>
+        inline ? null : (
+          <MaintenanceFormFooter
+            busy={isSaving || isSubmitting || disabled}
+            onTriggerSubmit={triggerSubmit}
+            onCancelPending={onCancelPending}
+            onSalir={onSalir}
+          />
+        )
+      }
+    />
+  );
+}
+
+export function ReferenceInlineForm<TRow>({
+  sessionKey,
+  mode,
+  config,
+  draft,
+  onDraftChange,
+  externalFailures,
+  isSaving,
+  submitTriggerRef,
+  onSubmitPayload,
+  onNotifyBatchErrors,
+  onCancelPending,
+  onSalir,
+}: Omit<
+  ReferenceFormDrawerProps<TRow>,
+  "open" | "onOpenChange" | "estReg" | "onHideDrawer"
+>) {
+  return (
+    <ReferenceFormSessionBody
+      key={`${mode}-${sessionKey}`}
+      mode={mode}
+      config={config}
+      draft={draft}
+      externalFailures={externalFailures}
+      isSaving={isSaving}
+      submitTriggerRef={submitTriggerRef}
+      onDraftChange={onDraftChange}
+      onSubmitPayload={onSubmitPayload}
+      onNotifyBatchErrors={onNotifyBatchErrors}
+      onCancelPending={onCancelPending}
+      onSalir={onSalir}
+      inline
     />
   );
 }

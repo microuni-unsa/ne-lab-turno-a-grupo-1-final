@@ -133,9 +133,10 @@ describe("Cumplimiento normativo global SPEC §3–§15", () => {
       ERROR_CODES.REF_STATE,
       ERROR_CODES.REF_BLOCKED,
       ERROR_CODES.TRANSITION,
+      ERROR_CODES.AUTH_SUPERVISOR,
     ];
 
-    expect(Object.values(ERROR_CODES)).toHaveLength(9);
+    expect(Object.values(ERROR_CODES)).toHaveLength(10);
 
     for (const code of allCodes) {
       expect(ERROR_TITLES[code]).toBeTruthy();

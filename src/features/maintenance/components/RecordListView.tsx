@@ -12,6 +12,9 @@ export interface RecordListViewProps<TRow> {
   readonly isFetching?: boolean;
   readonly isError?: boolean;
   readonly orderingLabel: string;
+  readonly ordering?: "default" | "alternate";
+  readonly isCodeDefault?: boolean;
+  readonly onToggleOrdering?: () => void;
   readonly selectedCode: number | null;
   readonly getRowCode: (row: TRow) => number;
   readonly getRowTitle: (row: TRow) => string;
@@ -41,6 +44,9 @@ export function RecordListView<TRow>({
   isFetching = false,
   isError = false,
   orderingLabel,
+  ordering = "default",
+  isCodeDefault = false,
+  onToggleOrdering,
   selectedCode,
   getRowCode,
   getRowTitle,
@@ -61,19 +67,89 @@ export function RecordListView<TRow>({
 }: RecordListViewProps<TRow>) {
   const showPaging = hasPrevPage || hasNextPage || (totalCount ?? 0) > limit;
 
+  const isOrderedByCode = isCodeDefault
+    ? ordering === "default"
+    : ordering === "alternate";
+
   return (
     <section
       aria-label="Listado de registros"
       data-testid="record-list-view"
-      className="flex flex-col gap-2.5"
+      className="flex flex-col gap-2"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
-        <span data-testid="active-ordering-label" className="font-medium">
-          Orden activo: {orderingLabel}
-        </span>
-        <span data-testid="list-total-summary">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 text-xs text-muted-foreground">
+        {onToggleOrdering ? (
+          <fieldset
+            aria-label="Ordenar por"
+            className="m-0 flex items-center gap-2 border-0 p-0"
+          >
+            <span className="font-medium text-foreground">Ordenar por:</span>
+            <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium text-foreground hover:bg-muted">
+              <input
+                type="radio"
+                name="record-sort-order"
+                checked={isOrderedByCode}
+                data-testid="btn-sort-code"
+                onChange={() => {
+                  if (!isOrderedByCode) {
+                    onToggleOrdering();
+                  }
+                }}
+                className="sr-only"
+              />
+              <span
+                className={cn(
+                  "flex size-3.5 items-center justify-center rounded-full border",
+                  isOrderedByCode
+                    ? "border-primary bg-primary/10"
+                    : "border-muted-foreground/50",
+                )}
+              >
+                {isOrderedByCode && (
+                  <span className="size-1.5 rounded-full bg-primary" />
+                )}
+              </span>
+              <span>Código</span>
+            </label>
+            <label className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium text-foreground hover:bg-muted">
+              <input
+                type="radio"
+                name="record-sort-order"
+                checked={!isOrderedByCode}
+                data-testid="btn-sort-name"
+                onChange={() => {
+                  if (isOrderedByCode) {
+                    onToggleOrdering();
+                  }
+                }}
+                className="sr-only"
+              />
+              <span
+                className={cn(
+                  "flex size-3.5 items-center justify-center rounded-full border",
+                  !isOrderedByCode
+                    ? "border-primary bg-primary/10"
+                    : "border-muted-foreground/50",
+                )}
+              >
+                {!isOrderedByCode && (
+                  <span className="size-1.5 rounded-full bg-primary" />
+                )}
+              </span>
+              <span>Nombre</span>
+            </label>
+            <span data-testid="active-ordering-label" className="sr-only">
+              Orden activo: {orderingLabel}
+            </span>
+          </fieldset>
+        ) : (
+          <span data-testid="active-ordering-label" className="font-medium">
+            Orden activo: {orderingLabel}
+          </span>
+        )}
+        <span data-testid="list-total-summary" className="tabular-nums">
           {totalCount !== null
-            ? `${totalCount} registros`
+            ? `${totalCount} registro(s)`
             : `${rows.length} visibles`}
           {isFetching && !isLoading ? " · actualizando..." : ""}
         </span>
@@ -129,52 +205,57 @@ export function RecordListView<TRow>({
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-2" data-testid="record-list-rows">
-          {rows.map((row) => {
-            const code = getRowCode(row);
-            const title = getRowTitle(row);
-            const subtitle = getRowSubtitle?.(row);
-            const state = getRowState(row);
-            const isSelected = selectedCode !== null && selectedCode === code;
+        <div
+          className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+          data-testid="record-list-rows"
+        >
+          <div className="grid grid-cols-[3.5rem_1fr_3.5rem] items-center gap-2 border-b border-border bg-muted/40 px-3 py-2 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+            <span>Código</span>
+            <span>Nombre / Descripción</span>
+            <span className="text-right">Estado</span>
+          </div>
+          <div className="divide-y divide-border">
+            {rows.map((row) => {
+              const code = getRowCode(row);
+              const title = getRowTitle(row);
+              const subtitle = getRowSubtitle?.(row);
+              const state = getRowState(row);
+              const isSelected = selectedCode !== null && selectedCode === code;
 
-            return (
-              <Card
-                key={code}
-                className={cn(
-                  "overflow-hidden py-0 transition-colors",
-                  isSelected
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                    : "hover:border-muted-foreground/40",
-                )}
-              >
+              return (
                 <button
+                  key={code}
                   type="button"
                   data-testid={`record-row-${code}`}
                   aria-pressed={isSelected}
                   onClick={() => onSelectRow(row)}
-                  className="flex min-h-14 w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left"
+                  className={cn(
+                    "grid min-h-12 w-full grid-cols-[3.5rem_1fr_3.5rem] items-center gap-2 px-3 py-2.5 text-left transition-colors",
+                    isSelected
+                      ? "bg-amber-50/90 ring-1 ring-inset ring-amber-300"
+                      : "hover:bg-muted/40",
+                  )}
                 >
+                  <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
+                    {String(code).padStart(2, "0")}
+                  </span>
                   <div className="flex min-w-0 flex-col gap-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs font-semibold tabular-nums text-foreground">
-                        #{code}
-                      </span>
-                      <span className="truncate text-sm font-semibold text-foreground">
-                        {title}
-                      </span>
-                    </div>
+                    <span className="break-words text-sm font-medium leading-snug text-foreground">
+                      {title}
+                    </span>
                     {subtitle && (
                       <span className="line-clamp-2 break-words text-xs leading-snug tabular-nums text-muted-foreground">
                         {subtitle}
                       </span>
                     )}
                   </div>
-
-                  <EstadoBadge state={state} className="shrink-0" />
+                  <div className="flex justify-end">
+                    <EstadoBadge state={state} compact />
+                  </div>
                 </button>
-              </Card>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 

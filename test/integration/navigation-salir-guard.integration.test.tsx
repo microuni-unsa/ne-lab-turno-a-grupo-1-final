@@ -12,12 +12,14 @@ describe("Navigation shell & Salir guard integration (SPEC §8.7)", () => {
     render(<App initialEntries={["/", "/pais"]} client={queryClient} />);
 
     expect(await screen.findByText("Países")).toBeTruthy();
-    expect(screen.queryByTestId("layout-pending-badge")).toBeNull();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO CONSULTA",
+    );
 
     // 1. Armar operación Adición -> bloquea Salir desde toolbar con [E-PENDING]
     fireEvent.click(screen.getByTestId("op-adicionar"));
-    expect(screen.getByTestId("layout-pending-badge").textContent).toContain(
-      "Pendiente: adición",
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ADICIÓN",
     );
 
     fireEvent.click(screen.getByTestId("toolbar-salir"));
@@ -32,13 +34,15 @@ describe("Navigation shell & Salir guard integration (SPEC §8.7)", () => {
     });
 
     // El borrador sigue vivo y no navegó fuera de /pais
-    expect(screen.getByTestId("layout-pending-badge").textContent).toContain(
-      "Pendiente: adición",
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ADICIÓN",
     );
 
     // 2. Cancelar limpia el pendiente y luego Salir vuelve al hub /
     fireEvent.click(screen.getByTestId("op-cancelar"));
-    expect(screen.queryByTestId("layout-pending-badge")).toBeNull();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO CONSULTA",
+    );
 
     fireEvent.click(screen.getByTestId("toolbar-salir"));
 

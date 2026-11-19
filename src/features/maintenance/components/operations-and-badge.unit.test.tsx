@@ -44,7 +44,7 @@ describe("EstadoBadge", () => {
 });
 
 describe("OperationsBar", () => {
-  it("expone las 9 etiquetas normativas en español y dispara los handlers sin bloquear botones de segunda operación", () => {
+  it("expone las 9 etiquetas normativas en español y habilita/deshabilita botones según contexto", () => {
     const handlers = {
       onAdicionar: vi.fn(),
       onModificar: vi.fn(),
@@ -57,17 +57,62 @@ describe("OperationsBar", () => {
       onSalir: vi.fn(),
     };
 
-    const { container } = render(
-      <OperationsBar hasPending={true} {...handlers} />,
+    const { container, rerender } = render(
+      <OperationsBar hasPending={false} selectedState={null} {...handlers} />,
     );
 
     for (const op of EXPECTED_OPERATIONS) {
       const btn = screen.getByTestId(`op-${op.id}`);
       expect(btn.textContent?.trim()).toBe(op.label);
-      expect(isButtonDisabled(btn)).toBe(false);
-      fireEvent.click(btn);
-      expect(handlers[op.handlerKey]).toHaveBeenCalledTimes(1);
     }
+
+    // Idle sin selección: solo Adicionar, Buscar, Salir habilitados
+    expect(isButtonDisabled(screen.getByTestId("op-adicionar"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-buscar"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-salir"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-modificar"))).toBe(true);
+    expect(isButtonDisabled(screen.getByTestId("op-guardar"))).toBe(true);
+    expect(isButtonDisabled(screen.getByTestId("op-cancelar"))).toBe(true);
+
+    // Idle con Activo (A): Modificar/Inactivar/Eliminar habilitados, Reactivar/Guardar deshabilitados
+    rerender(
+      <OperationsBar hasPending={false} selectedState={EST_A} {...handlers} />,
+    );
+    expect(isButtonDisabled(screen.getByTestId("op-modificar"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-inactivar"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-eliminar"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-reactivar"))).toBe(true);
+    expect(isButtonDisabled(screen.getByTestId("op-guardar"))).toBe(true);
+
+    // Idle con Inactivo (I): Reactivar/Eliminar habilitados, Modificar/Inactivar deshabilitados
+    rerender(
+      <OperationsBar hasPending={false} selectedState={EST_I} {...handlers} />,
+    );
+    expect(isButtonDisabled(screen.getByTestId("op-reactivar"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-eliminar"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-modificar"))).toBe(true);
+    expect(isButtonDisabled(screen.getByTestId("op-inactivar"))).toBe(true);
+
+    // Idle con Eliminado (*): solo Reactivar (autorización supervisor) entre las ops de fila
+    rerender(
+      <OperationsBar hasPending={false} selectedState={EST_X} {...handlers} />,
+    );
+    expect(isButtonDisabled(screen.getByTestId("op-reactivar"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-modificar"))).toBe(true);
+    expect(isButtonDisabled(screen.getByTestId("op-eliminar"))).toBe(true);
+
+    // Operación pendiente: Guardar, Cancelar y Salir habilitados; mutaciones y Buscar deshabilitados
+    rerender(
+      <OperationsBar hasPending={true} selectedState={EST_A} {...handlers} />,
+    );
+    expect(isButtonDisabled(screen.getByTestId("op-guardar"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-cancelar"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-salir"))).toBe(false);
+    expect(isButtonDisabled(screen.getByTestId("op-adicionar"))).toBe(true);
+    expect(isButtonDisabled(screen.getByTestId("op-buscar"))).toBe(true);
+
+    fireEvent.click(screen.getByTestId("op-guardar"));
+    expect(handlers.onGuardar).toHaveBeenCalledTimes(1);
 
     const allText = container.textContent ?? "";
     expect(allText).not.toMatch(/Actualizar/i);

@@ -89,10 +89,11 @@ function PersonalFormSession({
   onNotifyBatchErrors,
   onCancelPending,
   onSalir,
+  inline = false,
 }: Omit<
   PersonalFormDrawerProps,
   "open" | "onOpenChange" | "sessionKey" | "estReg" | "onHideDrawer"
->) {
+> & { readonly inline?: boolean }) {
   const isUpdate = mode === "modificación";
 
   const schema = React.useMemo(
@@ -143,14 +144,54 @@ function PersonalFormSession({
       schema={schema}
       structure={structure}
       onSubmit={handleValid}
-      renderSubmit={({ isSubmitting, disabled }) => (
-        <MaintenanceFormFooter
-          busy={isSaving || isSubmitting || disabled}
-          onTriggerSubmit={triggerSubmit}
-          onCancelPending={onCancelPending}
-          onSalir={onSalir}
-        />
-      )}
+      renderSubmit={({ isSubmitting, disabled }) =>
+        inline ? null : (
+          <MaintenanceFormFooter
+            busy={isSaving || isSubmitting || disabled}
+            onTriggerSubmit={triggerSubmit}
+            onCancelPending={onCancelPending}
+            onSalir={onSalir}
+          />
+        )
+      }
+    />
+  );
+}
+
+export function PersonalInlineForm({
+  sessionKey,
+  mode,
+  todayLocal,
+  bindings,
+  draft,
+  onDraftChange,
+  externalFailures,
+  isSaving,
+  submitTriggerRef,
+  onSubmitPayload,
+  onNotifyBatchErrors,
+  onCancelPending,
+  onSalir,
+}: Omit<
+  PersonalFormDrawerProps,
+  "open" | "onOpenChange" | "estReg" | "onHideDrawer"
+>) {
+  return (
+    <PersonalFormSession
+      key={`${mode}-${sessionKey}`}
+      mode={mode}
+      todayLocal={todayLocal}
+      bindings={bindings}
+      draft={draft}
+      onDraftChange={onDraftChange}
+      externalFailures={externalFailures}
+      isSaving={isSaving}
+      submitTriggerRef={submitTriggerRef}
+      onSubmitPayload={onSubmitPayload}
+      onNotifyBatchErrors={onNotifyBatchErrors}
+      onCancelPending={onCancelPending}
+      onSalir={onSalir}
+      inline
     />
   );
 }

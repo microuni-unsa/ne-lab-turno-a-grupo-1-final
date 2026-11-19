@@ -176,15 +176,21 @@ describe("DEPENDENCIA y CARGO integración e invalidación gsel/list (Fase 7)", 
     expect(await screen.findByText("Sistemas")).toBeTruthy();
 
     fireEvent.click(screen.getByTestId("op-adicionar"));
-    expect(await screen.findByTestId("reference-form-title")).toBeTruthy();
+    expect(screen.getByTestId("record-mode-badge").textContent).toBe(
+      "MODO ADICIÓN",
+    );
     await waitFor(() => {
       expect(document.querySelector('input[name="DepCod"]')).not.toBeNull();
     });
     setIonFieldValue("DepCod", "18");
     setIonFieldValue("DepNom", "Compras");
-    fireEvent.click(screen.getByTestId("form-guardar"));
+    await waitFor(() => {
+      const nomEl = document.querySelector('input[name="DepNom"]');
+      expect(Reflect.get(nomEl ?? {}, "value")).toBe("Compras");
+    });
+    fireEvent.click(screen.getByTestId("op-guardar"));
 
-    expect(await screen.findByText("Compras")).toBeTruthy();
+    expect((await screen.findAllByText("Compras")).length).toBeGreaterThan(0);
 
     const depGselState = queryClient.getQueryState(
       maintenanceKeys.gsel(TABLE_DEPENDENCIA),
@@ -250,12 +256,12 @@ describe("DEPENDENCIA y CARGO integración e invalidación gsel/list (Fase 7)", 
 
     fireEvent.click(await screen.findByTestId("record-row-1"));
     fireEvent.click(screen.getByTestId("op-inactivar"));
-    fireEvent.click(await screen.findByTestId("state-confirm-guardar"));
+    fireEvent.click(screen.getByTestId("op-guardar"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("record-row-1").textContent).toContain(
-        "I · Inactivo",
-      );
+      expect(
+        screen.getByTestId("record-row-1").querySelector('[data-estado="I"]'),
+      ).not.toBeNull();
     });
     expect(
       queryClient.getQueryState(maintenanceKeys.gsel(TABLE_CARGO))
