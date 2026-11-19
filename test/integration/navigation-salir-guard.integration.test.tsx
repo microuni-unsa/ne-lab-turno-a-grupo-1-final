@@ -62,7 +62,7 @@ describe("Navigation shell & Salir guard integration (SPEC §8.7)", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Soluciones Móviles S.A.C.")).toBeTruthy();
-      expect(screen.getByTestId("home-connectivity-status")).toBeTruthy();
+      expect(screen.getByTestId("nav-pais")).toBeTruthy();
     });
   });
 });

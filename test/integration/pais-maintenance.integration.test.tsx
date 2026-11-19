@@ -126,7 +126,6 @@ describe("PAIS maintenance page integration (QueryClient + Repo + Feedback)", ()
       },
       async guardarOp(op: PendingOp) {
         if (op.kind === "adición") {
-          const cod = Number(Reflect.get(op.payload, "PaiCod"));
           const nom = String(Reflect.get(op.payload, "PaiNom") ?? "").trim();
           if (
             dbRows.some((r) => r.PaiNom.toLowerCase() === nom.toLowerCase())
@@ -136,8 +135,9 @@ describe("PAIS maintenance page integration (QueryClient + Repo + Feedback)", ()
               failures: [createFailure(ERROR_CODES.DUP, "PaiNom")],
             };
           }
+          const nextCod = dbRows.reduce((m, r) => Math.max(m, r.PaiCod), 0) + 1;
           const row: PaisRow = {
-            PaiCod: asPaiCod(cod),
+            PaiCod: asPaiCod(nextCod),
             PaiNom: nom,
             PaiEstReg: EST_A,
             created_at: "2026-01-01T00:00:00Z",
@@ -196,9 +196,9 @@ describe("PAIS maintenance page integration (QueryClient + Repo + Feedback)", ()
       "MODO ADICIÓN",
     );
     await waitFor(() => {
-      expect(document.querySelector('input[name="PaiCod"]')).not.toBeNull();
+      expect(document.querySelector('input[name="PaiNom"]')).not.toBeNull();
     });
-    setIonFieldValue("PaiCod", "44");
+    expect(document.querySelector('input[name="PaiCod"]')).toBeNull();
     setIonFieldValue("PaiNom", "Paraguay");
     await waitFor(() => {
       const nomEl = document.querySelector('input[name="PaiNom"]');
@@ -209,7 +209,7 @@ describe("PAIS maintenance page integration (QueryClient + Repo + Feedback)", ()
     expect((await screen.findAllByText("Paraguay")).length).toBeGreaterThan(0);
 
     // 2. Modificación actualiza nombre preservando PaiCod y EstReg en la lista
-    fireEvent.click(screen.getByTestId("record-row-44"));
+    fireEvent.click(screen.getByTestId("record-row-2"));
     fireEvent.click(screen.getByTestId("op-modificar"));
     expect(screen.getByTestId("record-mode-badge").textContent).toBe(
       "MODO MODIFICACIÓN",
@@ -225,13 +225,13 @@ describe("PAIS maintenance page integration (QueryClient + Repo + Feedback)", ()
     fireEvent.click(screen.getByTestId("op-guardar"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("record-row-44").textContent).toContain(
+      expect(screen.getByTestId("record-row-2").textContent).toContain(
         "Paraguay Norte",
       );
     });
 
-    // 3. Inactivar #44 y verificar badge compacto I en la fila re-renderizada
-    fireEvent.click(screen.getByTestId("record-row-44"));
+    // 3. Inactivar #2 y verificar badge compacto I en la fila re-renderizada
+    fireEvent.click(screen.getByTestId("record-row-2"));
     fireEvent.click(screen.getByTestId("op-inactivar"));
     expect(screen.getByTestId("record-mode-badge").textContent).toBe(
       "MODO INACTIVAR",
@@ -240,7 +240,7 @@ describe("PAIS maintenance page integration (QueryClient + Repo + Feedback)", ()
 
     await waitFor(() => {
       expect(
-        screen.getByTestId("record-row-44").querySelector('[data-estado="I"]'),
+        screen.getByTestId("record-row-2").querySelector('[data-estado="I"]'),
       ).not.toBeNull();
     });
   });
@@ -250,26 +250,23 @@ describeLive("PAIS Live Supabase Integration (LIVE_DB=1)", () => {
   it("ejecuta ciclo completo Adición/Modificación/Inactivar/Reactivar/Eliminar, R11 y R12 sobre PaisRepo", async () => {
     const client = readSecretSupabaseClient();
     const repo = new PaisRepo(client);
-    const tempCode = 31991;
     const tempNom = `TestPais_${Date.now()}`;
-
-    await client.from("pais").delete().eq("PaiCod", tempCode);
+    let tempCode = 0;
 
     try {
       const inserted = await repo.guardar({
         op: "insert",
-        p_cod: tempCode,
         p_nom: tempNom,
       });
       expect(inserted.ok).toBe(true);
       if (!inserted.ok || !inserted.row) {
         throw new Error("Expected insert row");
       }
+      tempCode = inserted.row.PaiCod;
       const createdAtInitial = inserted.row.created_at;
 
       const duplicate = await repo.guardar({
         op: "insert",
-        p_cod: 31992,
         p_nom: `  ${tempNom.toLowerCase()}  `,
       });
       expect(duplicate.ok).toBe(false);
@@ -330,7 +327,9 @@ describeLive("PAIS Live Supabase Integration (LIVE_DB=1)", () => {
       });
       expect(terminalBlocked.ok).toBe(false);
     } finally {
-      await client.from("pais").delete().eq("PaiCod", tempCode);
+      if (tempCode > 0) {
+        await client.from("pais").delete().eq("PaiCod", tempCode);
+      }
     }
   });
 });

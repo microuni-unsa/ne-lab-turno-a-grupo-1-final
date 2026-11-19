@@ -80,12 +80,9 @@ const PAIS_INSERT_SCHEMA = createReferenceSchema({
   isUpdate: false,
 });
 
-const PAIS_TEST_STRUCTURE: AppStructure<"PaiCod" | "PaiNom"> = [
+const PAIS_TEST_STRUCTURE: AppStructure<"PaiNom"> = [
   {
-    fields: [
-      { type: "number", name: "PaiCod", label: "Código", colspan: 4 },
-      { type: "text", name: "PaiNom", label: "Nombre", colspan: 8 },
-    ],
+    fields: [{ type: "text", name: "PaiNom", label: "Nombre", colspan: 12 }],
   },
 ];
 
@@ -316,19 +313,12 @@ describe("useMaintenanceController integration (React Query + RHF + FeedbackPort
 
     // 2. Fallo E-DUP de repo mantiene pending y muestra error en RHF (form.setError) + IonAlert
     fireEvent.click(screen.getByTestId("btn-start-add"));
-    const codeInput = document.getElementById("PaiCod");
     const nomInput = document.getElementById("PaiNom");
-    if (!codeInput || !nomInput) {
+    if (!nomInput) {
       throw new Error(
-        `Expected form inputs (#PaiCod, #PaiNom), got slots: ${document.querySelectorAll('[data-slot="input"]').length}`,
+        `Expected form input (#PaiNom), got slots: ${document.querySelectorAll('[data-slot="input"]').length}`,
       );
     }
-    codeInput.dispatchEvent(
-      new CustomEvent("ionInput", {
-        bubbles: true,
-        detail: { value: "88", event: new Event("input") },
-      }),
-    );
     nomInput.dispatchEvent(
       new CustomEvent("ionInput", {
         bubbles: true,
@@ -371,10 +361,8 @@ describeLive("useMaintenanceController LIVE_DB=1 (PaisRepo real)", () => {
       confirmAction: vi.fn(async () => true),
       alertPending: vi.fn(),
     };
-    const scratchCode = 31991;
     const scratchNom = `PaisFase3_${Date.now()}`;
-
-    await client.from("pais").delete().eq("PaiCod", scratchCode);
+    let scratchCode = 0;
 
     try {
       const { result } = renderHook(
@@ -399,7 +387,6 @@ describeLive("useMaintenanceController LIVE_DB=1 (PaisRepo real)", () => {
 
       act(() => {
         result.current.startAdicion({
-          PaiCod: scratchCode,
           PaiNom: scratchNom,
         });
       });
@@ -412,6 +399,7 @@ describeLive("useMaintenanceController LIVE_DB=1 (PaisRepo real)", () => {
       if (!created?.ok || !created.row) {
         throw new Error("Expected created row");
       }
+      scratchCode = created.row.PaiCod;
 
       act(() => {
         result.current.startInactivar();
@@ -428,7 +416,9 @@ describeLive("useMaintenanceController LIVE_DB=1 (PaisRepo real)", () => {
       expect(inactivated.row.PaiEstReg).toBe(EST_I);
       expect(inactivated.row.created_at).toBe(created.row.created_at);
     } finally {
-      await client.from("pais").delete().eq("PaiCod", scratchCode);
+      if (scratchCode > 0) {
+        await client.from("pais").delete().eq("PaiCod", scratchCode);
+      }
     }
   });
 });

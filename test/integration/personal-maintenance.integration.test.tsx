@@ -32,7 +32,7 @@ import {
 } from "@/core";
 import {
   type AdvancedSearchFilters,
-  type OrderingToggle,
+  type OrderingSpec,
   PaisRepo,
   PersonalRepo,
 } from "@/data";
@@ -114,12 +114,21 @@ function makeCatalogRepo<TRow>(
   };
 }
 
+function isNameOrdering(ordering: OrderingSpec): boolean {
+  if (ordering === "alternate") return true;
+  return (
+    typeof ordering === "object" &&
+    ordering !== null &&
+    ordering.column === "PerNom"
+  );
+}
+
 function sortPersonal(
   rows: readonly PersonalRow[],
-  ordering: OrderingToggle,
+  ordering: OrderingSpec,
 ): PersonalRow[] {
   return [...rows].sort((a, b) =>
-    ordering === "alternate"
+    isNameOrdering(ordering)
       ? a.PerNom.localeCompare(b.PerNom, "es", { sensitivity: "case" }) ||
         a.PerCod - b.PerCod
       : a.PerCod - b.PerCod,
@@ -330,22 +339,32 @@ describe("PERSONAL React Query orden, búsqueda avanzada §11.3 e invalidación 
       expect(buttons.length).toBe(3);
       expect(buttons[0]?.textContent).toContain("Zoe Vera");
       expect(buttons[1]?.textContent).toContain("Ana Salas");
-      expect(buttons[2]?.textContent).toContain("Cod 8");
+      expect(buttons[2]?.textContent).toContain("70009999");
     });
 
-    // Toggle ordering -> PerNom ASC, PerCod ASC -> #5 Ana Salas, #8 Ana Salas, #2 Zoe Vera
-    fireEvent.click(screen.getByTestId("btn-sort-name"));
+    // Switch sort column -> PerNom ASC (PerCod ASC tiebreak in mock) -> #5, #8, #2
+    fireEvent.click(screen.getByTestId("select-sort-column"));
+    const sortItems = await screen.findAllByText("Nombre", {
+      selector: "ion-label",
+    });
+    const perNomItem = sortItems
+      .map((label) => label.closest('[data-slot="select-item"]'))
+      .find((item) => item !== null);
+    if (!perNomItem) {
+      throw new Error("Expected PerNom sort option");
+    }
+    fireEvent.click(perNomItem);
     await waitFor(() => {
       const buttons = screen
         .getByTestId("record-list-rows")
         .querySelectorAll("button");
-      expect(buttons[0]?.textContent).toContain("Cod 5");
-      expect(buttons[1]?.textContent).toContain("Cod 8");
+      expect(buttons[0]?.textContent).toContain("70001111");
+      expect(buttons[1]?.textContent).toContain("70009999");
       expect(buttons[2]?.textContent).toContain("Zoe Vera");
     });
 
     // Combined Advanced Search: DNI "7000" + FecNacFrom "1996-01-01" + PaiCod 1 via G-SEL
-    fireEvent.click(screen.getByTestId("op-buscar"));
+    fireEvent.click(screen.getByTestId("btn-open-advanced"));
     const dniWrapper = (await screen.findByTestId("adv-filter-dni")).closest(
       "ion-input",
     );
@@ -411,33 +430,31 @@ describeLive(
       const personalRepo = new PersonalRepo(client);
       const paisRepo = new PaisRepo(client);
 
-      const testPerCod1 = 97101;
-      const testPerCod2 = 97102;
-      const testPaiCod = 971;
-      const testDni1 = "97101001";
-      const testDni2 = "97101002";
-
-      await client
-        .from("personal")
-        .delete()
-        .in("PerCod", [testPerCod1, testPerCod2]);
-      await client.from("pais").delete().eq("PaiCod", testPaiCod);
+      const stamp = Date.now();
+      const paisNom = `Pais Prueba ${stamp}`;
+      const testDni1 = `${String(stamp).slice(-5)}001`.slice(-8);
+      const testDni2 = `${String(stamp).slice(-5)}002`.slice(-8);
+      let testPaiCod = 0;
+      let testPerCod1 = 0;
+      let testPerCod2 = 0;
 
       try {
         // Seed temporary Pais so we can safely test E-REF-STATE without altering seed #1
         const insPais = await paisRepo.guardarOp({
           kind: "adición",
           table: TABLE_PAIS,
-          payload: { PaiCod: testPaiCod, PaiNom: "Pais Prueba 971" },
+          payload: { PaiNom: paisNom },
         });
         expect(insPais.ok).toBe(true);
+        if (insPais.ok && insPais.row) {
+          testPaiCod = insPais.row.PaiCod;
+        }
 
         // 1. E-RANGE (<18) & E-REF (nonexistent Pais)
         const rangeErr = await personalRepo.guardarOp({
           kind: "adición",
           table: TABLE_PERSONAL,
           payload: {
-            PerCod: testPerCod1,
             PerNom: "Menor Edad Test",
             PerDNI: testDni1,
             PerFecNac: "2012-01-15",
@@ -452,11 +469,10 @@ describeLive(
           kind: "adición",
           table: TABLE_PERSONAL,
           payload: {
-            PerCod: testPerCod1,
             PerNom: "Personal Sin Pais",
             PerDNI: testDni1,
             PerFecNac: "1995-05-10",
-            PerPaiCod: 32700,
+            PerPaiCod: 999999,
             PerDepCod: 1,
             PerCarCod: 1,
           },
@@ -468,12 +484,11 @@ describeLive(
           );
         }
 
-        // 2. Adición #1 valid + E-DUP on PerCod & PerDNI
+        // 2. Adición #1 valid + E-DUP on PerDNI
         const add1 = await personalRepo.guardarOp({
           kind: "adición",
           table: TABLE_PERSONAL,
           payload: {
-            PerCod: testPerCod1,
             PerNom: "Homónimo Live",
             PerDNI: testDni1,
             PerFecNac: "1994-06-15",
@@ -484,13 +499,13 @@ describeLive(
         });
         expect(add1.ok).toBe(true);
         if (!add1.ok || !add1.row) throw new Error("Expected add1 ok");
+        testPerCod1 = add1.row.PerCod;
         const origCreatedAt = add1.row.created_at;
 
         const dupDni = await personalRepo.guardarOp({
           kind: "adición",
           table: TABLE_PERSONAL,
           payload: {
-            PerCod: testPerCod2,
             PerNom: "Otro Nombre",
             PerDNI: testDni1,
             PerFecNac: "1994-06-15",
@@ -506,12 +521,11 @@ describeLive(
           );
         }
 
-        // 3. R5 Homonym insert allowed with distinct PerCod & PerDNI
+        // 3. R5 Homonym insert allowed with distinct PerDNI
         const addHomonym = await personalRepo.guardarOp({
           kind: "adición",
           table: TABLE_PERSONAL,
           payload: {
-            PerCod: testPerCod2,
             PerNom: "Homónimo Live",
             PerDNI: testDni2,
             PerFecNac: "1996-08-20",
@@ -521,8 +535,11 @@ describeLive(
           },
         });
         expect(addHomonym.ok).toBe(true);
+        if (addHomonym.ok && addHomonym.row) {
+          testPerCod2 = addHomonym.row.PerCod;
+        }
 
-        // 4. R12 Inactivate Pais #971 -> Modificación keeping #971 hits E-REF-STATE; changing to #1 preserves created_at (R16/R17)
+        // 4. R12 Inactivate temp pais -> Modificación keeping it hits E-REF-STATE; changing to #1 preserves created_at (R16/R17)
         const inactPais = await paisRepo.guardarOp({
           kind: "inactivar",
           table: TABLE_PAIS,
@@ -581,7 +598,7 @@ describeLive(
         expect(byNom.data.some((r) => r.PerCod === testPerCod1)).toBe(true);
 
         const adv = await personalRepo.advancedSearch({
-          DNI: "97101",
+          DNI: testDni1.slice(0, 5),
           FecNacFrom: "1993-01-01",
           FecNacTo: "1997-12-31",
           PaiCod: 1,
@@ -618,11 +635,13 @@ describeLive(
         });
         expect(afterElim.ok).toBe(false);
       } finally {
-        await client
-          .from("personal")
-          .delete()
-          .in("PerCod", [testPerCod1, testPerCod2]);
-        await client.from("pais").delete().eq("PaiCod", testPaiCod);
+        const perCods = [testPerCod1, testPerCod2].filter((c) => c > 0);
+        if (perCods.length > 0) {
+          await client.from("personal").delete().in("PerCod", perCods);
+        }
+        if (testPaiCod > 0) {
+          await client.from("pais").delete().eq("PaiCod", testPaiCod);
+        }
       }
     });
   },

@@ -298,7 +298,6 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
     it("fails when inserting Personal referencing a non-existent PaiCod", async () => {
       const scratchPerCod = scratchBase + 10;
       const { error } = await supabase.from("personal").insert({
-        PerCod: scratchPerCod,
         PerNom: "Test Non-existent Pai",
         PerDNI: String(80000000 + scratchPerCod).slice(0, 8),
         PerFecNac: "1990-01-01",
@@ -314,7 +313,6 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
     it("fails when inserting Personal referencing a non-existent DepCod", async () => {
       const scratchPerCod = scratchBase + 11;
       const { error } = await supabase.from("personal").insert({
-        PerCod: scratchPerCod,
         PerNom: "Test Non-existent Dep",
         PerDNI: String(80000000 + scratchPerCod).slice(0, 8),
         PerFecNac: "1990-01-01",
@@ -330,7 +328,6 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
     it("fails when inserting Personal referencing a non-existent CarCod", async () => {
       const scratchPerCod = scratchBase + 12;
       const { error } = await supabase.from("personal").insert({
-        PerCod: scratchPerCod,
         PerNom: "Test Non-existent Car",
         PerDNI: String(80000000 + scratchPerCod).slice(0, 8),
         PerFecNac: "1990-01-01",
@@ -347,9 +344,7 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
   // 3. Case-insensitive unique Nom invariant (ci-unique §4.3, R3)
   describe("3. Case-insensitive unique Nom invariant (ci-unique R3, E-DUP)", () => {
     it("rejects duplicate PaiNom differing only in case and leading/trailing blanks", async () => {
-      const scratchCod = scratchBase + 20;
       const { error } = await supabase.from("pais").insert({
-        PaiCod: scratchCod,
         PaiNom: "   pErÚ   ", // Clashes with seeded 'Perú'
         PaiEstReg: 1,
       });
@@ -358,9 +353,7 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
     });
 
     it("rejects duplicate DepNom differing only in case and blanks", async () => {
-      const scratchCod = scratchBase + 21;
       const { error } = await supabase.from("dependencia").insert({
-        DepCod: scratchCod,
         DepNom: "  SISTEMAS  ", // Clashes with seeded 'Sistemas'
         DepEstReg: 1,
       });
@@ -369,9 +362,7 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
     });
 
     it("rejects duplicate CarNom differing only in case and blanks", async () => {
-      const scratchCod = scratchBase + 22;
       const { error } = await supabase.from("cargo").insert({
-        CarCod: scratchCod,
         CarNom: "  gerente  ", // Clashes with seeded 'Gerente'
         CarEstReg: 1,
       });
@@ -383,9 +374,7 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
   // 4. DNI unique invariant (§4.3, R4)
   describe("4. DNI unique invariant (SPEC §4.3, R4)", () => {
     it("rejects duplicate PerDNI on Personal insert", async () => {
-      const scratchPerCod = scratchBase + 30;
       const { error } = await supabase.from("personal").insert({
-        PerCod: scratchPerCod,
         PerNom: "Homónimo Juan",
         PerDNI: "70000001", // Seeded Juan Pérez DNI
         PerFecNac: "1992-06-15",
@@ -413,19 +402,27 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
       const exactly18Today = `${year18Ago}-${month}-${day}`;
 
       try {
-        const { error } = await supabase.from("personal").insert({
-          PerCod: scratchPerCod,
-          PerNom: "Adulto Exacto 18",
-          PerDNI: dni,
-          PerFecNac: exactly18Today,
-          PerPaiCod: 1,
-          PerDepCod: 1,
-          PerCarCod: 1,
-          PerEstReg: 1,
-        });
-        expect(error).toBeNull();
+        const inserted = await supabase
+          .from("personal")
+          .insert({
+            PerNom: "Adulto Exacto 18",
+            PerDNI: dni,
+            PerFecNac: exactly18Today,
+            PerPaiCod: 1,
+            PerDepCod: 1,
+            PerCarCod: 1,
+            PerEstReg: 1,
+          })
+          .select("PerCod")
+          .single();
+        expect(inserted.error).toBeNull();
+        const newCode: unknown = (inserted.data as { PerCod?: unknown } | null)
+          ?.PerCod;
+        if (typeof newCode === "number") {
+          await supabase.from("personal").delete().eq("PerCod", newCode);
+        }
       } finally {
-        await supabase.from("personal").delete().eq("PerCod", scratchPerCod);
+        await supabase.from("personal").delete().eq("PerDNI", dni);
       }
     });
 
@@ -445,7 +442,6 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
       const turns18Tomorrow = `${year18Ago}-${month}-${day}`;
 
       const { error } = await supabase.from("personal").insert({
-        PerCod: scratchPerCod,
         PerNom: "Menor 17 Años",
         PerDNI: dni,
         PerFecNac: turns18Tomorrow,
@@ -461,9 +457,7 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
     it("rejects future birthdate with DB CHECK violation (23514)", async () => {
       const scratchPerCod = scratchBase + 42;
       const dni = String(80000000 + scratchPerCod).slice(0, 8);
-
       const { error } = await supabase.from("personal").insert({
-        PerCod: scratchPerCod,
         PerNom: "Persona del Futuro",
         PerDNI: dni,
         PerFecNac: "2030-01-01",
@@ -536,18 +530,27 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
   // 7. G-SEL Activo-only after an Inactivar (§9, R7)
   describe("7. G-SEL Activo-only selection query after an Inactivar (SPEC §9, R7)", () => {
     it("excludes Inactivo row from selection query and includes it again after reactivation", async () => {
-      const scratchCod = scratchBase + 50;
-      const scratchNom = `Scratch Pais G-SEL ${scratchCod}`;
+      const scratchNom = `Scratch Pais G-SEL ${Date.now()}`;
+      let scratchCod = 0;
 
       try {
-        // Create scratch pais in Activo state
-        const { error: insErr } = await supabase.rpc("guardar_pais", {
-          op: "insert",
-          p_cod: scratchCod,
-          p_nom: scratchNom,
-          p_est: 1,
-        });
+        // Create scratch pais in Activo state (PK is DB-generated)
+        const { data: insRaw, error: insErr } = await supabase.rpc(
+          "guardar_pais",
+          {
+            op: "insert",
+            p_nom: scratchNom,
+            p_est: 1,
+          },
+        );
         expect(insErr).toBeNull();
+        const insRow = readPaisProjection(insRaw);
+        expect(insRow?.PaiNom).toBe(scratchNom);
+        expect(insRow?.PaiEstReg).toBe(1);
+        if (typeof insRow?.PaiCod !== "number") {
+          throw new Error("Expected generated PaiCod from insert RPC");
+        }
+        scratchCod = insRow.PaiCod;
 
         // G-SEL query: Activo only (EstReg = 1)
         const { data: sel1 } = await supabase
@@ -594,17 +597,19 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
         expect(sel3?.some((p) => p.PaiCod === scratchCod)).toBe(true);
       } finally {
         // Cleanup scratch row
-        await supabase.from("pais").delete().eq("PaiCod", scratchCod);
+        if (scratchCod > 0) {
+          await supabase.from("pais").delete().eq("PaiCod", scratchCod);
+        }
       }
     });
   });
 
-  // 8. RPC round-trip on scratch codes >= 9100 ending Eliminated (§8, §6.1)
   describe("8. RPC round-trip on scratch codes >= 9100 ending Eliminated (SPEC §8, §6.1)", () => {
     it("executes full RPC lifecycle insert -> update -> inactivate -> reactivate -> eliminate", async () => {
-      const scratchCod = scratchBase + 60;
-      const initialNom = `Scratch RPC ${scratchCod}`;
-      const updatedNom = `Scratch RPC Modificado ${scratchCod}`;
+      const stamp = Date.now();
+      const initialNom = `Scratch RPC ${stamp}`;
+      const updatedNom = `Scratch RPC Modificado ${stamp}`;
+      let scratchCod = 0;
 
       try {
         // 1. Insert via RPC: forces EstReg = 1 (Activo) even when p_est differs (R9)
@@ -612,16 +617,18 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           "guardar_pais",
           {
             op: "insert",
-            p_cod: scratchCod,
             p_nom: initialNom,
             p_est: 2,
           },
         );
         expect(insErr).toBeNull();
         const insRow = readPaisProjection(insRaw);
-        expect(insRow?.PaiCod).toBe(scratchCod);
         expect(insRow?.PaiNom).toBe(initialNom);
         expect(insRow?.PaiEstReg).toBe(1);
+        if (typeof insRow?.PaiCod !== "number") {
+          throw new Error("Expected generated PaiCod from insert RPC");
+        }
+        scratchCod = insRow.PaiCod;
 
         // 2. Update via RPC: preserves EstReg
         const { data: updRaw, error: updErr } = await supabase.rpc(
@@ -691,7 +698,9 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
         expect(blockedModErr?.message).toContain("E-TRANSITION");
       } finally {
         // Physical cleanup of scratch code to keep database pristine
-        await supabase.from("pais").delete().eq("PaiCod", scratchCod);
+        if (scratchCod > 0) {
+          await supabase.from("pais").delete().eq("PaiCod", scratchCod);
+        }
       }
     });
   });
@@ -699,19 +708,27 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
   // 9. Audit created_at immutable + updated_at bump (§10, R15, R16)
   describe("9. Audit traceability (created_at immutable + updated_at bump) (SPEC §10)", () => {
     it("preserves created_at and bumps updated_at on row update", async () => {
-      const scratchCod = scratchBase + 70;
-      const initialNom = `Scratch Audit ${scratchCod}`;
-      const bumpedNom = `Scratch Audit Bumped ${scratchCod}`;
+      const stamp = Date.now();
+      const initialNom = `Scratch Audit ${stamp}`;
+      const bumpedNom = `Scratch Audit Bumped ${stamp}`;
+      let scratchCod = 0;
 
       try {
-        // Insert scratch row in dependencia
-        const { error: insErr } = await supabase.rpc("guardar_dependencia", {
-          op: "insert",
-          p_cod: scratchCod,
-          p_nom: initialNom,
-          p_est: 1,
-        });
+        // Insert scratch row in dependencia (PK is DB-generated)
+        const { data: insRaw, error: insErr } = await supabase.rpc(
+          "guardar_dependencia",
+          {
+            op: "insert",
+            p_nom: initialNom,
+            p_est: 1,
+          },
+        );
         expect(insErr).toBeNull();
+        const depCod: unknown = (insRaw as { DepCod?: unknown } | null)?.DepCod;
+        if (typeof depCod !== "number") {
+          throw new Error("Expected generated DepCod from insert RPC");
+        }
+        scratchCod = depCod;
 
         const { data: r1 } = await supabase
           .from("dependencia")
@@ -753,7 +770,9 @@ describeLive("Live Integration Tests — SPEC §13 Invariants & RPCs", () => {
           new Date(r1.updated_at).getTime(),
         );
       } finally {
-        await supabase.from("dependencia").delete().eq("DepCod", scratchCod);
+        if (scratchCod > 0) {
+          await supabase.from("dependencia").delete().eq("DepCod", scratchCod);
+        }
       }
     });
   });

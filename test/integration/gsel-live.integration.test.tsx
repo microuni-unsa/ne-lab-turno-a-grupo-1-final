@@ -147,12 +147,9 @@ describeLive("G-SEL Live Supabase Integration (LIVE_DB=1)", () => {
     const cargoRepo = new CargoRepo(client);
     const personalRepo = new PersonalRepo(client);
 
-    const tempPaisCode = 31661;
-    const tempPersonalCode = 31691;
     const tempNom = `TestGselPais_${Date.now()}`;
-
-    await client.from("personal").delete().eq("PerCod", tempPersonalCode);
-    await client.from("pais").delete().eq("PaiCod", tempPaisCode);
+    let tempPaisCode = 0;
+    const tempPersonalCode = 0;
 
     try {
       const paisSource = createGselQuerySource({
@@ -190,17 +187,19 @@ describeLive("G-SEL Live Supabase Integration (LIVE_DB=1)", () => {
 
       const inserted = await paisRepo.guardar({
         op: "insert",
-        p_cod: tempPaisCode,
         p_nom: tempNom,
       });
       expect(inserted.ok).toBe(true);
+      if (inserted.ok && inserted.row) {
+        tempPaisCode = inserted.row.PaiCod;
+      }
 
       const withTemp = await paisSource.fetch({
         search: "",
         page: 1,
         pageSize: 100,
       });
-      expect(withTemp.items.some((i) => i.value === String(tempPaisCode))).toBe(
+      expect(withTemp.items.some((i) => Number(i.value) === tempPaisCode)).toBe(
         true,
       );
 
@@ -218,7 +217,7 @@ describeLive("G-SEL Live Supabase Integration (LIVE_DB=1)", () => {
         pageSize: 100,
       });
       expect(
-        withoutTemp.items.some((i) => i.value === String(tempPaisCode)),
+        withoutTemp.items.some((i) => Number(i.value) === tempPaisCode),
       ).toBe(false);
 
       const resolver = createGselLabelResolver({
@@ -232,9 +231,8 @@ describeLive("G-SEL Live Supabase Integration (LIVE_DB=1)", () => {
 
       const rejected = await personalRepo.guardar({
         op: "insert",
-        p_cod: tempPersonalCode,
         p_nom: "Personal FK Inactiva",
-        p_dni: "31691001",
+        p_dni: `31691${String(Date.now()).slice(-3)}`,
         p_fecnac: "1992-04-12",
         p_pai: tempPaisCode,
         p_dep: 1,
@@ -249,8 +247,14 @@ describeLive("G-SEL Live Supabase Integration (LIVE_DB=1)", () => {
         ).toBe(true);
       }
     } finally {
-      await client.from("personal").delete().eq("PerCod", tempPersonalCode);
-      await client.from("pais").delete().eq("PaiCod", tempPaisCode);
+      if (tempPersonalCode > 0) {
+        await client.from("personal").delete().eq("PerCod", tempPersonalCode);
+      } else {
+        await client.from("personal").delete().eq("PerDNI", "31691001");
+      }
+      if (tempPaisCode > 0) {
+        await client.from("pais").delete().eq("PaiCod", tempPaisCode);
+      }
     }
   });
 });

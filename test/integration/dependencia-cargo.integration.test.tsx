@@ -130,8 +130,10 @@ describe("DEPENDENCIA y CARGO integración e invalidación gsel/list (Fase 7)", 
       },
       async guardarOp(op: PendingOp) {
         if (op.kind === "adición") {
+          const nextCod =
+            depRows.reduce((m, r) => Math.max(m, r.DepCod), 0) + 1;
           const row: DependenciaRow = {
-            DepCod: asDepCod(Number(Reflect.get(op.payload, "DepCod"))),
+            DepCod: asDepCod(nextCod),
             DepNom: String(Reflect.get(op.payload, "DepNom") ?? "").trim(),
             DepEstReg: EST_A,
             created_at: "2026-01-01T00:00:00Z",
@@ -180,9 +182,9 @@ describe("DEPENDENCIA y CARGO integración e invalidación gsel/list (Fase 7)", 
       "MODO ADICIÓN",
     );
     await waitFor(() => {
-      expect(document.querySelector('input[name="DepCod"]')).not.toBeNull();
+      expect(document.querySelector('input[name="DepNom"]')).not.toBeNull();
     });
-    setIonFieldValue("DepCod", "18");
+    expect(document.querySelector('input[name="DepCod"]')).toBeNull();
     setIonFieldValue("DepNom", "Compras");
     await waitFor(() => {
       const nomEl = document.querySelector('input[name="DepNom"]');
@@ -277,15 +279,10 @@ describeLive(
       const client = readSecretSupabaseClient();
       const repo = new DependenciaRepo(client);
       const personalRepo = new PersonalRepo(client);
-      const tempCode = 31881;
-      const dupCode = 31882;
-      const tempPersonalCode = 31891;
-      const tempDni = "31891001";
+      const tempDni = `31891${String(Date.now()).slice(-3)}`;
       const tempNom = `TestDep_${Date.now()}`;
-
-      await client.from("personal").delete().eq("PerCod", tempPersonalCode);
-      await client.from("dependencia").delete().eq("DepCod", dupCode);
-      await client.from("dependencia").delete().eq("DepCod", tempCode);
+      let tempCode = 0;
+      let tempPersonalCode = 0;
 
       try {
         // Semillas normativas en orden por defecto (DepNom ASC, DepCod ASC)
@@ -303,18 +300,17 @@ describeLive(
 
         const inserted = await repo.guardar({
           op: "insert",
-          p_cod: tempCode,
           p_nom: tempNom,
         });
         expect(inserted.ok).toBe(true);
         if (!inserted.ok || !inserted.row) {
           throw new Error("Expected insert row");
         }
+        tempCode = inserted.row.DepCod;
         const createdAtInitial = inserted.row.created_at;
 
         const duplicate = await repo.guardar({
           op: "insert",
-          p_cod: dupCode,
           p_nom: `  ${tempNom.toLowerCase()}  `,
         });
         expect(duplicate.ok).toBe(false);
@@ -344,7 +340,6 @@ describeLive(
         // Vincular fila temporal de PERSONAL para probar R11 vs R12 real
         const linkedPersonal = await personalRepo.guardar({
           op: "insert",
-          p_cod: tempPersonalCode,
           p_nom: `RefDep_${Date.now()}`,
           p_dni: tempDni,
           p_fecnac: "1992-05-10",
@@ -353,6 +348,9 @@ describeLive(
           p_car: 1,
         });
         expect(linkedPersonal.ok).toBe(true);
+        if (linkedPersonal.ok && linkedPersonal.row) {
+          tempPersonalCode = linkedPersonal.row.PerCod;
+        }
 
         // R11: Eliminar bloqueado con personal A asociando tempCode
         const r11ActiveBlocked = await repo.guardar({
@@ -441,9 +439,12 @@ describeLive(
         });
         expect(eliminated.ok).toBe(true);
       } finally {
-        await client.from("personal").delete().eq("PerCod", tempPersonalCode);
-        await client.from("dependencia").delete().eq("DepCod", dupCode);
-        await client.from("dependencia").delete().eq("DepCod", tempCode);
+        if (tempPersonalCode > 0) {
+          await client.from("personal").delete().eq("PerCod", tempPersonalCode);
+        }
+        if (tempCode > 0) {
+          await client.from("dependencia").delete().eq("DepCod", tempCode);
+        }
       }
     });
 
@@ -451,15 +452,10 @@ describeLive(
       const client = readSecretSupabaseClient();
       const repo = new CargoRepo(client);
       const personalRepo = new PersonalRepo(client);
-      const tempCode = 31771;
-      const dupCode = 31772;
-      const tempPersonalCode = 31791;
-      const tempDni = "31791001";
+      const tempDni = `31791${String(Date.now()).slice(-3)}`;
       const tempNom = `TestCargo_${Date.now()}`;
-
-      await client.from("personal").delete().eq("PerCod", tempPersonalCode);
-      await client.from("cargo").delete().eq("CarCod", dupCode);
-      await client.from("cargo").delete().eq("CarCod", tempCode);
+      let tempCode = 0;
+      let tempPersonalCode = 0;
 
       try {
         // Semillas normativas (5 cargos en orden por defecto CarNom ASC, CarCod ASC)
@@ -483,18 +479,17 @@ describeLive(
 
         const inserted = await repo.guardar({
           op: "insert",
-          p_cod: tempCode,
           p_nom: tempNom,
         });
         expect(inserted.ok).toBe(true);
         if (!inserted.ok || !inserted.row) {
           throw new Error("Expected insert row");
         }
+        tempCode = inserted.row.CarCod;
         const createdAtInitial = inserted.row.created_at;
 
         const duplicate = await repo.guardar({
           op: "insert",
-          p_cod: dupCode,
           p_nom: `  ${tempNom.toLowerCase()}  `,
         });
         expect(duplicate.ok).toBe(false);
@@ -524,7 +519,6 @@ describeLive(
         // Vincular fila temporal de PERSONAL para probar R11 vs R12 real
         const linkedPersonal = await personalRepo.guardar({
           op: "insert",
-          p_cod: tempPersonalCode,
           p_nom: `RefCar_${Date.now()}`,
           p_dni: tempDni,
           p_fecnac: "1991-08-20",
@@ -533,6 +527,9 @@ describeLive(
           p_car: tempCode,
         });
         expect(linkedPersonal.ok).toBe(true);
+        if (linkedPersonal.ok && linkedPersonal.row) {
+          tempPersonalCode = linkedPersonal.row.PerCod;
+        }
 
         // R11: Eliminar bloqueado mientras exista personal A
         const r11ActiveBlocked = await repo.guardar({
@@ -612,9 +609,12 @@ describeLive(
         });
         expect(eliminated.ok).toBe(true);
       } finally {
-        await client.from("personal").delete().eq("PerCod", tempPersonalCode);
-        await client.from("cargo").delete().eq("CarCod", dupCode);
-        await client.from("cargo").delete().eq("CarCod", tempCode);
+        if (tempPersonalCode > 0) {
+          await client.from("personal").delete().eq("PerCod", tempPersonalCode);
+        }
+        if (tempCode > 0) {
+          await client.from("cargo").delete().eq("CarCod", tempCode);
+        }
       }
     });
   },

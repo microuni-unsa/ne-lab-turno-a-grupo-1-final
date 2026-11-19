@@ -13,7 +13,7 @@ import {
   type PaisRow,
   TABLE_PAIS,
 } from "@/core";
-import { PaisRepo } from "@/data";
+import { type OrderingSpec, PaisRepo } from "@/data";
 import {
   type RepoReader,
   useMaintenanceList,
@@ -90,11 +90,14 @@ describe("useMaintenanceList integration (React Query + estados A/I/* + paginaci
     ];
 
     const repo: RepoReader<PaisRow> = {
-      async list(ordering = "default", page) {
+      async list(ordering: OrderingSpec = "default", page) {
+        const byCode =
+          ordering === "alternate" ||
+          (typeof ordering === "object" &&
+            ordering !== null &&
+            ordering.column === "PaiCod");
         const sorted = [...rows].sort((a, b) =>
-          ordering === "alternate"
-            ? a.PaiCod - b.PaiCod
-            : a.PaiNom.localeCompare(b.PaiNom),
+          byCode ? a.PaiCod - b.PaiCod : a.PaiNom.localeCompare(b.PaiNom),
         );
         const offset = page?.offset ?? 0;
         const limit = page?.limit ?? 50;
