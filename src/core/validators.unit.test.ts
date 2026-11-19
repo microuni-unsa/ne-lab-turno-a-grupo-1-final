@@ -121,52 +121,74 @@ describe("validators.unit", () => {
   });
 
   describe("validateCode", () => {
-    it("accepts valid alphanumeric string codes", () => {
-      expect(validateCode(TABLE_PAIS, "PER")).toEqual([]);
-      expect(validateCode(TABLE_PAIS, "1")).toEqual([]);
-      expect(validateCode(TABLE_PERSONAL, "EMP-01")).toEqual([]);
+    it("accepts valid positive integer codes", () => {
+      expect(validateCode(TABLE_PAIS, 1)).toEqual([]);
+      expect(validateCode(TABLE_DEPENDENCIA, 10)).toEqual([]);
+      expect(validateCode(TABLE_CARGO, 32767)).toEqual([]);
+      expect(validateCode(TABLE_PERSONAL, 2147483647)).toEqual([]);
     });
 
-    it("rejects codes exceeding MAX_CODE_LEN with E-RANGE", () => {
-      expect(validateCode(TABLE_PAIS, "A".repeat(17))).toEqual([
+    it("rejects codes exceeding the table limit with E-RANGE", () => {
+      expect(validateCode(TABLE_PAIS, 32768)).toEqual([
         { code: ERROR_CODES.RANGE, field: "PaiCod" },
       ]);
-      expect(validateCode(TABLE_DEPENDENCIA, "B".repeat(20))).toEqual([
+      expect(validateCode(TABLE_DEPENDENCIA, 40000)).toEqual([
         { code: ERROR_CODES.RANGE, field: "DepCod" },
       ]);
-      expect(validateCode(TABLE_CARGO, "C".repeat(17))).toEqual([
+      expect(validateCode(TABLE_CARGO, 32768)).toEqual([
         { code: ERROR_CODES.RANGE, field: "CarCod" },
       ]);
-      expect(validateCode(TABLE_PERSONAL, "P".repeat(17))).toEqual([
+      expect(validateCode(TABLE_PERSONAL, 2147483648)).toEqual([
         { code: ERROR_CODES.RANGE, field: "PerCod" },
       ]);
     });
 
-    it("rejects non-string or invalid character formats with E-FORMAT", () => {
-      expect(validateCode(TABLE_PAIS, 123)).toEqual([
+    it("rejects zero and negatives with E-RANGE", () => {
+      expect(validateCode(TABLE_PAIS, 0)).toEqual([
+        { code: ERROR_CODES.RANGE, field: "PaiCod" },
+      ]);
+      expect(validateCode(TABLE_PAIS, -5)).toEqual([
+        { code: ERROR_CODES.RANGE, field: "PaiCod" },
+      ]);
+      expect(validateCode(TABLE_PERSONAL, 0)).toEqual([
+        { code: ERROR_CODES.RANGE, field: "PerCod" },
+      ]);
+    });
+
+    it("rejects non-integers and non-numbers with E-FORMAT", () => {
+      expect(validateCode(TABLE_PAIS, 1.5)).toEqual([
         { code: ERROR_CODES.FORMAT, field: "PaiCod" },
       ]);
-      expect(validateCode(TABLE_PAIS, "PE R")).toEqual([
+      expect(validateCode(TABLE_PAIS, "1")).toEqual([
         { code: ERROR_CODES.FORMAT, field: "PaiCod" },
       ]);
-      expect(validateCode(TABLE_PAIS, "PER/1")).toEqual([
+      expect(validateCode(TABLE_PAIS, "PER")).toEqual([
+        { code: ERROR_CODES.FORMAT, field: "PaiCod" },
+      ]);
+      expect(validateCode(TABLE_PAIS, Number.NaN)).toEqual([
         { code: ERROR_CODES.FORMAT, field: "PaiCod" },
       ]);
     });
 
-    it("rejects null, undefined, and empty string with E-REQUIRED", () => {
+    it("rejects null and undefined with E-REQUIRED", () => {
       expect(validateCode(TABLE_PAIS, null)).toEqual([
         { code: ERROR_CODES.REQUIRED, field: "PaiCod" },
       ]);
       expect(validateCode(TABLE_PAIS, undefined)).toEqual([
         { code: ERROR_CODES.REQUIRED, field: "PaiCod" },
       ]);
-      expect(validateCode(TABLE_PAIS, "")).toEqual([
-        { code: ERROR_CODES.REQUIRED, field: "PaiCod" },
-      ]);
-      expect(validateCode(TABLE_PAIS, "   ")).toEqual([
-        { code: ERROR_CODES.REQUIRED, field: "PaiCod" },
-      ]);
+    });
+
+    it("allows absent codes when optional (adición PK, DB-generated)", () => {
+      expect(
+        validateCode(TABLE_PAIS, undefined, "PaiCod", { optional: true }),
+      ).toEqual([]);
+      expect(
+        validateCode(TABLE_PAIS, null, "PaiCod", { optional: true }),
+      ).toEqual([]);
+      expect(
+        validateCode(TABLE_PERSONAL, undefined, "PerCod", { optional: true }),
+      ).toEqual([]);
     });
   });
 
@@ -242,13 +264,13 @@ describe("validators.unit", () => {
 
     it("validates a valid PersonalRow", () => {
       const validPersonal = {
-        PerCod: "EMP100",
+        PerCod: 100,
         PerNom: "Carlos Mendoza",
         PerDNI: "71234567",
         PerFecNac: "1995-04-10",
-        PerPaiCod: "PER",
-        PerDepCod: "SIS",
-        PerCarCod: "PRG",
+        PerPaiCod: 1,
+        PerDepCod: 2,
+        PerCarCod: 3,
         PerEstReg: EST_A,
       };
       const res = validatePersonalRow(validPersonal, {
@@ -259,12 +281,12 @@ describe("validators.unit", () => {
 
     it("reports all field failures in batch when multiple fields are invalid (R22)", () => {
       const badPersonal = {
-        PerCod: "A".repeat(17), // E-RANGE
+        PerCod: 2147483648, // E-RANGE
         PerNom: " ", // E-REQUIRED
         PerDNI: "ABC", // E-FORMAT + E-RANGE
         PerFecNac: "2020-01-01", // E-RANGE (< 18)
         PerPaiCod: "PE R", // E-FORMAT
-        PerDepCod: "", // E-REQUIRED
+        PerDepCod: 0, // E-RANGE
         PerCarCod: null, // E-REQUIRED
       };
       const failures = validatePersonalRow(badPersonal, {
@@ -291,20 +313,20 @@ describe("validators.unit", () => {
     });
 
     it("routes correctly via validateRow generic dispatcher", () => {
-      expect(
-        validateRow(TABLE_PAIS, { PaiCod: "CHL", PaiNom: "Chile" }),
-      ).toEqual([]);
+      expect(validateRow(TABLE_PAIS, { PaiCod: 3, PaiNom: "Chile" })).toEqual(
+        [],
+      );
       expect(
         validateRow(
           TABLE_PERSONAL,
           {
-            PerCod: "EMP01",
+            PerCod: 101,
             PerNom: "Ana Gomez",
             PerDNI: "78901234",
             PerFecNac: "2000-01-01",
-            PerPaiCod: "PER",
-            PerDepCod: "SIS",
-            PerCarCod: "PRG",
+            PerPaiCod: 1,
+            PerDepCod: 2,
+            PerCarCod: 3,
           },
           { todayLocal: fixedToday },
         ),

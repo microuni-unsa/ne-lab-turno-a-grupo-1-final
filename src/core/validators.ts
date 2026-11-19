@@ -11,11 +11,11 @@ import {
   EST_A,
   EST_I,
   EST_X,
-  MAX_CODE_LEN,
   MAX_INTEGER,
   MAX_NAME,
   MAX_SMALLINT,
   MIN_AGE,
+  MIN_CODE,
   MIN_NAME,
   TABLE_CARGO,
   TABLE_DEPENDENCIA,
@@ -80,35 +80,28 @@ export function getMaxCodeLimit(table: TableName): number {
 }
 
 /**
- * Validates a table primary key or foreign key code value as an alphanumeric string.
- * Required, trimmed length 1..MAX_CODE_LEN (16), characters [A-Za-z0-9._-].
+ * Validates a table primary key or foreign key code value as a positive integer.
+ * Absent values fail REQUIRED unless `optional` (Adición PK, DB-generated).
+ * Non-integer values fail FORMAT; out-of-range values fail RANGE.
  */
 export function validateCode(
   table: TableName,
   value: unknown,
   fieldName?: string,
+  options?: { readonly optional?: boolean },
 ): FieldFailure[] {
   const field = fieldName ?? getCodeFieldName(table);
 
   if (value === undefined || value === null) {
-    return [{ code: ERROR_CODES.REQUIRED, field }];
+    return options?.optional ? [] : [{ code: ERROR_CODES.REQUIRED, field }];
   }
 
-  if (typeof value !== "string") {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
     return [{ code: ERROR_CODES.FORMAT, field }];
   }
 
-  const trimmed = value.trim();
-  if (trimmed.length === 0) {
-    return [{ code: ERROR_CODES.REQUIRED, field }];
-  }
-
-  if (trimmed.length > MAX_CODE_LEN) {
+  if (value < MIN_CODE || value > getMaxCodeLimit(table)) {
     return [{ code: ERROR_CODES.RANGE, field }];
-  }
-
-  if (!/^[A-Za-z0-9._-]+$/.test(trimmed)) {
-    return [{ code: ERROR_CODES.FORMAT, field }];
   }
 
   return [];
@@ -291,7 +284,11 @@ function validateReferenceRow(
   )?.value;
 
   if (!options.isUpdate || codeValue !== undefined) {
-    failures.push(...validateCode(table, codeValue, codeField));
+    failures.push(
+      ...validateCode(table, codeValue, codeField, {
+        optional: options.isUpdate !== true,
+      }),
+    );
   }
 
   failures.push(...validateNom(nomValue, nomField));
@@ -372,7 +369,11 @@ export function validatePersonalRow(
   const failures: FieldFailure[] = [];
 
   if (!options.isUpdate || row.PerCod !== undefined) {
-    failures.push(...validateCode(TABLE_PERSONAL, row.PerCod, "PerCod"));
+    failures.push(
+      ...validateCode(TABLE_PERSONAL, row.PerCod, "PerCod", {
+        optional: options.isUpdate !== true,
+      }),
+    );
   }
 
   failures.push(...validateNom(row.PerNom, "PerNom"));

@@ -1,10 +1,12 @@
 -- ============================================================
 -- Maestro de Personal — normative seeds (Appendix B) + extended demo catalog.
 -- Idempotent rerunnability via ON CONFLICT ("Cod") DO NOTHING.
+-- Primary keys are INTEGER GENERATED ALWAYS AS IDENTITY: seeds use
+-- OVERRIDING SYSTEM VALUE to insert the normative explicit codes.
 -- ============================================================
 
 -- Lab-mandated dependencias (exact spellings 1..3), plus extended operational units.
-INSERT INTO dependencia ("DepCod","DepNom","DepEstReg") VALUES
+INSERT INTO dependencia ("DepCod","DepNom","DepEstReg") OVERRIDING SYSTEM VALUE VALUES
   (1,'Sistemas',1),
   (2,'Contabilidad',1),
   (3,'Almacen',1),
@@ -16,7 +18,7 @@ INSERT INTO dependencia ("DepCod","DepNom","DepEstReg") VALUES
 ON CONFLICT ("DepCod") DO NOTHING;
 
 -- Normative countries (1..5), plus extended LATAM/Iberoamérica catalog.
-INSERT INTO pais ("PaiCod","PaiNom","PaiEstReg") VALUES
+INSERT INTO pais ("PaiCod","PaiNom","PaiEstReg") OVERRIDING SYSTEM VALUE VALUES
   (1,'Perú',1),
   (2,'Chile',1),
   (3,'Colombia',1),
@@ -31,7 +33,7 @@ INSERT INTO pais ("PaiCod","PaiNom","PaiEstReg") VALUES
 ON CONFLICT ("PaiCod") DO NOTHING;
 
 -- Normative cargos (1..5), plus extended roles across Soluciones Móviles S.A.C.
-INSERT INTO cargo ("CarCod","CarNom","CarEstReg") VALUES
+INSERT INTO cargo ("CarCod","CarNom","CarEstReg") OVERRIDING SYSTEM VALUE VALUES
   (1,'Analista de Sistemas',1),
   (2,'Programador',1),
   (3,'Contador',1),
@@ -49,7 +51,7 @@ ON CONFLICT ("CarCod") DO NOTHING;
 -- Normative employees (1..4) + extended team roster (5..14).
 INSERT INTO personal
   ("PerCod","PerNom","PerDNI","PerFecNac","PerPaiCod","PerDepCod","PerCarCod","PerEstReg")
-VALUES
+OVERRIDING SYSTEM VALUE VALUES
   (1,'Juan Pérez','70000001','1990-03-15',1,1,2,1),
   (2,'María López','70000002','1988-07-22',1,2,3,1),
   (3,'Carlos García','70000003','1995-11-02',2,3,4,1),

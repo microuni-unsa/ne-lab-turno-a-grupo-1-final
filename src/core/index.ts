@@ -14,7 +14,6 @@ export {
   EST_SIM_I,
   EST_SIM_X,
   EST_X,
-  MAX_CODE_LEN,
   MAX_INTEGER,
   MAX_NAME,
   MAX_SMALLINT,

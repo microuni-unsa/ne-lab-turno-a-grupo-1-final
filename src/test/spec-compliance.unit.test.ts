@@ -64,14 +64,14 @@ describe("Cumplimiento normativo global SPEC §3–§15", () => {
 
     const paisRepo = new PaisRepo(offlineClient);
     await expect(
-      paisRepo.guardar({ op: "insert", p_cod: "URY", p_nom: "Uruguay" }),
+      paisRepo.guardar({ op: "insert", p_nom: "Uruguay" }),
     ).rejects.toThrow(/Failed to fetch/);
 
     const personalRepo = new PersonalRepo(offlineClient);
     await expect(
       personalRepo.guardar({
         op: "set_state",
-        p_cod: "EMP01",
+        p_cod: 101,
         p_est: EST_X,
       }),
     ).rejects.toThrow(/Failed to fetch/);
