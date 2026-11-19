@@ -110,13 +110,11 @@ export function AdvancedSearchDrawer({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent initialBreakpoint={0.75} breakpoints={[0, 0.75, 0.9]}>
-        <DrawerHeader className="px-0 pb-2">
-          <DrawerTitle className="text-base font-semibold">
-            Búsqueda avanzada · {tableLabel}
-          </DrawerTitle>
+        <DrawerHeader className="px-0 pb-3">
+          <DrawerTitle>Búsqueda avanzada · {tableLabel}</DrawerTitle>
         </DrawerHeader>
 
-        <div className="flex max-h-[52dvh] flex-col gap-2.5 overflow-y-auto overscroll-contain pb-2">
+        <div className="flex max-h-[52dvh] flex-col gap-3 overflow-y-auto overscroll-contain pb-2">
           <div className="flex flex-col gap-1.5">
             <Label
               htmlFor="adv-filter-cod"
@@ -177,11 +175,10 @@ export function AdvancedSearchDrawer({
                       key={opt.value}
                       type="button"
                       variant={isSelected ? "default" : "outline"}
-                      size="sm"
                       data-testid={`adv-est-${opt.value}`}
                       aria-pressed={isSelected}
                       onClick={() => toggleEstado(opt.value)}
-                      className="h-11 min-h-11 w-full justify-center text-xs font-medium"
+                      className="h-11 min-h-11 w-full justify-center text-sm font-medium"
                     >
                       {opt.label}
                     </Button>
@@ -194,13 +191,13 @@ export function AdvancedSearchDrawer({
           {renderExtraFilters?.(draft, patchDraft)}
         </div>
 
-        <DrawerFooter className="grid grid-cols-2 gap-2 px-0 pt-2">
+        <DrawerFooter className="grid grid-cols-2 gap-2 px-0 pt-3">
           <Button
             type="button"
             variant="outline"
             data-testid="adv-btn-reset"
             onClick={handleReset}
-            className="h-11 min-h-11 w-full text-xs font-semibold"
+            className="h-11 min-h-11 w-full text-sm font-semibold"
           >
             Limpiar filtros
           </Button>
@@ -209,7 +206,7 @@ export function AdvancedSearchDrawer({
             variant="default"
             data-testid="adv-btn-apply"
             onClick={handleApply}
-            className="h-11 min-h-11 w-full text-xs font-semibold"
+            className="h-11 min-h-11 w-full text-sm font-semibold"
           >
             Aplicar filtros
           </Button>

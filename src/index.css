@@ -227,7 +227,7 @@
     --padding-bottom: 0px;
     --min-height: 2.75rem;
     min-height: 2.75rem;
-    font-size: 0.875rem;
+    /* Unlayered Ionic shadow CSS (.sc-ion-input-md-h) beats layered rules; keep 14px unlayered too. */
     border: 1px solid var(--input);
     border-radius: var(--radius-md);
   }
@@ -328,6 +328,11 @@
 }
 
 /* Unlayered: must beat unlayered Ionic input internals (layered rules always lose). */
+ion-input[data-slot="input"] {
+  /* Match readonly detail inputs + triggers: 14px app-wide. */
+  font-size: 0.875rem;
+}
+
 ion-input[data-slot="input"].maestro-input .input-wrapper {
   padding-inline: 0.75rem;
 }

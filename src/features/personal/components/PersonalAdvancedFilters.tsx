@@ -69,7 +69,7 @@ export function PersonalAdvancedFilters({
   ];
 
   return (
-    <div className="flex flex-col gap-2.5 border-t border-border pt-3">
+    <div className="flex flex-col gap-3 border-t border-border pt-3">
       <div className="flex flex-col gap-1.5">
         <Label
           htmlFor="adv-filter-dni"

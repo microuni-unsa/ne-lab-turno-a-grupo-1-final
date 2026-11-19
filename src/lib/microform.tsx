@@ -17,24 +17,22 @@ import {
 import { cn } from "cn";
 import { format, isValid, parseISO } from "date-fns";
 import { es } from "date-fns/locale/es";
-import { CalendarIcon, CheckIcon, ChevronsUpDownIcon } from "lucide-react";
+import {
+  CalendarIcon,
+  CheckIcon,
+  ChevronsUpDownIcon,
+  SearchIcon,
+} from "lucide-react";
 import * as React from "react";
 import type { FieldPath, FieldValues } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
   Drawer,
   DrawerContent,
   DrawerDescription,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
@@ -270,6 +268,17 @@ function AsyncComboboxControl({
     onBlur?.();
   };
 
+  const selectOption = (option: SelectOption) => {
+    const numeric = Number(option.value);
+    const nextValue =
+      props.valueType === "number" && Number.isFinite(numeric)
+        ? numeric
+        : option.value;
+    setSelectedEntry({ value: option.value, label: option.label });
+    onChange?.(nextValue);
+    closeWithoutSelection();
+  };
+
   return (
     <>
       <Button
@@ -308,80 +317,88 @@ function AsyncComboboxControl({
         >
           <DrawerHeader>
             <DrawerTitle>{props.label ?? "Seleccionar"}</DrawerTitle>
-            <DrawerDescription>
-              Solo registros activos ordenados alfabéticamente
-            </DrawerDescription>
           </DrawerHeader>
           <div
             data-testid={name ? `gsel-panel-${name}` : undefined}
-            className="space-y-3"
+            className="flex min-h-0 flex-col gap-3"
           >
-            <Command
-              shouldFilter={false}
-              className="rounded-lg border border-border"
-            >
-              <CommandInput
-                data-testid={name ? `gsel-search-${name}` : undefined}
-                value={search}
-                onValueChange={setSearch}
-                placeholder="Buscar por nombre..."
+            <div className="relative">
+              <SearchIcon
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted-foreground"
               />
-              <CommandList className="max-h-[42dvh]">
-                <CommandEmpty>
+              <input
+                name={name ? `${name}-search` : undefined}
+                type="search"
+                value={search}
+                placeholder="Buscar por nombre..."
+                aria-label="Buscar por nombre"
+                data-testid={name ? `gsel-search-${name}` : undefined}
+                onChange={(event) => setSearch(event.target.value)}
+                className="flex h-11 min-h-11 w-full rounded-md border border-input bg-transparent py-2 pr-3 pl-9 text-sm font-normal text-foreground shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              />
+            </div>
+            <div
+              role="listbox"
+              aria-label={props.label ?? "Seleccionar"}
+              className="flex max-h-[42dvh] min-h-0 flex-col divide-y divide-border overflow-y-auto overscroll-contain rounded-lg border border-border bg-card"
+            >
+              {options.length === 0 ? (
+                <p
+                  role="status"
+                  className="m-0 px-3 py-6 text-center text-sm text-muted-foreground"
+                >
                   {isLoading
                     ? "Buscando..."
                     : (props.emptyMessage ?? "Sin registros activos")}
-                </CommandEmpty>
-                <CommandGroup>
-                  {options.map((option) => {
-                    const isSelected = option.value === currentValue;
-                    return (
-                      <CommandItem
-                        key={option.key}
-                        value={option.value}
-                        data-testid={
-                          name
-                            ? `gsel-option-${name}-${option.value}`
-                            : undefined
-                        }
-                        onSelect={() => {
-                          const numeric = Number(option.value);
-                          const nextValue =
-                            props.valueType === "number" &&
-                            Number.isFinite(numeric)
-                              ? numeric
-                              : option.value;
-                          setSelectedEntry({
-                            value: option.value,
-                            label: option.label,
-                          });
-                          onChange?.(nextValue);
-                          closeWithoutSelection();
-                        }}
-                      >
-                        <CheckIcon
-                          className={cn(
-                            "size-4 shrink-0",
-                            isSelected ? "opacity-100" : "opacity-0",
-                          )}
-                        />
-                        <span className="truncate">{option.label}</span>
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              </CommandList>
-            </Command>
+                </p>
+              ) : (
+                options.map((option) => {
+                  const isSelected = option.value === currentValue;
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      data-testid={
+                        name ? `gsel-option-${name}-${option.value}` : undefined
+                      }
+                      onClick={() => selectOption(option)}
+                      className={cn(
+                        "flex min-h-12 w-full items-center gap-3 px-3 py-3 text-left text-sm text-foreground transition-colors",
+                        isSelected ? "bg-accent" : "hover:bg-muted/50",
+                      )}
+                    >
+                      <span className="min-w-0 flex-1 truncate">
+                        {option.label}
+                      </span>
+                      <CheckIcon
+                        aria-hidden="true"
+                        className={cn(
+                          "size-4 shrink-0",
+                          isSelected
+                            ? "text-foreground opacity-100"
+                            : "opacity-0",
+                        )}
+                      />
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          <DrawerFooter className="px-0">
             <Button
               type="button"
               variant="outline"
-              className="w-full min-h-11"
+              className="h-11 min-h-11 w-full text-sm font-medium"
               data-testid={name ? `gsel-cancelar-${name}` : undefined}
               onClick={closeWithoutSelection}
             >
               Cancelar
             </Button>
-          </div>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </>
