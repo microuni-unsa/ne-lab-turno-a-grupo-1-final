@@ -1,0 +1,107 @@
+/* Scoped theme overrides for UI variants A, B, and C.
+   Original app (:root) remains completely untouched when no variant is set. */
+
+[data-variant="A"] {
+  --surface-background: #f5f7fa;
+  --background: #f5f7fa;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #0f1f38;
+  --primary-foreground: #ffffff;
+  --secondary: #e8eef5;
+  --secondary-foreground: #0f172a;
+  --muted: #eef2f6;
+  --muted-foreground: #64748b;
+  --accent: #e8eef5;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #0f1f38;
+
+  --ion-background-color: var(--surface-background);
+  --ion-text-color: var(--foreground);
+  --ion-color-primary: var(--primary);
+  --ion-color-primary-contrast: var(--primary-foreground);
+  --ion-item-background: var(--card);
+  --ion-card-background: var(--card);
+  --ion-toolbar-background: #f5f7fa;
+  --ion-border-color: var(--border);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+[data-variant="B"] {
+  --surface-background: #f7f3eb;
+  --background: #f7f3eb;
+  --foreground: #261f18;
+  --card: #fffdf9;
+  --card-foreground: #261f18;
+  --popover: #fffdf9;
+  --popover-foreground: #261f18;
+  --primary: #9a3f25;
+  --primary-foreground: #fffdf9;
+  --secondary: #efe8da;
+  --secondary-foreground: #261f18;
+  --muted: #f0e9dc;
+  --muted-foreground: #786a5a;
+  --accent: #efe8da;
+  --accent-foreground: #261f18;
+  --destructive: #b91c1c;
+  --destructive-foreground: #fffdf9;
+  --border: #e4dbc9;
+  --input: #d6cbb5;
+  --ring: #9a3f25;
+
+  --ion-background-color: var(--surface-background);
+  --ion-text-color: var(--foreground);
+  --ion-color-primary: var(--primary);
+  --ion-color-primary-contrast: var(--primary-foreground);
+  --ion-item-background: var(--card);
+  --ion-card-background: var(--card);
+  --ion-toolbar-background: #f7f3eb;
+  --ion-border-color: var(--border);
+}
+
+[data-variant="B"] .variant-b-serif {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+[data-variant="C"] {
+  --surface-background: #0b0d0e;
+  --background: #0b0d0e;
+  --foreground: #eef2f3;
+  --card: #121618;
+  --card-foreground: #eef2f3;
+  --popover: #151a1d;
+  --popover-foreground: #eef2f3;
+  --primary: #d4ff4f;
+  --primary-foreground: #0b0d0e;
+  --secondary: #1a2024;
+  --secondary-foreground: #eef2f3;
+  --muted: #161b1e;
+  --muted-foreground: #84929b;
+  --accent: #1d2428;
+  --accent-foreground: #eef2f3;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #232a2f;
+  --input: #2c353b;
+  --ring: #d4ff4f;
+
+  --ion-background-color: var(--surface-background);
+  --ion-text-color: var(--foreground);
+  --ion-color-primary: var(--primary);
+  --ion-color-primary-contrast: var(--primary-foreground);
+  --ion-item-background: var(--card);
+  --ion-card-background: var(--card);
+  --ion-toolbar-background: #0b0d0e;
+  --ion-border-color: var(--border);
+}
+
+[data-variant="C"] .variant-c-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
