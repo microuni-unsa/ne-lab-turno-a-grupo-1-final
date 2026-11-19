@@ -131,10 +131,12 @@ function DrawerContent({
   children,
   initialBreakpoint = 0.75,
   breakpoints = [0, 0.5, 0.75, 0.95],
+  autoHeight = false,
   ...props
 }: React.ComponentProps<"div"> & {
   initialBreakpoint?: number;
   breakpoints?: number[];
+  autoHeight?: boolean;
 }) {
   const { open, setOpen } = useDrawerContext();
 
@@ -151,11 +153,13 @@ function DrawerContent({
       initialBreakpoint={initialBreakpoint}
       breakpoints={breakpoints}
       handle={true}
+      className={autoHeight ? "maestro-sheet-auto" : undefined}
     >
       <div
         data-slot="drawer-content"
         className={cn(
           "flex max-h-[78dvh] flex-col overflow-y-auto overscroll-contain bg-background px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] text-foreground",
+          autoHeight && "max-h-[86dvh]",
           className,
         )}
         {...props}

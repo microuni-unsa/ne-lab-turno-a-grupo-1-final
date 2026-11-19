@@ -7,23 +7,14 @@ import {
   useIonRouter,
 } from "@ionic/react";
 import {
-  AlertTriangleIcon,
   BriefcaseIcon,
   Building2Icon,
   ChevronRightIcon,
   GlobeIcon,
   UsersIcon,
-  WifiIcon,
-  WifiOffIcon,
 } from "lucide-react";
 import * as React from "react";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { getSupabaseEnvStatus, useNetworkStatus } from "@/lib/supabase-status";
 
 interface ModuleRouteCard {
@@ -31,7 +22,6 @@ interface ModuleRouteCard {
   readonly path: string;
   readonly title: string;
   readonly summary: string;
-  readonly tableTag: string;
   readonly icon: React.ComponentType<{ readonly className?: string }>;
 }
 
@@ -40,34 +30,28 @@ const CATALOG_MODULES: readonly ModuleRouteCard[] = [
     id: "nav-pais",
     path: "/pais",
     title: "Países",
-    summary:
-      "Catálogo base de países (código entero, nombre único y estado A/I/*).",
-    tableTag: "PAIS",
+    summary: "Catálogo de países",
     icon: GlobeIcon,
   },
   {
     id: "nav-dependencia",
     path: "/dependencia",
     title: "Dependencias",
-    summary: "Áreas orgánicas de la empresa con control de referencias.",
-    tableTag: "DEPENDENCIA",
+    summary: "Áreas de la empresa",
     icon: Building2Icon,
   },
   {
     id: "nav-cargo",
     path: "/cargo",
     title: "Cargos",
-    summary: "Catálogo de puestos laborales activos e inactivos.",
-    tableTag: "CARGO",
+    summary: "Catálogo de puestos laborales",
     icon: BriefcaseIcon,
   },
   {
     id: "nav-personal",
     path: "/personal",
     title: "Personal",
-    summary:
-      "Registro maestro de colaboradores con DNI, edad >= 18 y catálogos activos.",
-    tableTag: "PERSONAL",
+    summary: "Registro maestro de colaboradores",
     icon: UsersIcon,
   },
 ];
@@ -105,36 +89,6 @@ export function HomePage() {
             <p className="m-0 text-sm font-medium text-muted-foreground">
               Soluciones Móviles S.A.C.
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {!envStatus.configured ? (
-                <Badge
-                  variant="destructive"
-                  data-testid="home-connectivity-status"
-                  className="gap-1.5 py-1 text-xs"
-                >
-                  <AlertTriangleIcon className="size-3.5 shrink-0" />
-                  <span>Supabase sin configurar</span>
-                </Badge>
-              ) : !isOnline ? (
-                <Badge
-                  variant="destructive"
-                  data-testid="home-connectivity-status"
-                  className="gap-1.5 py-1 text-xs"
-                >
-                  <WifiOffIcon className="size-3.5 shrink-0" />
-                  <span>Sin red · conexión requerida</span>
-                </Badge>
-              ) : (
-                <Badge
-                  variant="secondary"
-                  data-testid="home-connectivity-status"
-                  className="gap-1.5 py-1 text-xs"
-                >
-                  <WifiIcon className="size-3.5 shrink-0 text-primary" />
-                  <span>En línea · Supabase configurado</span>
-                </Badge>
-              )}
-            </div>
 
             {!envStatus.configured && (
               <p
@@ -147,7 +101,10 @@ export function HomePage() {
             )}
 
             {!isOnline && (
-              <p className="m-0 mt-1 text-xs text-destructive">
+              <p
+                data-testid="home-offline-notice"
+                className="m-0 mt-1 text-xs text-destructive"
+              >
                 No existe modo offline: verifica tu conexión a Internet antes de
                 consultar o guardar registros.
               </p>
@@ -173,14 +130,9 @@ export function HomePage() {
                         <Icon className="size-5" />
                       </div>
                       <div className="flex min-w-0 flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base font-semibold text-foreground">
-                            {mod.title}
-                          </span>
-                          <Badge variant="outline" className="text-xs">
-                            {mod.tableTag}
-                          </Badge>
-                        </div>
+                        <span className="text-base font-semibold text-foreground">
+                          {mod.title}
+                        </span>
                         <span className="text-xs leading-snug text-muted-foreground">
                           {mod.summary}
                         </span>
@@ -193,18 +145,6 @@ export function HomePage() {
               );
             })}
           </section>
-
-          <Card className="bg-muted/30 py-3">
-            <CardHeader className="px-4 py-0">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Regla de sesión
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Solo una operación pendiente por tabla. Usa Guardar para
-                confirmar o Cancelar para descartar antes de Salir.
-              </CardDescription>
-            </CardHeader>
-          </Card>
         </main>
       </IonContent>
     </IonPage>

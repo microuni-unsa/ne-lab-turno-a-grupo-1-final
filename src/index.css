@@ -268,11 +268,18 @@
     --max-width: 28rem;
     --width: calc(100% - 2rem);
   }
-
   ion-modal[data-slot="drawer"],
   ion-modal[data-slot="select-content"] {
     --background: var(--surface-background);
     --border-radius: var(--radius-xl);
+  }
+
+  ion-modal[data-slot="drawer"].maestro-sheet-auto {
+    --height: auto;
+  }
+
+  ion-modal[data-slot="drawer"].maestro-sheet-auto::part(content) {
+    max-height: 86dvh;
   }
 
   ion-modal[data-slot="alert-dialog"] {
@@ -315,6 +322,38 @@
     min-height: 2.75rem;
   }
 
+  @keyframes maestro-detail-in {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.99);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .maestro-detail-enter {
+    animation: maestro-detail-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transform-origin: top center;
+  }
+
+  @keyframes maestro-detail-out {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.99);
+    }
+  }
+
+  .maestro-detail-exit {
+    animation: maestro-detail-out 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transform-origin: top center;
+    pointer-events: none;
+  }
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
