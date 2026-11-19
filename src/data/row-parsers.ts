@@ -39,17 +39,13 @@ export function readOptionalNumberField(
 export function readOptionalCodeField(
   source: unknown,
   key: string,
-): string | undefined {
+): number | undefined {
   if (!isPlainRecord(source)) {
     return undefined;
   }
   const value: unknown = Object.getOwnPropertyDescriptor(source, key)?.value;
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : undefined;
-  }
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
+  if (typeof value === "number" && Number.isInteger(value)) {
+    return value;
   }
   return undefined;
 }
@@ -83,12 +79,12 @@ function readAuditTimestampField(source: unknown, key: string): string | null {
   return typeof value === "string" ? value : null;
 }
 
-function parseReferenceFields<TCod extends string>(
+function parseReferenceFields<TCod extends number>(
   raw: unknown,
   codeKey: string,
   nomKey: string,
   estKey: string,
-  brandCode: (value: string) => TCod,
+  brandCode: (value: number) => TCod,
 ): {
   readonly code: TCod;
   readonly nom: string;

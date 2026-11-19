@@ -235,8 +235,14 @@ function AsyncComboboxControl({
       return;
     }
 
+    const numericValue = Number(currentValue);
+    const resolvedInput =
+      props.valueType === "number" && Number.isFinite(numericValue)
+        ? numericValue
+        : currentValue;
+
     let active = true;
-    void resolveLabelFn(currentValue).then(
+    void resolveLabelFn(resolvedInput).then(
       (resolved) => {
         if (active && resolved) {
           setSelectedEntry({ value: currentValue, label: resolved });
@@ -251,6 +257,7 @@ function AsyncComboboxControl({
   }, [
     currentValue,
     matchedOption?.label,
+    props.valueType,
     resolveLabelFn,
     selectedEntry?.value,
   ]);

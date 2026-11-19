@@ -12,7 +12,6 @@ import {
   EST_A,
   EST_I,
   EST_X,
-  MAX_CODE_LEN,
   TABLE_CARGO,
   TABLE_DEPENDENCIA,
   TABLE_PAIS,
@@ -346,8 +345,8 @@ export function listQuery<TRow = unknown>(
  * Builds a simple search query returning an unexecuted PostgREST builder (§11.2).
  * Single input string; case-insensitive, accent-sensitive contains match.
  * Empty input returns unfiltered list with active ordering.
- * Reference: Nom ILIKE contains OR Cod ILIKE contains.
- * Personal: PerNom ILIKE contains OR PerDNI contains OR PerCod ILIKE contains.
+ * Reference: Nom ILIKE contains OR Cod exact match when the term is numeric.
+ * Personal: PerNom ILIKE contains OR PerDNI contains OR PerCod exact when numeric.
  */
 export function simpleSearch<TRow = unknown>(
   table: TableName | string,
@@ -368,16 +367,26 @@ export function simpleSearch<TRow = unknown>(
 
   if (trimmed.length > 0) {
     const escapedTerm = escapeIlikeLiteral(trimmed);
+    const numericCode = /^\d+$/.test(trimmed)
+      ? Number.parseInt(trimmed, 10)
+      : null;
     if (isReferenceQueryTable(normTable)) {
       const meta = REFERENCE_QUERY_META[normTable];
       const nomTerm = formatOrIlikeTerm(meta.nomCol, `%${escapedTerm}%`);
-      const codTerm = formatOrIlikeTerm(meta.codeCol, `%${escapedTerm}%`);
-      builder = builder.or(`${nomTerm},${codTerm}`);
+      const codTerm =
+        numericCode !== null ? `${meta.codeCol}.eq.${numericCode}` : null;
+      builder = builder.or(
+        codTerm !== null ? `${nomTerm},${codTerm}` : nomTerm,
+      );
     } else if (normTable === "personal") {
       const nomTerm = formatOrIlikeTerm("PerNom", `%${escapedTerm}%`);
       const dniTerm = formatOrIlikeTerm("PerDNI", `%${escapedTerm}%`);
-      const codTerm = formatOrIlikeTerm("PerCod", `%${escapedTerm}%`);
-      builder = builder.or(`${nomTerm},${dniTerm},${codTerm}`);
+      const codTerm = numericCode !== null ? `PerCod.eq.${numericCode}` : null;
+      builder = builder.or(
+        codTerm !== null
+          ? `${nomTerm},${dniTerm},${codTerm}`
+          : `${nomTerm},${dniTerm}`,
+      );
     } else {
       throw new Error(`Unsupported table for simple search: ${table}`);
     }
@@ -442,15 +451,13 @@ export function advancedSearch<TRow = unknown>(
   const selectOpts = getSelectOptions(options);
   let builder = client.from(normTable).select("*", selectOpts);
 
-  const parseCodeFilter = (val: unknown): string | null => {
-    if (typeof val === "string") {
-      const trimmed = val.trim();
-      return trimmed.length > 0 && trimmed.length <= MAX_CODE_LEN
-        ? trimmed
-        : null;
+  const parseCodeFilter = (val: unknown): number | null => {
+    if (typeof val === "number" && Number.isInteger(val) && val > 0) {
+      return val;
     }
-    if (typeof val === "number" && Number.isFinite(val)) {
-      return String(val);
+    if (typeof val === "string" && /^\d+$/.test(val.trim())) {
+      const parsed = Number.parseInt(val.trim(), 10);
+      return parsed > 0 ? parsed : null;
     }
     return null;
   };

@@ -20,8 +20,8 @@ import {
   EST_A,
   EST_I,
   EST_X,
-  MAX_CODE_LEN,
   MAX_NAME,
+  MIN_CODE,
   MIN_NAME,
   TABLE_CARGO,
   TABLE_DEPENDENCIA,
@@ -86,15 +86,9 @@ function assertNeverPendingOp(op: never): never {
   throw new Error(`Unsupported pending operation: ${String(op)}`);
 }
 
-function isValidCodeString(value: string | undefined): value is string {
-  if (typeof value !== "string") {
-    return false;
-  }
-  const trimmed = value.trim();
+function isValidCodeInt(value: unknown): value is number {
   return (
-    trimmed.length >= 1 &&
-    trimmed.length <= MAX_CODE_LEN &&
-    /^[A-Za-z0-9._-]+$/.test(trimmed)
+    typeof value === "number" && Number.isInteger(value) && value >= MIN_CODE
   );
 }
 
@@ -265,11 +259,11 @@ export abstract class BaseRepo<TRow> {
   /**
    * Reads a single record by primary key code.
    */
-  async getByCode(code: string): Promise<TRow | null> {
+  async getByCode(code: number): Promise<TRow | null> {
     const { data, error } = await this.client
       .from(this.table)
       .select("*")
-      .eq(this.codeCol, code.trim())
+      .eq(this.codeCol, code)
       .maybeSingle<unknown>();
 
     if (error) {
@@ -282,11 +276,11 @@ export abstract class BaseRepo<TRow> {
    * Head/count probe: checks whether a primary key code exists.
    * Uses head: true to avoid full-row fetches.
    */
-  async probeCodeExists(code: string): Promise<boolean> {
+  async probeCodeExists(code: number): Promise<boolean> {
     const { count, error } = await this.client
       .from(this.table)
       .select("*", { count: "exact", head: true })
-      .eq(this.codeCol, code.trim());
+      .eq(this.codeCol, code);
 
     if (error) {
       throw error;
@@ -331,7 +325,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
    * Head/count probe: checks whether a reference name exists case-insensitively.
    * Escapes LIKE/ILIKE wildcards (`%`, `_`, `\`) so literal names are probed safely.
    */
-  async probeNomCiExists(nom: string, excludeCode?: string): Promise<boolean> {
+  async probeNomCiExists(nom: string, excludeCode?: number): Promise<boolean> {
     const escapedNom = escapeIlikeLiteral(nom.trim());
     let builder = this.client
       .from(this.table)
@@ -339,7 +333,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
       .ilike(this.nomCol, escapedNom);
 
     if (excludeCode !== undefined) {
-      builder = builder.neq(this.codeCol, excludeCode.trim());
+      builder = builder.neq(this.codeCol, excludeCode);
     }
 
     const { count, error } = await builder;
@@ -366,11 +360,11 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
    * EXISTS personal with EstReg IN (1,2) referencing code.
    * Head/count probe, no full-row fetch.
    */
-  async probeLiveReferences(code: string): Promise<boolean> {
+  async probeLiveReferences(code: number): Promise<boolean> {
     const { count, error } = await this.client
       .from("personal")
       .select("*", { count: "exact", head: true })
-      .eq(this.personalFkCol, code.trim())
+      .eq(this.personalFkCol, code)
       .in("PerEstReg", [EST_A, EST_I]);
 
     if (error) {
@@ -386,7 +380,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
    */
   async guardar(params: {
     op: GuardarOp;
-    p_cod?: string;
+    p_cod?: number;
     p_nom?: string;
     p_est?: EstReg | number;
     p_supervisor_code?: string;
@@ -395,8 +389,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
     const isUpdate = params.op === "update";
     const isInsert = params.op === "insert";
     const isSetState = params.op === "set_state";
-    const trimmedCod =
-      typeof params.p_cod === "string" ? params.p_cod.trim() : undefined;
+    const intCod = isValidCodeInt(params.p_cod) ? params.p_cod : undefined;
     const trimmedNom =
       typeof params.p_nom === "string" ? params.p_nom.trim() : undefined;
 
@@ -417,22 +410,15 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
       failures.push(...validateCode(this.table, params.p_cod, this.codeCol));
     }
 
-    // 2. Uniqueness probes (only when inputs are within valid bounds)
-    if (isInsert && isValidCodeString(trimmedCod)) {
-      const codeExists = await this.probeCodeExists(trimmedCod);
-      if (codeExists) {
-        failures.push(createFailure(ERROR_CODES.DUP, this.codeCol));
-      }
-    }
-
+    // 2. Uniqueness probes (only when inputs are within valid bounds).
+    // Insert PK is DB-generated: no code-exists probe; Nom ci-unique only.
     if (
       (isInsert || isUpdate) &&
       trimmedNom !== undefined &&
       trimmedNom.length >= MIN_NAME &&
       trimmedNom.length <= MAX_NAME
     ) {
-      const excludeCode =
-        isUpdate && isValidCodeString(trimmedCod) ? trimmedCod : undefined;
+      const excludeCode = isUpdate && intCod !== undefined ? intCod : undefined;
       const nomExists = await this.probeNomCiExists(trimmedNom, excludeCode);
       if (nomExists) {
         failures.push(createFailure(ERROR_CODES.DUP, this.nomCol));
@@ -440,8 +426,8 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
     }
 
     // 3. R11 probe on reference Eliminación (p_est = EST_X = 3)
-    if (isSetState && params.p_est === EST_X && isValidCodeString(trimmedCod)) {
-      const hasLiveRefs = await this.probeLiveReferences(trimmedCod);
+    if (isSetState && params.p_est === EST_X && intCod !== undefined) {
+      const hasLiveRefs = await this.probeLiveReferences(intCod);
       if (hasLiveRefs) {
         failures.push(createFailure(ERROR_CODES.REF_BLOCKED, this.codeCol));
       }
@@ -456,7 +442,7 @@ export class ReferenceRepo<TRow> extends BaseRepo<TRow> {
     // R8/R9/R17: Force p_est=1 on insert, p_est=null on update, never send created_at/updated_at
     const rpcPayload: Record<string, unknown> = {
       op: params.op,
-      p_cod: trimmedCod ?? null,
+      p_cod: isInsert ? null : (intCod ?? null),
       p_nom: trimmedNom ?? null,
       p_est: isInsert ? EST_A : isUpdate ? null : (params.p_est ?? null),
       ...(params.p_supervisor_code !== undefined
@@ -586,13 +572,13 @@ export class CargoRepo extends ReferenceRepo<CargoRow> {
 
 interface PersonalGuardarParams {
   readonly op: GuardarOp;
-  readonly p_cod?: string;
+  readonly p_cod?: number;
   readonly p_nom?: string;
   readonly p_dni?: string;
   readonly p_fecnac?: string;
-  readonly p_pai?: string;
-  readonly p_dep?: string;
-  readonly p_car?: string;
+  readonly p_pai?: number;
+  readonly p_dep?: number;
+  readonly p_car?: number;
   readonly p_est?: EstReg | number;
   readonly p_supervisor_code?: string;
 }
@@ -644,14 +630,14 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
   /**
    * Head/count probe: checks whether a PerDNI already exists.
    */
-  async probeDniExists(dni: string, excludeCode?: string): Promise<boolean> {
+  async probeDniExists(dni: string, excludeCode?: number): Promise<boolean> {
     let builder = this.client
       .from("personal")
       .select("*", { count: "exact", head: true })
       .eq("PerDNI", dni.trim());
 
     if (excludeCode !== undefined) {
-      builder = builder.neq("PerCod", excludeCode.trim());
+      builder = builder.neq("PerCod", excludeCode);
     }
 
     const { count, error } = await builder;
@@ -668,14 +654,12 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
     table: "pais" | "dependencia" | "cargo",
     codeCol: string,
     estRegCol: string,
-    code: string,
+    code: number,
   ): Promise<{ exists: boolean; activo: boolean }> {
-    const trimmed = code.trim();
     const { count: existCount, error: existErr } = await this.client
       .from(table)
       .select("*", { count: "exact", head: true })
-      .eq(codeCol, trimmed);
-
+      .eq(codeCol, code);
     if (existErr) throw existErr;
     if ((existCount ?? 0) === 0) {
       return { exists: false, activo: false };
@@ -684,7 +668,7 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
     const { count: actCount, error: actErr } = await this.client
       .from(table)
       .select("*", { count: "exact", head: true })
-      .eq(codeCol, trimmed)
+      .eq(codeCol, code)
       .eq(estRegCol, EST_A);
 
     if (actErr) throw actErr;
@@ -703,20 +687,16 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
     const isUpdate = params.op === "update";
     const isInsert = params.op === "insert";
     const isSetState = params.op === "set_state";
-    const trimmedCod =
-      typeof params.p_cod === "string" ? params.p_cod.trim() : undefined;
+    const intCod = isValidCodeInt(params.p_cod) ? params.p_cod : undefined;
     const trimmedNom =
       typeof params.p_nom === "string" ? params.p_nom.trim() : undefined;
     const trimmedDni =
       typeof params.p_dni === "string" ? params.p_dni.trim() : undefined;
     const trimmedFecNac =
       typeof params.p_fecnac === "string" ? params.p_fecnac.trim() : undefined;
-    const trimmedPai =
-      typeof params.p_pai === "string" ? params.p_pai.trim() : undefined;
-    const trimmedDep =
-      typeof params.p_dep === "string" ? params.p_dep.trim() : undefined;
-    const trimmedCar =
-      typeof params.p_car === "string" ? params.p_car.trim() : undefined;
+    const intPai = isValidCodeInt(params.p_pai) ? params.p_pai : undefined;
+    const intDep = isValidCodeInt(params.p_dep) ? params.p_dep : undefined;
+    const intCar = isValidCodeInt(params.p_car) ? params.p_car : undefined;
 
     // 1. Full client validation
     if (isInsert || isUpdate) {
@@ -739,40 +719,33 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
       failures.push(...validateCode("personal", params.p_cod, "PerCod"));
     }
 
-    // 2. Uniqueness probes (only when inputs are within valid bounds)
-    if (isInsert && isValidCodeString(trimmedCod)) {
-      const codeExists = await this.probeCodeExists(trimmedCod);
-      if (codeExists) {
-        failures.push(createFailure(ERROR_CODES.DUP, "PerCod"));
-      }
-    }
-
+    // 2. Uniqueness probes (only when inputs are within valid bounds).
+    // Insert PK is DB-generated: no code-exists probe; DNI unique only.
     if (
       (isInsert || isUpdate) &&
       trimmedDni !== undefined &&
       DNI_EXACT_REGEX.test(trimmedDni)
     ) {
-      const excludeCode =
-        isUpdate && isValidCodeString(trimmedCod) ? trimmedCod : undefined;
+      const excludeCode = isUpdate && intCod !== undefined ? intCod : undefined;
       const dniExists = await this.probeDniExists(trimmedDni, excludeCode);
       if (dniExists) {
         failures.push(createFailure(ERROR_CODES.DUP, "PerDNI"));
       }
     }
 
-    // 3. FK probes (exists + Activo) in parallel for valid string codes
+    // 3. FK probes (exists + Activo) in parallel for valid integer codes
     if (isInsert || isUpdate) {
       const fkChecks = await Promise.all(
         PERSONAL_FK_SPECS.map(async (spec) => {
           const fkVal = spec.getValue(params);
-          if (!isValidCodeString(fkVal)) {
+          if (!isValidCodeInt(fkVal)) {
             return null;
           }
           const target = await this.probeFkTarget(
             spec.table,
             spec.codeCol,
             spec.estRegCol,
-            fkVal.trim(),
+            fkVal,
           );
           if (!target.exists) {
             return createFailure(ERROR_CODES.REF, spec.field);
@@ -799,13 +772,13 @@ export class PersonalRepo extends BaseRepo<PersonalRow> {
     // R8/R9/R17: Force p_est=1 on insert, p_est=null on update, never send created_at or updated_at
     const rpcPayload: Record<string, unknown> = {
       op: params.op,
-      p_cod: trimmedCod ?? null,
+      p_cod: isInsert ? null : (intCod ?? null),
       p_nom: trimmedNom ?? null,
       p_dni: trimmedDni ?? null,
       p_fecnac: trimmedFecNac ?? null,
-      p_pai: trimmedPai ?? null,
-      p_dep: trimmedDep ?? null,
-      p_car: trimmedCar ?? null,
+      p_pai: intPai ?? null,
+      p_dep: intDep ?? null,
+      p_car: intCar ?? null,
       p_est: isInsert ? EST_A : isUpdate ? null : (params.p_est ?? null),
       ...(params.p_supervisor_code !== undefined
         ? { p_supervisor_code: params.p_supervisor_code }
