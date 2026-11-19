@@ -36,7 +36,7 @@ export interface UseMaintenanceScreenOptions<TTable extends TableName, TRow> {
   readonly repo: RepoReader<TRow> & RepoWriter<TRow>;
   readonly defaultOrdering?: OrderingToggle;
   readonly pageSize?: number;
-  readonly getRowCode: (row: TRow) => string;
+  readonly getRowCode: (row: TRow) => number;
   readonly getRowState: (row: TRow) => EstReg;
   readonly rowToPayload: (row: TRow) => Record<string, unknown>;
   readonly validatePayload: (
@@ -96,6 +96,7 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
   const submitTriggerRef = React.useRef<(() => void) | null>(null);
   const pendingKindRef = React.useRef<PendingOpKind | undefined>(undefined);
   const scrollToTopRef = React.useRef<(() => void) | null>(null);
+  const [detailReplayKey, setDetailReplayKey] = React.useState(0);
 
   const registerScrollToTop = React.useCallback((fn: () => void) => {
     scrollToTopRef.current = fn;
@@ -104,7 +105,6 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
   const triggerScrollToTop = React.useCallback(() => {
     scrollToTopRef.current?.();
   }, []);
-
   const controller = useMaintenanceController<TTable, TRow>({
     table,
     repo,
@@ -256,6 +256,19 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
     validatePayload,
   ]);
 
+  const handleSelectRow = React.useCallback(
+    (row: TRow | null) => {
+      const result = controller.selectRow(row);
+      if (result.ok && result.detailOpened) {
+        if (result.reselected) {
+          setDetailReplayKey((prev) => prev + 1);
+        }
+        triggerScrollToTop();
+      }
+    },
+    [controller, triggerScrollToTop],
+  );
+
   const handleCancelPending = React.useCallback(() => {
     if (controller.isSaving) {
       return;
@@ -265,11 +278,11 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
       setFormDrawerOpen(false);
       setFormDraft({});
       setExternalFailures([]);
+      triggerScrollToTop();
       return;
     }
     controller.selectRow(null);
-  }, [controller]);
-
+  }, [controller, triggerScrollToTop]);
   const handleStartInactivar = React.useCallback(() => {
     const res = controller.startInactivar();
     if (res.ok) {
@@ -363,6 +376,7 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
     externalFailures,
     submitTriggerRef,
     registerScrollToTop,
+    detailReplayKey,
     pendingKind,
     isFormPending,
     formMode,
@@ -382,6 +396,7 @@ export function useMaintenanceScreen<TTable extends TableName, TRow>({
     handleToggleViewScope,
     handleSubmitPayload,
     handleGuardarAction,
+    handleSelectRow,
     handleCancelPending,
     handleSalir,
   };

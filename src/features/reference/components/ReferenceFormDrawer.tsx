@@ -2,13 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createFormDefaults } from "@microx-technologies/microform";
 import * as React from "react";
 import { type FieldValues, useForm } from "react-hook-form";
-import {
-  type EstReg,
-  type FieldFailure,
-  MAX_CODE_LEN,
-  MAX_NAME,
-  MIN_NAME,
-} from "@/core";
+import { type EstReg, type FieldFailure, MAX_NAME, MIN_NAME } from "@/core";
 import {
   MaintenanceFormDrawerShell,
   MaintenanceFormFooter,
@@ -64,24 +58,26 @@ function ReferenceFormSessionBody<TRow>({
         codeField: config.codeField,
         nomField: config.nomField,
         isUpdate,
-        maxCode: config.maxCode,
       }),
-    [config.codeField, config.maxCode, config.nomField, isUpdate],
+    [config.codeField, config.nomField, isUpdate],
   );
 
   const structure = React.useMemo<AppStructure<string, FieldValues>>(
     () => [
       {
         fields: [
-          {
-            type: "text",
-            name: config.codeField,
-            label: config.codeLabel,
-            placeholder: isUpdate ? "Código inmutable" : "Ej. 1",
-            readonly: isUpdate,
-            maxLength: MAX_CODE_LEN,
-            colspan: 12,
-          },
+          ...(isUpdate
+            ? [
+                {
+                  type: "text" as const,
+                  name: config.codeField,
+                  label: config.codeLabel,
+                  placeholder: "Código inmutable",
+                  readonly: true,
+                  colspan: 12 as const,
+                },
+              ]
+            : []),
           {
             type: "text",
             name: config.nomField,
@@ -225,7 +221,7 @@ export function ReferenceFormDrawer<TRow>({
       description={
         isUpdate
           ? `${config.codeLabel} inmutable en modificación (R2).`
-          : `Ingresa ${config.codeLabel} y ${config.nomLabel} para crear un registro Activo.`
+          : `Ingresa ${config.nomLabel} para crear un registro Activo. El código se asigna al guardar.`
       }
       estFieldLabel={config.estField}
       estReg={estReg}

@@ -13,7 +13,7 @@ export interface RecordDetailField {
 
 export interface RecordDetailCardProps {
   readonly pendingKind?: PendingOpKind;
-  readonly selectedCode: string | null;
+  readonly selectedCode: number | null;
   readonly selectedTitle: string | null;
   readonly selectedSubtitle?: string | null;
   readonly selectedState: EstReg | null;
@@ -21,6 +21,7 @@ export interface RecordDetailCardProps {
   readonly nameLabel?: string;
   readonly readonlyFields?: readonly RecordDetailField[];
   readonly renderInlineForm?: () => React.ReactNode;
+  readonly testId?: string;
 }
 
 const MODE_LABELS: Readonly<Record<PendingOpKind, string>> = {
@@ -70,6 +71,7 @@ export function RecordDetailCard({
   nameLabel = "Nombre",
   readonlyFields,
   renderInlineForm,
+  testId = "record-detail-card",
 }: RecordDetailCardProps) {
   const isFormMode =
     pendingKind === "adición" || pendingKind === "modificación";
@@ -93,7 +95,7 @@ export function RecordDetailCard({
     {
       id: "readonly-detail-code",
       label: codeLabel,
-      value: selectedCode ?? "",
+      value: selectedCode !== null ? String(selectedCode) : "",
       placeholder: "—",
       testId: "detail-code-value",
     },
@@ -109,8 +111,8 @@ export function RecordDetailCard({
   return (
     <section
       aria-label="Datos del registro"
-      data-testid="record-detail-card"
-      className="rounded-xl border border-border bg-card p-4 shadow-sm"
+      data-testid={testId}
+      className="maestro-detail-enter rounded-xl border border-border bg-card p-4 shadow-sm"
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="m-0 text-sm font-semibold text-foreground">

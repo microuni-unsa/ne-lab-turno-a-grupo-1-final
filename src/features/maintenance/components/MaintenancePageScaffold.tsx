@@ -4,7 +4,7 @@ import {
   SlidersHorizontalIcon,
   XIcon,
 } from "lucide-react";
-import type * as React from "react";
+import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,7 @@ export interface MaintenancePageScaffoldProps<TTable extends TableName, TRow> {
   readonly emptyMessage: string;
   readonly screen: ReturnType<typeof useMaintenanceScreen<TTable, TRow>>;
   readonly columns: readonly RecordListColumn<TRow>[];
-  readonly getRowCode: (row: TRow) => string;
+  readonly getRowCode: (row: TRow) => number;
   readonly getRowTitle: (row: TRow) => string;
   readonly getRowState: (row: TRow) => EstReg;
   readonly getDetailFields?: (row: TRow | null) => readonly RecordDetailField[];
@@ -68,12 +68,60 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
   renderExtraFilters,
 }: MaintenancePageScaffoldProps<TTable, TRow>) {
   const selectedRow = screen.controller.selectedRow;
+  const isDetailVisible = screen.controller.isDetailVisible;
+  const [exitingRow, setExitingRow] = React.useState<TRow | null>(null);
+  const [isExiting, setIsExiting] = React.useState(false);
+  const lastVisibleRowRef = React.useRef<TRow | null>(null);
+  const exitTimerRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    if (isDetailVisible) {
+      if (exitTimerRef.current !== null) {
+        window.clearTimeout(exitTimerRef.current);
+        exitTimerRef.current = null;
+      }
+      lastVisibleRowRef.current =
+        screen.controller.selectedRow ?? screen.controller.lastDetailRow;
+      setExitingRow(null);
+      setIsExiting(false);
+      return;
+    }
+    const snapshot =
+      lastVisibleRowRef.current ??
+      screen.controller.selectedRow ??
+      screen.controller.lastDetailRow;
+    if (snapshot === null) {
+      setExitingRow(null);
+      setIsExiting(false);
+      return;
+    }
+    setExitingRow(snapshot);
+    setIsExiting(true);
+    if (exitTimerRef.current !== null) {
+      window.clearTimeout(exitTimerRef.current);
+    }
+    exitTimerRef.current = window.setTimeout(() => {
+      exitTimerRef.current = null;
+      lastVisibleRowRef.current = null;
+      setExitingRow(null);
+      setIsExiting(false);
+    }, 190);
+  }, [isDetailVisible, screen.controller]);
+
+  React.useEffect(
+    () => () => {
+      if (exitTimerRef.current !== null) {
+        window.clearTimeout(exitTimerRef.current);
+        exitTimerRef.current = null;
+      }
+    },
+    [],
+  );
 
   const handleSimpleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     screen.list.applySimpleSearch(screen.simpleInput);
   };
-
   return (
     <MaintenanceLayout
       id={id}
@@ -177,8 +225,9 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
         </Button>
       </div>
 
-      {screen.controller.isDetailVisible && (
+      {isDetailVisible && (
         <RecordDetailCard
+          key={`${screen.selectedCode ?? "none"}-${screen.pendingKind ?? "consulta"}-${screen.detailReplayKey}`}
           pendingKind={screen.pendingKind}
           selectedCode={selectedRow ? getRowCode(selectedRow) : null}
           selectedTitle={selectedRow ? getRowTitle(selectedRow) : null}
@@ -188,6 +237,20 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
           }
           renderInlineForm={renderFormDrawer}
         />
+      )}
+
+      {isExiting && exitingRow !== null && (
+        <div aria-hidden="true" className="maestro-detail-exit">
+          <RecordDetailCard
+            selectedCode={getRowCode(exitingRow)}
+            selectedTitle={getRowTitle(exitingRow)}
+            selectedState={getRowState(exitingRow)}
+            readonlyFields={
+              getDetailFields ? getDetailFields(exitingRow) : undefined
+            }
+            testId="record-detail-card-exiting"
+          />
+        </div>
       )}
 
       {screen.list.searchMode !== "none" && (
@@ -233,7 +296,7 @@ export function MaintenancePageScaffold<TTable extends TableName, TRow>({
         columns={columns}
         getRowCode={getRowCode}
         getRowState={getRowState}
-        onSelectRow={(row) => screen.controller.selectRow(row)}
+        onSelectRow={(row) => screen.handleSelectRow(row)}
         offset={screen.list.offset}
         limit={screen.list.limit}
         pageIndex={screen.list.pageIndex}

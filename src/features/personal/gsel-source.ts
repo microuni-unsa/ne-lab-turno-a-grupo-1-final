@@ -5,7 +5,7 @@ import { maintenanceKeys } from "@/features/maintenance/query-keys";
 
 export interface GselRepoContract<TRow> {
   gsel(): Promise<ReadonlyArray<{ readonly [key: string]: unknown }>>;
-  getByCode(code: string): Promise<TRow | null>;
+  getByCode(code: number): Promise<TRow | null>;
   list?(
     ordering?: "default" | "alternate",
     page?: { readonly offset: number; readonly limit: number },
@@ -45,18 +45,14 @@ export interface GselBinding<TRow> {
 }
 
 interface NormalizedGselEntry {
-  readonly cod: string;
+  readonly cod: number;
   readonly nom: string;
 }
 
-function readCodeString(obj: object, key: string): string | null {
+function readCodeNumber(obj: object, key: string): number | null {
   const raw: unknown = Reflect.get(obj, key);
-  if (typeof raw === "string") {
-    const trimmed = raw.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
-  if (typeof raw === "number" && Number.isFinite(raw)) {
-    return String(raw);
+  if (typeof raw === "number" && Number.isInteger(raw) && raw > 0) {
+    return raw;
   }
   return null;
 }
@@ -130,7 +126,7 @@ function extractSortedGselEntries(
     if (!includeAllStates && estCol && est !== undefined && est !== EST_A) {
       continue;
     }
-    const cod = readCodeString(row, codeCol);
+    const cod = readCodeNumber(row, codeCol);
     const nom = readTrimmedString(row, nomCol);
     if (cod === null || nom === null) {
       continue;
@@ -144,7 +140,7 @@ function extractSortedGselEntries(
     if (byNom !== 0) {
       return byNom;
     }
-    return a.cod.localeCompare(b.cod);
+    return a.cod - b.cod;
   });
 
   return entries;
@@ -209,8 +205,11 @@ export function createGselLabelResolver<TRow>(
   config: GselLabelResolverConfig<TRow>,
 ): (value: string | number) => Promise<string | undefined> {
   return async (value: string | number): Promise<string | undefined> => {
-    const code = String(value).trim();
-    if (code.length === 0) {
+    const code =
+      typeof value === "number" && Number.isInteger(value) && value > 0
+        ? value
+        : null;
+    if (code === null) {
       return undefined;
     }
 

@@ -5,7 +5,6 @@ import {
   EST_I,
   EST_X,
   type EstReg,
-  MAX_CODE_LEN,
   TABLE_PERSONAL,
   type TableName,
 } from "@/core";
@@ -69,9 +68,9 @@ export interface AdvancedFilterDraft {
   readonly dniText: string;
   readonly fecNacFrom: string;
   readonly fecNacTo: string;
-  readonly paiCod: string | undefined;
-  readonly depCod: string | undefined;
-  readonly carCod: string | undefined;
+  readonly paiCod: number | undefined;
+  readonly depCod: number | undefined;
+  readonly carCod: number | undefined;
 }
 
 export const EMPTY_ADVANCED_FILTER_DRAFT: AdvancedFilterDraft = {
@@ -91,18 +90,15 @@ function isEstReg(value: unknown): value is EstReg {
 }
 
 /**
- * Parses a code filter string safely without integer coercion.
+ * Parses a code filter value as a positive integer, never NaN.
  */
-export function parsePositiveCodeFilter(value: unknown): string | undefined {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (trimmed.length > 0 && trimmed.length <= MAX_CODE_LEN) {
-      return trimmed;
-    }
-    return undefined;
+export function parsePositiveCodeFilter(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
+    return value;
   }
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
+  if (typeof value === "string" && /^\d+$/.test(value.trim())) {
+    const parsed = Number.parseInt(value.trim(), 10);
+    return parsed > 0 ? parsed : undefined;
   }
   return undefined;
 }
@@ -194,11 +190,11 @@ export function advancedFiltersToDraft(
   filters: AdvancedSearchFilters,
 ): AdvancedFilterDraft {
   const sanitized = sanitizeAdvancedFilters(filters);
-  const codStr = parsePositiveCodeFilter(sanitized.Cod);
+  const codNum = parsePositiveCodeFilter(sanitized.Cod);
   const estReg = normalizeEstRegSubset(sanitized.EstReg);
 
   return {
-    codText: codStr ?? "",
+    codText: codNum !== undefined ? String(codNum) : "",
     nomText: parseOptionalText(sanitized.Nom) ?? "",
     estReg: estReg ? [...estReg] : ALL_ESTREG_STATES,
     dniText: parseOptionalText(sanitized.DNI) ?? "",
@@ -390,9 +386,16 @@ export function useMaintenanceList<TRow>({
     const fromRows = new Set<EstReg>();
     for (const row of rows) {
       if (typeof row === "object" && row !== null) {
-        const rec = row as Record<string, unknown>;
-        const est =
-          rec.PaiEstReg ?? rec.DepEstReg ?? rec.CarEstReg ?? rec.PerEstReg;
+        let est: unknown;
+        if ("PaiEstReg" in row) {
+          est = row.PaiEstReg;
+        } else if ("DepEstReg" in row) {
+          est = row.DepEstReg;
+        } else if ("CarEstReg" in row) {
+          est = row.CarEstReg;
+        } else if ("PerEstReg" in row) {
+          est = row.PerEstReg;
+        }
         if (isEstReg(est)) {
           fromRows.add(est);
         }

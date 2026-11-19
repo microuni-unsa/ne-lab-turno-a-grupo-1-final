@@ -9,7 +9,6 @@ import {
   EST_A,
   EST_I,
   type EstReg,
-  MAX_CODE_LEN,
   MAX_NAME,
   MIN_NAME,
   type PaisRow,
@@ -56,9 +55,9 @@ export interface CatalogLabelEntry {
 }
 
 export interface PersonalCatalogLabelMaps {
-  readonly pai: ReadonlyMap<string, CatalogLabelEntry>;
-  readonly dep: ReadonlyMap<string, CatalogLabelEntry>;
-  readonly car: ReadonlyMap<string, CatalogLabelEntry>;
+  readonly pai: ReadonlyMap<number, CatalogLabelEntry>;
+  readonly dep: ReadonlyMap<number, CatalogLabelEntry>;
+  readonly car: ReadonlyMap<number, CatalogLabelEntry>;
 }
 
 export const PERSONAL_FORM_FIELDS: ReadonlySet<string> =
@@ -116,11 +115,11 @@ export function createPersonalGselBindings(
 
 function buildLabelMap<TRow>(
   rows: readonly TRow[],
-  getCod: (row: TRow) => string,
+  getCod: (row: TRow) => number,
   getNom: (row: TRow) => string,
   getEst: (row: TRow) => EstReg,
-): ReadonlyMap<string, CatalogLabelEntry> {
-  const map = new Map<string, CatalogLabelEntry>();
+): ReadonlyMap<number, CatalogLabelEntry> {
+  const map = new Map<number, CatalogLabelEntry>();
   for (const row of rows) {
     map.set(getCod(row), { nom: getNom(row), est: getEst(row) });
   }
@@ -195,8 +194,8 @@ export function usePersonalCatalogLabels(
 }
 
 export function formatCatalogRef(
-  code: string,
-  map: ReadonlyMap<string, CatalogLabelEntry>,
+  code: number,
+  map: ReadonlyMap<number, CatalogLabelEntry>,
   fallbackPrefix: string,
 ): string {
   const entry = map.get(code);
@@ -225,7 +224,7 @@ export function formatPersonalDetailFields(
     {
       id: "readonly-detail-code",
       label: "Código de Personal",
-      value: row ? row.PerCod : "",
+      value: row ? String(row.PerCod) : "",
       placeholder: "—",
       testId: "detail-code-value",
     },
@@ -300,15 +299,18 @@ export function createPersonalStructure({
   return [
     {
       fields: [
-        {
-          type: "text",
-          name: "PerCod",
-          label: "Código de Personal",
-          placeholder: isUpdate ? "Código inmutable" : "Ej. 1",
-          readonly: isUpdate,
-          maxLength: MAX_CODE_LEN,
-          colspan: 12,
-        },
+        ...(isUpdate
+          ? [
+              {
+                type: "text" as const,
+                name: "PerCod" as const,
+                label: "Código de Personal",
+                placeholder: "Código inmutable",
+                readonly: true,
+                colspan: 12 as const,
+              },
+            ]
+          : []),
         {
           type: "text",
           name: "PerNom",
@@ -341,7 +343,7 @@ export function createPersonalStructure({
           placeholder: "Seleccionar país",
           asyncSource: bindings.pai.asyncSource,
           resolveLabel: bindings.pai.resolveLabel,
-          valueType: "string",
+          valueType: "number",
           emptyMessage: "Sin países activos",
           colspan: 12,
         },
@@ -352,7 +354,7 @@ export function createPersonalStructure({
           placeholder: "Seleccionar dependencia",
           asyncSource: bindings.dep.asyncSource,
           resolveLabel: bindings.dep.resolveLabel,
-          valueType: "string",
+          valueType: "number",
           emptyMessage: "Sin dependencias activas",
           colspan: 12,
         },
@@ -363,7 +365,7 @@ export function createPersonalStructure({
           placeholder: "Seleccionar cargo",
           asyncSource: bindings.car.asyncSource,
           resolveLabel: bindings.car.resolveLabel,
-          valueType: "string",
+          valueType: "number",
           emptyMessage: "Sin cargos activos",
           colspan: 12,
         },

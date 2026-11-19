@@ -46,12 +46,9 @@ function isPersonalFieldName(name: string): name is PersonalFieldName {
   return PERSONAL_FORM_FIELDS.has(name);
 }
 
-function toOptionalCode(value: unknown): string | undefined {
-  if (typeof value === "string") {
+function toOptionalCode(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
     return value;
-  }
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
   }
   return undefined;
 }
@@ -69,7 +66,7 @@ function buildInitialPersonalValues(
 ): Partial<PersonalFormValues> {
   const merged: Record<string, unknown> = { ...defaults, ...draft };
   return {
-    PerCod: toOptionalCode(merged.PerCod) ?? "",
+    PerCod: toOptionalCode(merged.PerCod),
     PerNom: toOptionalString(merged.PerNom) ?? "",
     PerDNI: toOptionalString(merged.PerDNI) ?? "",
     PerFecNac: toOptionalString(merged.PerFecNac) ?? "",
@@ -233,7 +230,7 @@ export function PersonalFormDrawer({
       description={
         isUpdate
           ? "Código bloqueado en modificación (R2). FKs solo por G-SEL."
-          : "Completa los datos y selecciona País, Dependencia y Cargo vía G-SEL."
+          : "Completa los datos y selecciona País, Dependencia y Cargo vía G-SEL. El código se asigna al guardar."
       }
       estFieldLabel="PerEstReg · no editable"
       estReg={estReg}

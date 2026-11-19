@@ -46,6 +46,7 @@ export function EstadoBadge({
     <span
       data-slot="estado-badge"
       data-estado={meta.symbol}
+      role="status"
       aria-label={`Estado ${meta.symbol}: ${meta.label}`}
       className={cn(
         "inline-block text-xs font-medium tracking-tight",

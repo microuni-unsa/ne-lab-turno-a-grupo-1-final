@@ -5,7 +5,6 @@ import {
   type EstReg,
   type FieldFailure,
   type GuardarResult,
-  MAX_SMALLINT,
   type PaisRow,
   type PendingOp,
   TABLE_CARGO,
@@ -42,10 +41,9 @@ export interface ReferenceMaintenanceConfig<TRow> {
   readonly nomLabel: string;
   readonly searchPlaceholder: string;
   readonly emptyMessage: string;
-  readonly maxCode: number;
   readonly defaultOrdering?: OrderingToggle;
   readonly createRepo: (client?: SupabaseClient) => ReferenceRepoContract<TRow>;
-  readonly getRowCode: (row: TRow) => string;
+  readonly getRowCode: (row: TRow) => number;
   readonly getRowNom: (row: TRow) => string;
   readonly getRowState: (row: TRow) => EstReg;
   readonly rowToPayload: (row: TRow) => Record<string, unknown>;
@@ -69,7 +67,6 @@ export const paisConfig: ReferenceMaintenanceConfig<PaisRow> = {
   nomLabel: "Nombre del país",
   searchPlaceholder: "Buscar país por nombre...",
   emptyMessage: "No se encontraron países con los criterios actuales.",
-  maxCode: MAX_SMALLINT,
   defaultOrdering: "default",
   createRepo: (client) => new PaisRepo(client),
   getRowCode: (row) => row.PaiCod,
@@ -97,7 +94,6 @@ export const dependenciaConfig: ReferenceMaintenanceConfig<DependenciaRow> = {
   nomLabel: "Nombre de la dependencia",
   searchPlaceholder: "Buscar dependencia por nombre...",
   emptyMessage: "No se encontraron dependencias con los criterios actuales.",
-  maxCode: MAX_SMALLINT,
   defaultOrdering: "default",
   createRepo: (client) => new DependenciaRepo(client),
   getRowCode: (row) => row.DepCod,
@@ -125,7 +121,6 @@ export const cargoConfig: ReferenceMaintenanceConfig<CargoRow> = {
   nomLabel: "Nombre del cargo",
   searchPlaceholder: "Buscar cargo por nombre...",
   emptyMessage: "No se encontraron cargos con los criterios actuales.",
-  maxCode: MAX_SMALLINT,
   defaultOrdering: "default",
   createRepo: (client) => new CargoRepo(client),
   getRowCode: (row) => row.CarCod,

@@ -21,9 +21,9 @@ interface FkFilterItem {
   readonly placeholder: string;
   readonly emptyMessage: string;
   readonly clearTestId: string;
-  readonly value: string | undefined;
+  readonly value: number | undefined;
   readonly binding: Pick<GselBinding<unknown>, "asyncSource" | "resolveLabel">;
-  readonly onChange: (nextVal: string | undefined) => void;
+  readonly onChange: (nextVal: number | undefined) => void;
 }
 
 /**
@@ -69,7 +69,7 @@ export function PersonalAdvancedFilters({
   ];
 
   return (
-    <div className="flex flex-col gap-3 border-t border-border pt-3">
+    <div className="flex flex-col gap-4 border-t border-border pt-4">
       <div className="flex flex-col gap-1.5">
         <Label
           htmlFor="adv-filter-dni"
@@ -152,14 +152,16 @@ export function PersonalAdvancedFilters({
               </Button>
             )}
           </div>
-          <InferFieldInput<string | undefined>
+          <InferFieldInput<number | undefined>
             type="async_combobox"
             name={fk.fieldName}
             value={fk.value}
-            onChange={(nextVal: string | undefined) =>
+            onChange={(nextVal: number | undefined) =>
               fk.onChange(
-                typeof nextVal === "string" && nextVal.trim().length > 0
-                  ? nextVal.trim()
+                typeof nextVal === "number" &&
+                  Number.isInteger(nextVal) &&
+                  nextVal > 0
+                  ? nextVal
                   : undefined,
               )
             }
@@ -169,7 +171,7 @@ export function PersonalAdvancedFilters({
               placeholder: fk.placeholder,
               asyncSource: fk.binding.asyncSource,
               resolveLabel: fk.binding.resolveLabel,
-              valueType: "string",
+              valueType: "number",
               emptyMessage: fk.emptyMessage,
             }}
           />

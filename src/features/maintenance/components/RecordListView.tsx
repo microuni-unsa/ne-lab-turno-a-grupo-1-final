@@ -46,9 +46,9 @@ export interface RecordListViewProps<TRow> {
   readonly viewScope?: ViewScope;
   readonly onToggleViewScope?: () => void;
   readonly hasPending?: boolean;
-  readonly selectedCode: string | null;
+  readonly selectedCode: number | null;
   readonly columns: readonly RecordListColumn<TRow>[];
-  readonly getRowCode: (row: TRow) => string;
+  readonly getRowCode: (row: TRow) => number;
   readonly getRowState: (row: TRow) => EstReg;
   readonly onSelectRow: (row: TRow) => void;
   readonly offset: number;

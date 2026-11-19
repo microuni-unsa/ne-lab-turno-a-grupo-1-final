@@ -98,7 +98,7 @@ export function ReferenceMaintenancePage<TRow>({
         {
           id: "readonly-detail-code",
           label: config.codeLabel,
-          value: row ? config.getRowCode(row) : "",
+          value: row ? String(config.getRowCode(row)) : "",
           placeholder: "—",
           testId: "detail-code-value",
         },

@@ -35,7 +35,7 @@ export interface UseMaintenanceControllerOptions<
     todayLocal: string,
   ) => Promise<readonly FieldFailure[]> | readonly FieldFailure[];
   readonly onApplyFieldErrors?: (failures: readonly FieldFailure[]) => void;
-  readonly getRowCode: (row: TRow) => string;
+  readonly getRowCode: (row: TRow) => number;
   readonly getRowState: (row: TRow) => EstReg;
   readonly rowToPayload?: (row: TRow) => TPayload;
 }
@@ -50,8 +50,9 @@ export interface MaintenanceController<
   readonly selectedRow: TRow | null;
   readonly getSelectedRow: () => TRow | null;
   readonly isDetailVisible: boolean;
+  readonly lastDetailRow: TRow | null;
   readonly isSaving: boolean;
-  readonly selectRow: (row: TRow | null) => boolean;
+  readonly selectRow: (row: TRow | null) => SelectRowResult;
   readonly startAdicion: (initialPayload?: TPayload) => SessionOpResult;
   readonly startModificacion: (overridePayload?: TPayload) => SessionOpResult;
   readonly startInactivar: () => SessionOpResult;
@@ -72,6 +73,13 @@ const SAVE_SUCCESS_MESSAGES: Record<PendingOpKind, string> = {
   eliminación: "Registro eliminado lógicamente.",
 };
 
+export type SelectRowResult =
+  | {
+      readonly ok: true;
+      readonly detailOpened: boolean;
+      readonly reselected: boolean;
+    }
+  | { readonly ok: false };
 /**
  * Formats the local calendar date as YYYY-MM-DD using wall-clock year, month, and day.
  */
@@ -120,12 +128,14 @@ export function useMaintenanceController<
   const [, setRevision] = React.useState(0);
   const [selectedRow, setSelectedRow] = React.useState<TRow | null>(null);
   const [detailVisible, setDetailVisible] = React.useState(false);
+  const [lastDetailRow, setLastDetailRow] = React.useState<TRow | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
 
   const selectedRowRef = React.useRef<TRow | null>(null);
   selectedRowRef.current = selectedRow;
+  const detailVisibleRef = React.useRef(false);
+  detailVisibleRef.current = detailVisible;
   const savingRef = React.useRef(false);
-
   const bumpRevision = React.useCallback(() => {
     setRevision((prev) => prev + 1);
   }, []);
@@ -170,28 +180,33 @@ export function useMaintenanceController<
   }, []);
 
   const selectRow = React.useCallback(
-    (row: TRow | null): boolean => {
+    (row: TRow | null): SelectRowResult => {
       const session = getSession();
       if (session.hasPending) {
         optionsRef.current.feedback.alertPending();
-        return false;
+        return { ok: false };
       }
       if (row === null) {
         setSelectedRow(null);
         selectedRowRef.current = null;
         setDetailVisible(false);
-        return true;
+        detailVisibleRef.current = false;
+        return { ok: true, detailOpened: false, reselected: false };
       }
       const current = selectedRowRef.current;
+      const currentCode =
+        current !== null ? optionsRef.current.getRowCode(current) : null;
       const sameRow =
-        current !== null &&
-        optionsRef.current.getRowCode(current) ===
-          optionsRef.current.getRowCode(row);
+        currentCode !== null &&
+        currentCode === optionsRef.current.getRowCode(row);
       setSelectedRow(row);
       selectedRowRef.current = row;
-      // Re-tapping the selected row toggles the detail card; a new row shows it.
-      setDetailVisible((wasVisible) => (sameRow ? !wasVisible : true));
-      return true;
+      setLastDetailRow(row);
+      // Any row tap opens the detail card; re-tapping it re-runs the reveal
+      // animation and asks the screen to scroll back to the top card.
+      setDetailVisible(true);
+      detailVisibleRef.current = true;
+      return { ok: true, detailOpened: true, reselected: sameRow };
     },
     [getSession],
   );
@@ -288,6 +303,7 @@ export function useMaintenanceController<
         return result;
       }
 
+      setLastDetailRow(target);
       bumpRevision();
       return result;
     },
@@ -370,10 +386,10 @@ export function useMaintenanceController<
         if (result.row !== undefined) {
           setSelectedRow(result.row);
           selectedRowRef.current = result.row;
+          setLastDetailRow(result.row);
         }
-        // Commit ends the pending edit: detail card hides until next toggle.
+        // Commit ends the pending edit: detail card exits after its collapse animation.
         setDetailVisible(false);
-
         bumpRevision();
         optionsRef.current.feedback.notifySuccess(
           SAVE_SUCCESS_MESSAGES[activePending.kind],
@@ -421,6 +437,7 @@ export function useMaintenanceController<
     selectedRow,
     getSelectedRow,
     isDetailVisible: hasPending || detailVisible,
+    lastDetailRow,
     isSaving,
     selectRow,
     startAdicion,

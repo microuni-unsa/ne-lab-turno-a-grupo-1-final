@@ -33,18 +33,18 @@ import { IonicFeedbackProvider } from "@/lib/feedback";
 
 interface MemoryRefConfig<TRow> {
   readonly initial: readonly TRow[];
-  readonly getCod: (r: TRow) => string;
+  readonly getCod: (r: TRow) => number;
   readonly getNom: (r: TRow) => string;
   readonly getEst: (r: TRow) => typeof EST_A | typeof EST_I | typeof EST_X;
   readonly codeField: string;
   readonly nomField: string;
-  readonly createRow: (cod: string, nom: string) => TRow;
+  readonly createRow: (cod: number | undefined, nom: string) => TRow;
   readonly updateNom: (row: TRow, nom: string) => TRow;
   readonly updateEst: (
     row: TRow,
     est: typeof EST_A | typeof EST_I | typeof EST_X,
   ) => TRow;
-  readonly blockedCode: string;
+  readonly blockedCode: number;
 }
 
 function createMemoryRefRepo<TRow>(cfg: MemoryRefConfig<TRow>): {
@@ -57,14 +57,7 @@ function createMemoryRefRepo<TRow>(cfg: MemoryRefConfig<TRow>): {
   const guardarSpy = vi.fn(
     async (op: PendingOp): Promise<GuardarResult<TRow>> => {
       if (op.kind === "adición") {
-        const cod = String(Reflect.get(op.payload, cfg.codeField) ?? "").trim();
         const nom = String(Reflect.get(op.payload, cfg.nomField) ?? "").trim();
-        if (rows.some((r) => cfg.getCod(r) === cod)) {
-          return {
-            ok: false,
-            failures: [createFailure(ERROR_CODES.DUP, cfg.codeField)],
-          };
-        }
         if (
           rows.some((r) => cfg.getNom(r).toLowerCase() === nom.toLowerCase())
         ) {
@@ -73,7 +66,9 @@ function createMemoryRefRepo<TRow>(cfg: MemoryRefConfig<TRow>): {
             failures: [createFailure(ERROR_CODES.DUP, cfg.nomField)],
           };
         }
-        const created = cfg.createRow(cod, nom);
+        const nextCod =
+          rows.reduce((m, r) => Math.max(m, cfg.getCod(r)), 0) + 1;
+        const created = cfg.createRow(nextCod, nom);
         rows.push(created);
         return { ok: true, row: created };
       }
@@ -122,11 +117,11 @@ function createMemoryRefRepo<TRow>(cfg: MemoryRefConfig<TRow>): {
         (typeof ordering === "object" && ordering.column.endsWith("Cod"));
       const sorted = [...rows].sort((a, b) =>
         isCodeSort
-          ? cfg.getCod(a).localeCompare(cfg.getCod(b))
+          ? cfg.getCod(a) - cfg.getCod(b)
           : cfg
               .getNom(a)
               .localeCompare(cfg.getNom(b), "es", { sensitivity: "case" }) ||
-            cfg.getCod(a).localeCompare(cfg.getCod(b)),
+            cfg.getCod(a) - cfg.getCod(b),
       );
       return { data: sorted, count: sorted.length };
     },
@@ -207,14 +202,14 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     const { repo, guardarSpy } = createMemoryRefRepo<DependenciaRow>({
       initial: [
         {
-          DepCod: asDepCod("1"),
+          DepCod: asDepCod(1),
           DepNom: "Sistemas",
           DepEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
         },
         {
-          DepCod: asDepCod("3"),
+          DepCod: asDepCod(3),
           DepNom: "Almacen",
           DepEstReg: EST_I,
           created_at: "2026-01-01T00:00:00Z",
@@ -227,7 +222,7 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
       codeField: "DepCod",
       nomField: "DepNom",
       createRow: (cod, nom) => ({
-        DepCod: asDepCod(cod),
+        DepCod: asDepCod(cod ?? 0),
         DepNom: nom,
         DepEstReg: EST_A,
         created_at: "2026-01-01T00:00:00Z",
@@ -235,21 +230,21 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
       }),
       updateNom: (r, nom) => ({ ...r, DepNom: nom }),
       updateEst: (r, est) => ({ ...r, DepEstReg: est }),
-      blockedCode: "1",
+      blockedCode: 1,
     });
 
     renderCatalog(dependenciaConfig, repo, "/dependencia");
     expect(await screen.findByText("Sistemas")).toBeTruthy();
 
-    // Adición con duplicado por nombre -> [E-DUP] conserva draft
+    // Adición con duplicado por nombre -> [E-DUP] conserva draft (sin input de código)
     fireEvent.click(screen.getByTestId("op-adicionar"));
     expect(screen.getByTestId("record-mode-badge").textContent).toBe(
       "MODO ADICIÓN",
     );
     await waitFor(() => {
-      expect(document.querySelector('input[name="DepCod"]')).not.toBeNull();
+      expect(document.querySelector('input[name="DepNom"]')).not.toBeNull();
     });
-    setIonFieldValue("DepCod", "12");
+    expect(document.querySelector('input[name="DepCod"]')).toBeNull();
     setIonFieldValue("DepNom", "sistemas");
     fireEvent.click(screen.getByTestId("op-guardar"));
 
@@ -293,6 +288,12 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     expect(
       document.querySelector('input[name="DepCod"]')?.hasAttribute("readonly"),
     ).toBe(true);
+    expect(
+      Reflect.get(
+        document.querySelector('input[name="DepCod"]') ?? {},
+        "value",
+      ),
+    ).toBe("3");
     setIonFieldValue("DepNom", "Almacén Central");
     await waitFor(() => {
       const nomEl = document.querySelector('input[name="DepNom"]');
@@ -339,7 +340,7 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     const { repo } = createMemoryRefRepo<CargoRow>({
       initial: [
         {
-          CarCod: asCarCod("1"),
+          CarCod: asCarCod(1),
           CarNom: "Analista de Sistemas",
           CarEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
@@ -352,7 +353,7 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
       codeField: "CarCod",
       nomField: "CarNom",
       createRow: (cod, nom) => ({
-        CarCod: asCarCod(cod),
+        CarCod: asCarCod(cod ?? 0),
         CarNom: nom,
         CarEstReg: EST_A,
         created_at: "2026-01-01T00:00:00Z",
@@ -360,7 +361,7 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
       }),
       updateNom: (r, nom) => ({ ...r, CarNom: nom }),
       updateEst: (r, est) => ({ ...r, CarEstReg: est }),
-      blockedCode: "1",
+      blockedCode: 1,
     });
 
     renderCatalog(cargoConfig, repo, "/cargo");
@@ -371,9 +372,9 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
       "MODO ADICIÓN",
     );
     await waitFor(() => {
-      expect(document.querySelector('input[name="CarCod"]')).not.toBeNull();
+      expect(document.querySelector('input[name="CarNom"]')).not.toBeNull();
     });
-    setIonFieldValue("CarCod", "20");
+    expect(document.querySelector('input[name="CarCod"]')).toBeNull();
     setIonFieldValue("CarNom", "analista de sistemas");
     fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
@@ -394,8 +395,8 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
       (await screen.findAllByText("Arquitecto Cloud")).length,
     ).toBeGreaterThan(0);
 
-    // CarCod readonly en Modificación
-    fireEvent.click(screen.getByTestId("record-row-20"));
+    // CarCod readonly en Modificación (código auto-asignado #2)
+    fireEvent.click(screen.getByTestId("record-row-2"));
     fireEvent.click(screen.getByTestId("op-modificar"));
     expect(screen.getByTestId("record-mode-badge").textContent).toBe(
       "MODO MODIFICACIÓN",
@@ -406,6 +407,12 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     expect(
       document.querySelector('input[name="CarCod"]')?.hasAttribute("readonly"),
     ).toBe(true);
+    expect(
+      Reflect.get(
+        document.querySelector('input[name="CarCod"]') ?? {},
+        "value",
+      ),
+    ).toBe("2");
     setIonFieldValue("CarNom", "Arquitecto Enterprise");
     await waitFor(() => {
       const nomEl = document.querySelector('input[name="CarNom"]');
@@ -413,17 +420,17 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     });
     fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
-      expect(screen.getByTestId("record-row-20").textContent).toContain(
+      expect(screen.getByTestId("record-row-2").textContent).toContain(
         "Arquitecto Enterprise",
       );
     });
 
-    fireEvent.click(screen.getByTestId("record-row-20"));
+    fireEvent.click(screen.getByTestId("record-row-2"));
     fireEvent.click(screen.getByTestId("op-inactivar"));
     fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
       expect(
-        screen.getByTestId("record-row-20").querySelector('[data-estado="I"]'),
+        screen.getByTestId("record-row-2").querySelector('[data-estado="I"]'),
       ).not.toBeNull();
     });
 
@@ -431,7 +438,7 @@ describe("ReferenceMaintenancePage para DEPENDENCIA y CARGO (Fase 7 unit)", () =
     fireEvent.click(screen.getByTestId("op-guardar"));
     await waitFor(() => {
       expect(
-        screen.getByTestId("record-row-20").querySelector('[data-estado="*"]'),
+        screen.getByTestId("record-row-2").querySelector('[data-estado="*"]'),
       ).not.toBeNull();
     });
 

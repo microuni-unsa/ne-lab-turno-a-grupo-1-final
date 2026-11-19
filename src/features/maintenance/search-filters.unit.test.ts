@@ -3,7 +3,6 @@ import {
   EST_A,
   EST_I,
   EST_X,
-  MAX_INTEGER,
   TABLE_CARGO,
   TABLE_DEPENDENCIA,
   TABLE_PAIS,
@@ -20,15 +19,17 @@ import {
 } from "@/features/maintenance/use-maintenance-list";
 
 describe("Fase 5: sanitización AdvancedSearchFilters y etiquetas ORDER BY (R18-R20)", () => {
-  it("acepta códigos string alfanuméricos y rechaza vacíos o mayores a MAX_CODE_LEN (R20)", () => {
+  it("acepta códigos numéricos positivos y rechaza vacíos, no numéricos o no positivos (R20)", () => {
     expect(parsePositiveCodeFilter("")).toBeUndefined();
     expect(parsePositiveCodeFilter("   ")).toBeUndefined();
     expect(parsePositiveCodeFilter(Number.NaN)).toBeUndefined();
+    expect(parsePositiveCodeFilter("PER")).toBeUndefined();
     expect(parsePositiveCodeFilter("A".repeat(17))).toBeUndefined();
 
-    expect(parsePositiveCodeFilter("PER")).toBe("PER");
-    expect(parsePositiveCodeFilter("42")).toBe("42");
-    expect(parsePositiveCodeFilter(7)).toBe("7");
+    expect(parsePositiveCodeFilter("42")).toBe(42);
+    expect(parsePositiveCodeFilter(7)).toBe(7);
+    expect(parsePositiveCodeFilter(0)).toBeUndefined();
+    expect(parsePositiveCodeFilter(-3)).toBeUndefined();
   });
 
   it("omite campos en blanco, preserva subconjuntos EstReg y trata {A,I,*} como sin filtro (R19)", () => {
@@ -42,12 +43,12 @@ describe("Fase 5: sanitización AdvancedSearchFilters y etiquetas ORDER BY (R18-
     expect(hasActiveAdvancedFilters(cleanDefault)).toBe(false);
 
     const subset = sanitizeAdvancedFilters({
-      Cod: "PER",
+      Cod: 7,
       Nom: " Perú ",
       EstReg: [EST_I, EST_A],
     });
     expect(subset).toEqual({
-      Cod: "PER",
+      Cod: 7,
       Nom: "Perú",
       EstReg: [EST_A, EST_I],
     });
@@ -67,11 +68,11 @@ describe("Fase 5: sanitización AdvancedSearchFilters y etiquetas ORDER BY (R18-
     expect(onlyInactive).toEqual({ EstReg: [EST_I] });
 
     const backToDraft = advancedFiltersToDraft({
-      Cod: "SIS",
+      Cod: 42,
       Nom: "Sistemas",
       EstReg: [EST_X],
     });
-    expect(backToDraft.codText).toBe("SIS");
+    expect(backToDraft.codText).toBe("42");
     expect(backToDraft.nomText).toBe("Sistemas");
     expect(backToDraft.estReg).toEqual([EST_X]);
   });

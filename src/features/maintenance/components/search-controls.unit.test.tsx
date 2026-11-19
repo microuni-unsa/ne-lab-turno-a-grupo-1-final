@@ -23,21 +23,21 @@ import { paisConfig } from "@/features/reference/reference-config";
 
 const ROWS: readonly PaisRow[] = [
   {
-    PaiCod: asPaiCod("1"),
+    PaiCod: asPaiCod(1),
     PaiNom: "Perú",
     PaiEstReg: EST_A,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    PaiCod: asPaiCod("2"),
+    PaiCod: asPaiCod(2),
     PaiNom: "Bolivia",
     PaiEstReg: EST_I,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    PaiCod: asPaiCod("3"),
+    PaiCod: asPaiCod(3),
     PaiNom: "Argentina",
     PaiEstReg: EST_X,
     created_at: "2026-01-01T00:00:00Z",
@@ -52,9 +52,7 @@ function createMockRepo(): RepoReader<PaisRow> {
         ordering === "alternate" ||
         (typeof ordering === "object" && ordering.column === "PaiCod");
       const sorted = [...ROWS].sort((a, b) =>
-        isCodeSort
-          ? a.PaiCod.localeCompare(b.PaiCod)
-          : a.PaiNom.localeCompare(b.PaiNom),
+        isCodeSort ? a.PaiCod - b.PaiCod : a.PaiNom.localeCompare(b.PaiNom),
       );
       return { data: sorted, count: sorted.length };
     },
@@ -92,7 +90,7 @@ function SearchHarness({
 }) {
   const [simpleInput, setSimpleInput] = React.useState("");
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [selectedCode, setSelectedCode] = React.useState<string | null>(null);
+  const [selectedCode, setSelectedCode] = React.useState<number | null>(null);
 
   const list = useMaintenanceList({ table: TABLE_PAIS, repo });
 

@@ -1,6 +1,6 @@
-import { cn } from "cn";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Drawer,
   DrawerContent,
@@ -109,12 +109,17 @@ export function AdvancedSearchDrawer({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent initialBreakpoint={0.75} breakpoints={[0, 0.75, 0.9]}>
-        <DrawerHeader className="px-0 pb-3">
+      <DrawerContent
+        initialBreakpoint={1}
+        breakpoints={[0, 1]}
+        autoHeight
+        className="pt-4"
+      >
+        <DrawerHeader className="px-0 pb-4">
           <DrawerTitle>Búsqueda avanzada · {tableLabel}</DrawerTitle>
         </DrawerHeader>
 
-        <div className="flex max-h-[52dvh] flex-col gap-3 overflow-y-auto overscroll-contain pb-2">
+        <div className="flex flex-col gap-4 overflow-visible pb-1">
           <div className="flex flex-col gap-1.5">
             <Label
               htmlFor="adv-filter-cod"
@@ -126,6 +131,7 @@ export function AdvancedSearchDrawer({
               id="adv-filter-cod"
               name="advCod"
               type="text"
+              inputMode="numeric"
               value={draft.codText}
               placeholder="Ej. 1"
               data-testid="adv-filter-cod"
@@ -154,34 +160,30 @@ export function AdvancedSearchDrawer({
           </div>
 
           {visibleEstOptions.length > 0 && (
-            <fieldset className="m-0 flex flex-col gap-1.5 border-0 p-0">
-              <legend className="p-0 text-xs font-medium text-foreground">
+            <fieldset className="m-0 flex flex-col border-0 p-0">
+              <legend className="mb-2 p-0 text-xs font-medium text-foreground">
                 Estado de registro
               </legend>
-              <div
-                className={cn(
-                  "grid gap-2",
-                  visibleEstOptions.length === 1
-                    ? "grid-cols-1"
-                    : visibleEstOptions.length === 2
-                      ? "grid-cols-2"
-                      : "grid-cols-3",
-                )}
-              >
+              <div className="flex flex-col gap-1 rounded-lg border border-border bg-card px-1 py-1">
                 {visibleEstOptions.map((opt) => {
                   const isSelected = draft.estReg.includes(opt.value);
                   return (
-                    <Button
+                    <button
                       key={opt.value}
                       type="button"
-                      variant={isSelected ? "default" : "outline"}
-                      data-testid={`adv-est-${opt.value}`}
                       aria-pressed={isSelected}
+                      data-testid={`adv-est-${opt.value}`}
                       onClick={() => toggleEstado(opt.value)}
-                      className="h-11 min-h-11 w-full justify-center text-sm font-medium"
+                      className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-md px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50 active:bg-muted"
                     >
-                      {opt.label}
-                    </Button>
+                      <Checkbox
+                        checked={isSelected}
+                        tabIndex={-1}
+                        aria-hidden
+                        className="pointer-events-none"
+                      />
+                      <span>{opt.label}</span>
+                    </button>
                   );
                 })}
               </div>
@@ -191,7 +193,7 @@ export function AdvancedSearchDrawer({
           {renderExtraFilters?.(draft, patchDraft)}
         </div>
 
-        <DrawerFooter className="grid grid-cols-2 gap-2 px-0 pt-3">
+        <DrawerFooter className="grid grid-cols-2 gap-2 px-0 pt-4">
           <Button
             type="button"
             variant="outline"

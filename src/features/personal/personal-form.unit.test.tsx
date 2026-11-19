@@ -42,7 +42,7 @@ const TEST_TODAY = "2026-05-15";
 
 function createCatalogRepo<TRow>(
   rows: readonly TRow[],
-  getCod: (r: TRow) => string,
+  getCod: (r: TRow) => number,
   getNom: (r: TRow) => string,
   getEst: (r: TRow) => EstReg,
   codeCol: string,
@@ -53,7 +53,7 @@ function createCatalogRepo<TRow>(
       const sorted = [...rows].sort(
         (a, b) =>
           getNom(a).localeCompare(getNom(b), "es", { sensitivity: "case" }) ||
-          getCod(a).localeCompare(getCod(b)),
+          getCod(a) - getCod(b),
       );
       return { data: sorted, count: sorted.length };
     },
@@ -71,21 +71,21 @@ function createCatalogRepo<TRow>(
 function createSampleCatalogs() {
   const pais: PaisRow[] = [
     {
-      PaiCod: asPaiCod("1"),
+      PaiCod: asPaiCod(1),
       PaiNom: "Perú",
       PaiEstReg: EST_A,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },
     {
-      PaiCod: asPaiCod("2"),
+      PaiCod: asPaiCod(2),
       PaiNom: "Chile",
       PaiEstReg: EST_A,
       created_at: "2026-01-01T00:00:00Z",
       updated_at: "2026-01-01T00:00:00Z",
     },
     {
-      PaiCod: asPaiCod("3"),
+      PaiCod: asPaiCod(3),
       PaiNom: "Colombia",
       PaiEstReg: EST_I,
       created_at: "2026-01-01T00:00:00Z",
@@ -94,7 +94,7 @@ function createSampleCatalogs() {
   ];
   const dependencia: DependenciaRow[] = [
     {
-      DepCod: asDepCod("1"),
+      DepCod: asDepCod(1),
       DepNom: "Sistemas",
       DepEstReg: EST_A,
       created_at: "2026-01-01T00:00:00Z",
@@ -103,7 +103,7 @@ function createSampleCatalogs() {
   ];
   const cargo: CargoRow[] = [
     {
-      CarCod: asCarCod("1"),
+      CarCod: asCarCod(1),
       CarNom: "Analista de Sistemas",
       CarEstReg: EST_A,
       created_at: "2026-01-01T00:00:00Z",
@@ -159,12 +159,16 @@ function createMemoryPersonalRepo(
     return [...items].sort((a, b) =>
       isNameSort
         ? a.PerNom.localeCompare(b.PerNom, "es", { sensitivity: "case" }) ||
-          a.PerCod.localeCompare(b.PerCod)
-        : a.PerCod.localeCompare(b.PerCod),
+          a.PerCod - b.PerCod
+        : a.PerCod - b.PerCod,
     );
   };
 
-  const checkFk = (pai: string, dep: string, car: string) => {
+  const checkFk = (
+    pai: number | undefined,
+    dep: number | undefined,
+    car: number | undefined,
+  ) => {
     const p = catalogs.pais.find((r) => r.PaiCod === pai);
     if (!p) return createFailure(ERROR_CODES.REF, "PerPaiCod");
     if (p.PaiEstReg !== EST_A)
@@ -183,22 +187,15 @@ function createMemoryPersonalRepo(
   const guardarSpy = vi.fn(
     async (op: PendingOp): Promise<GuardarResult<PersonalRow>> => {
       if (op.kind === "adición") {
-        const cod = String(Reflect.get(op.payload, "PerCod") ?? "").trim();
         const nom = String(Reflect.get(op.payload, "PerNom") ?? "").trim();
         const dni = String(Reflect.get(op.payload, "PerDNI") ?? "").trim();
         const fecnac = String(
           Reflect.get(op.payload, "PerFecNac") ?? "",
         ).trim();
-        const pai = String(Reflect.get(op.payload, "PerPaiCod") ?? "").trim();
-        const dep = String(Reflect.get(op.payload, "PerDepCod") ?? "").trim();
-        const car = String(Reflect.get(op.payload, "PerCarCod") ?? "").trim();
+        const pai = Reflect.get(op.payload, "PerPaiCod") as number | undefined;
+        const dep = Reflect.get(op.payload, "PerDepCod") as number | undefined;
+        const car = Reflect.get(op.payload, "PerCarCod") as number | undefined;
 
-        if (rows.some((r) => r.PerCod === cod)) {
-          return {
-            ok: false,
-            failures: [createFailure(ERROR_CODES.DUP, "PerCod")],
-          };
-        }
         if (rows.some((r) => r.PerDNI === dni)) {
           return {
             ok: false,
@@ -209,14 +206,15 @@ function createMemoryPersonalRepo(
         if (fkErr) {
           return { ok: false, failures: [fkErr] };
         }
+        const nextCod = rows.reduce((m, r) => Math.max(m, r.PerCod), 0) + 1;
         const created: PersonalRow = {
-          PerCod: asPerCod(cod),
+          PerCod: asPerCod(nextCod),
           PerNom: nom,
           PerDNI: dni,
           PerFecNac: fecnac,
-          PerPaiCod: asPaiCod(pai),
-          PerDepCod: asDepCod(dep),
-          PerCarCod: asCarCod(car),
+          PerPaiCod: asPaiCod(pai ?? 0),
+          PerDepCod: asDepCod(dep ?? 0),
+          PerCarCod: asCarCod(car ?? 0),
           PerEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -246,9 +244,9 @@ function createMemoryPersonalRepo(
         const fecnac = String(
           Reflect.get(op.payload, "PerFecNac") ?? "",
         ).trim();
-        const pai = String(Reflect.get(op.payload, "PerPaiCod") ?? "").trim();
-        const dep = String(Reflect.get(op.payload, "PerDepCod") ?? "").trim();
-        const car = String(Reflect.get(op.payload, "PerCarCod") ?? "").trim();
+        const pai = Reflect.get(op.payload, "PerPaiCod") as number | undefined;
+        const dep = Reflect.get(op.payload, "PerDepCod") as number | undefined;
+        const car = Reflect.get(op.payload, "PerCarCod") as number | undefined;
         if (rows.some((r) => r.PerCod !== curr.PerCod && r.PerDNI === dni)) {
           return {
             ok: false,
@@ -264,9 +262,9 @@ function createMemoryPersonalRepo(
           PerNom: nom,
           PerDNI: dni,
           PerFecNac: fecnac,
-          PerPaiCod: asPaiCod(pai),
-          PerDepCod: asDepCod(dep),
-          PerCarCod: asCarCod(car),
+          PerPaiCod: asPaiCod(pai ?? curr.PerPaiCod),
+          PerDepCod: asDepCod(dep ?? curr.PerDepCod),
+          PerCarCod: asCarCod(car ?? curr.PerCarCod),
           updated_at: "2026-05-15T12:00:00Z",
         };
         rows[idx] = updated;
@@ -319,7 +317,7 @@ function createMemoryPersonalRepo(
           return false;
         }
         if (
-          typeof filters.PaiCod === "string" &&
+          typeof filters.PaiCod === "number" &&
           r.PerPaiCod !== filters.PaiCod
         ) {
           return false;
@@ -433,13 +431,13 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     const { repo, guardarSpy } = createMemoryPersonalRepo(
       [
         {
-          PerCod: asPerCod("1"),
+          PerCod: asPerCod(1),
           PerNom: "Juan Pérez",
           PerDNI: "41234567",
           PerFecNac: "1995-03-14",
-          PerPaiCod: asPaiCod("1"),
-          PerDepCod: asDepCod("1"),
-          PerCarCod: asCarCod("1"),
+          PerPaiCod: asPaiCod(1),
+          PerDepCod: asDepCod(1),
+          PerCarCod: asCarCod(1),
           PerEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -455,8 +453,8 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     expect(screen.getByTestId("record-mode-badge").textContent).toBe(
       "MODO ADICIÓN",
     );
+    expect(document.querySelector('input[name="PerCod"]')).toBeNull();
 
-    await setIonFieldValue("PerCod", "10");
     await setIonFieldValue("PerNom", "A");
     await setIonFieldValue("PerDNI", "12a");
     await pickCalendarDate("PerFecNac", "2012", "0", "15");
@@ -472,11 +470,9 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
 
     expect(guardarSpy).not.toHaveBeenCalled();
 
-    // Draft conserved after R22 batch errors
-    const codInput = document.querySelector('input[name="PerCod"]');
+    // Draft conserved after R22 batch errors (sin input de código en Adición)
     const nomInput = document.querySelector('input[name="PerNom"]');
     const dniInput = document.querySelector('input[name="PerDNI"]');
-    expect(Reflect.get(codInput ?? {}, "value")).toBe("10");
     expect(Reflect.get(nomInput ?? {}, "value")).toBe("A");
     expect(Reflect.get(dniInput ?? {}, "value")).toBe("12a");
 
@@ -497,10 +493,10 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     fireEvent.click(screen.getByTestId("op-guardar"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("record-row-10")).toBeTruthy();
+      expect(screen.getByTestId("record-row-2")).toBeTruthy();
     });
     expect(guardarSpy).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId("record-row-10").textContent).toContain(
+    expect(screen.getByTestId("record-row-2").textContent).toContain(
       "Juan Pérez",
     );
   });
@@ -510,13 +506,13 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     const { repo } = createMemoryPersonalRepo(
       [
         {
-          PerCod: asPerCod("2"),
+          PerCod: asPerCod(2),
           PerNom: "María Gómez",
           PerDNI: "42345678",
           PerFecNac: "1992-07-22",
-          PerPaiCod: asPaiCod("3"), // Colombia (EST_I)
-          PerDepCod: asDepCod("1"),
-          PerCarCod: asCarCod("1"),
+          PerPaiCod: asPaiCod(3), // Colombia (EST_I)
+          PerDepCod: asDepCod(1),
+          PerCarCod: asCarCod(1),
           PerEstReg: EST_I,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
@@ -594,6 +590,12 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     expect(
       document.querySelector('input[name="PerCod"]')?.hasAttribute("readonly"),
     ).toBe(true);
+    expect(
+      Reflect.get(
+        document.querySelector('input[name="PerCod"]') ?? {},
+        "value",
+      ),
+    ).toBe("2");
     await waitFor(() => {
       expect(
         screen.getByTestId("gsel-trigger-PerPaiCod").textContent,
@@ -635,25 +637,25 @@ describe("PersonalMaintenancePage (Fase 9 unit UI)", () => {
     const { repo } = createMemoryPersonalRepo(
       [
         {
-          PerCod: asPerCod("1"),
+          PerCod: asPerCod(1),
           PerNom: "Juan Pérez",
           PerDNI: "41234567",
           PerFecNac: "1995-03-14",
-          PerPaiCod: asPaiCod("1"),
-          PerDepCod: asDepCod("1"),
-          PerCarCod: asCarCod("1"),
+          PerPaiCod: asPaiCod(1),
+          PerDepCod: asDepCod(1),
+          PerCarCod: asCarCod(1),
           PerEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
         },
         {
-          PerCod: asPerCod("25"),
+          PerCod: asPerCod(25),
           PerNom: "Elena Paz",
           PerDNI: "78901234",
           PerFecNac: "1991-09-09",
-          PerPaiCod: asPaiCod("2"),
-          PerDepCod: asDepCod("1"),
-          PerCarCod: asCarCod("1"),
+          PerPaiCod: asPaiCod(2),
+          PerDepCod: asDepCod(1),
+          PerCarCod: asCarCod(1),
           PerEstReg: EST_A,
           created_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",

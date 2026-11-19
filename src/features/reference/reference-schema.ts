@@ -1,39 +1,30 @@
 import * as z from "zod";
-import { ERROR_CODES, MAX_CODE_LEN, MAX_NAME, MIN_NAME } from "@/core";
+import { ERROR_CODES, MAX_NAME, MIN_CODE, MIN_NAME } from "@/core";
 import { getFieldLabel } from "@/lib/error-catalog";
 
 export interface ReferenceSchemaOptions {
   readonly codeField: string;
   readonly nomField: string;
   readonly isUpdate: boolean;
-  readonly maxCode?: number;
 }
 
-export function createCodeSchema(
-  fieldName: string,
-  _maxLimit: number,
-  isUpdate: boolean,
-) {
+export function createCodeSchema(fieldName: string, isUpdate: boolean) {
   const label = getFieldLabel(fieldName);
-  const requiredSchema = z
-    .string({
+  const codeSchema = z
+    .number({
       error: (issue) =>
         issue.input === undefined || issue.input === null
           ? `[${ERROR_CODES.REQUIRED}] ${label} es obligatorio.`
-          : `[${ERROR_CODES.FORMAT}] ${label} debe ser texto válido.`,
+          : `[${ERROR_CODES.FORMAT}] ${label} debe ser un número entero.`,
     })
-    .trim()
-    .min(1, {
-      error: `[${ERROR_CODES.REQUIRED}] ${label} es obligatorio.`,
+    .int({
+      error: `[${ERROR_CODES.FORMAT}] ${label} debe ser un número entero.`,
     })
-    .max(MAX_CODE_LEN, {
-      error: `[${ERROR_CODES.RANGE}] ${label} debe tener máximo ${MAX_CODE_LEN} caracteres.`,
-    })
-    .regex(/^[A-Za-z0-9._-]+$/, {
-      error: `[${ERROR_CODES.FORMAT}] ${label} solo puede contener letras, números, punto, guión o guión bajo.`,
+    .min(MIN_CODE, {
+      error: `[${ERROR_CODES.RANGE}] ${label} debe ser mayor a 0.`,
     });
 
-  return isUpdate ? requiredSchema.optional() : requiredSchema;
+  return isUpdate ? codeSchema : codeSchema.optional();
 }
 
 export function createNameSchema(fieldName: string) {
@@ -65,10 +56,9 @@ export function createReferenceSchema({
   codeField,
   nomField,
   isUpdate,
-  maxCode = MAX_CODE_LEN,
 }: ReferenceSchemaOptions) {
   return z.object({
-    [codeField]: createCodeSchema(codeField, maxCode, isUpdate),
+    [codeField]: createCodeSchema(codeField, isUpdate),
     [nomField]: createNameSchema(nomField),
   });
 }

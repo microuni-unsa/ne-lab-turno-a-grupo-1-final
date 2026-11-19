@@ -107,7 +107,7 @@ export function MaintenanceLayout({
       </IonHeader>
 
       <IonContent ref={contentRef}>
-        <main className="mx-auto flex w-full max-w-md flex-col gap-3 px-3 pt-3 pb-5">
+        <main className="mx-auto flex w-full max-w-md flex-col gap-3 px-3 pt-5 pb-5">
           {!isOnline && (
             <div
               role="alert"

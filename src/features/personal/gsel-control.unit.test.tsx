@@ -28,28 +28,28 @@ import { AppStructForm, type AppStructure } from "@/lib/microform";
 
 const PAIS_SAMPLE: PaisRow[] = [
   {
-    PaiCod: asPaiCod("1"),
+    PaiCod: asPaiCod(1),
     PaiNom: "Perú",
     PaiEstReg: EST_A,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    PaiCod: asPaiCod("2"),
+    PaiCod: asPaiCod(2),
     PaiNom: "Chile",
     PaiEstReg: EST_A,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    PaiCod: asPaiCod("3"),
+    PaiCod: asPaiCod(3),
     PaiNom: "Colombia",
     PaiEstReg: EST_I,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    PaiCod: asPaiCod("4"),
+    PaiCod: asPaiCod(4),
     PaiNom: "Ecuador",
     PaiEstReg: EST_X,
     created_at: "2026-01-01T00:00:00Z",
@@ -59,7 +59,7 @@ const PAIS_SAMPLE: PaisRow[] = [
 
 const formSchema = z.object({
   PerNom: z.string(),
-  PerPaiCod: z.string().min(1),
+  PerPaiCod: z.number().int().positive(),
 });
 
 type HarnessValues = z.infer<typeof formSchema>;
@@ -100,7 +100,7 @@ function Harness({
   initialPais,
   onSaveSpy,
 }: {
-  readonly initialPais?: string;
+  readonly initialPais?: number;
   readonly onSaveSpy: (values: HarnessValues) => void;
 }) {
   const binding = createGselBinding({
@@ -127,7 +127,7 @@ function Harness({
           placeholder: "Seleccionar país",
           asyncSource: binding.asyncSource,
           resolveLabel: binding.resolveLabel,
-          valueType: "string",
+          valueType: "number",
           colspan: 12,
         },
       ],
@@ -202,7 +202,7 @@ describe("AsyncComboboxControl con G-SEL en AppStructForm (Fase 8 unit UI)", () 
 
     fireEvent.click(screen.getByTestId("gsel-cancelar-PerPaiCod"));
     await waitFor(() => {
-      expect(screen.getByTestId("pai-val").textContent).toBe("");
+      expect(screen.getByTestId("pai-val").textContent).toBe("empty");
       expect(screen.getByTestId("nom-val").textContent).toBe("Lucía Ramos");
     });
     expect(saveSpy).not.toHaveBeenCalled();
@@ -213,7 +213,7 @@ describe("AsyncComboboxControl con G-SEL en AppStructForm (Fase 8 unit UI)", () 
 
     await waitFor(() => {
       expect(screen.getByTestId("pai-val").textContent).toBe("2");
-      expect(screen.getByTestId("pai-type").textContent).toBe("string");
+      expect(screen.getByTestId("pai-type").textContent).toBe("number");
       expect(
         screen.getByTestId("gsel-trigger-PerPaiCod").textContent,
       ).toContain("Chile");
@@ -228,7 +228,7 @@ describe("AsyncComboboxControl con G-SEL en AppStructForm (Fase 8 unit UI)", () 
     render(
       <IonApp>
         <IonicFeedbackProvider>
-          <Harness initialPais="3" onSaveSpy={saveSpy} />
+          <Harness initialPais={3} onSaveSpy={saveSpy} />
         </IonicFeedbackProvider>
       </IonApp>,
     );

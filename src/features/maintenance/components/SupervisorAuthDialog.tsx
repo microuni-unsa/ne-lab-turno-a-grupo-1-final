@@ -19,11 +19,11 @@ export interface SupervisorAuthDialogProps {
     code: string,
   ) =>
     | Promise<
-        { readonly ok: boolean; readonly error?: string } | boolean | void
+        { readonly ok: boolean; readonly error?: string } | boolean | undefined
       >
     | { readonly ok: boolean; readonly error?: string }
     | boolean
-    | void;
+    | undefined;
 }
 
 /**
