@@ -25,26 +25,11 @@
           inherit system;
           config.allowUnfree = true;
         };
-        shellPkgs = pkgs.lib.flatten [
-          (with pkgs; [
-          ])
-          (with unstable; [
-            bun
-          ])
-        ];
-        ldPkgs = with pkgs; [
-          stdenv.cc.cc
-          zlib
-          glib
-          libxcb
-          libglvnd
-        ];
       in
       {
         devShells.default = pkgs.mkShell {
-          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath ldPkgs;
-          packages = pkgs.lib.flatten [
-            shellPkgs
+          packages = with pkgs; [
+            bun
           ];
           shellHook = "";
           buildInputs = [ pkgs.bashInteractive ];
